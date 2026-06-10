@@ -69,6 +69,11 @@ body {
   --spi-space-1200: 48px;
 }
 
+.dashboard-header-title h1{
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b4a8f;
+}
 .card-header{
   background-color: #1b4a8f !important;
   color: #fff !important;
