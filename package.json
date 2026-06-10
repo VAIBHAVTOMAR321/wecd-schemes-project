@@ -1,6 +1,7 @@
 {
   "name": "geeyandhara",
   "private": true,
+   "homepage": "/wecdschemes",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

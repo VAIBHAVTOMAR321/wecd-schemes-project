@@ -192,7 +192,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/wecdschemes">
         <AppContent />
       </Router>
     </AuthProvider>
