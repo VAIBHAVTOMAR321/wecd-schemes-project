@@ -127,10 +127,10 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         icon: <FaPlusSquare />,
       },
        {
-        label: "Bal Poshan",
-        path: "#",
-        icon: <FaPlusSquare />,
-      },
+         label: "Bal Poshan",
+         path: "/DemandBalPoshanDistrict",
+         icon: <FaPlusSquare />,
+       },
       {
         label: "Anchal Amrit",
         path: "#",
