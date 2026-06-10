@@ -1,0 +1,36 @@
+/* ==========================================
+   GyanDhara Government Portal Theme
+   Inspired by indian.gov.in - Official Government UI
+   Colors: Saffron (#FF9933), White (#FFFFFF), Green (#138808), Blue (#000080)
+   ========================================== */
+
+:root {
+  /* Government Portal Colors */
+  --gov-saffron: #FF9933;
+  --gov-saffron-dark: #E68A00;
+  --gov-white: #FFFFFF;
+  --gov-green: #138808;
+  --gov-green-dark: #0F6B06;
+  --gov-blue: #000080;
+  --gov-blue-light: #1E3A8A;
+  --gov-gray-light: #F5F5F5;
+  --gov-gray: #E0E0E0;
+  --gov-text-dark: #1A1A1A;
+  --gov-text: #333333;
+  --gov-text-light: #666666;
+  --gov-border: #D1D1D1;
+  --gov-shadow: rgba(0, 0, 0, 0.1);
+  --gov-shadow-sm: rgba(0, 0, 0, 0.05);
+  --gov-radius: 8px;
+  --gov-radius-sm: 4px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--gov-text);
+}
