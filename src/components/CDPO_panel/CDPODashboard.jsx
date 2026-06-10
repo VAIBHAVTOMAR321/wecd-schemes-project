@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Spinner, Table, Button } from "react-bootstrap";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
+import "../../assets/css/dashboard.css";
 import CDPOHeader from "./CDPOHeader";
 import CDPOLeftNav from "./CDPOLeftNav";
 
@@ -32,11 +33,46 @@ const CDPODashboard = () => {
         <CDPOHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="dashboard-box mt-3">
-          <div className="main-heading">
-            <h3 className="mb-4 fw-bold">
-              CDPO Dashboard
-            </h3>
+          <Row className="g-4 mb-4">
+            <Col lg={12} md={6} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Total Sector</Card.Title>
+                  <Card.Text className="stats-count">2</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+           
+          </Row>
+          <div className="dashboard-header-title mb-3">
+            <h1>Our Schemes & Beneficiaries</h1>
           </div>
+          <Row className="g-4">
+            <Col lg={4} md={6} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Mahalakshmi Kit Beneficiary (2024-2025)</Card.Title>
+                  <Card.Text className="stats-count">103</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={6} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Mahalakshmi Kit Beneficiary (2025-2026)</Card.Title>
+                  <Card.Text className="stats-count">241</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={12} sm={12} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Anganwadi Establishment Stats</Card.Title>
+                  <Card.Text className="stats-count">View</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
         
         </Container>
