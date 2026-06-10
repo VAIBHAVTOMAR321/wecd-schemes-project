@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Spinner, Table, Button } from "react-bootstrap";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
+import "../../assets/css/dashboard.css";
 import SectorHeader from "./SectorHeader";
 import SectorLeftNav from "./SectorLeftNav";
 
@@ -54,11 +55,43 @@ useEffect(() => {
         <SectorHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="dashboard-box mt-3">
-          <div className="main-heading">
-            <h3 className="mb-4 fw-bold">
-              Sector Dashboard
-            </h3>
-          </div>
+          <Row className="g-4 mb-4">
+           
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">हमारे कुल आंगनवाड़ी केंद्र</Card.Title>
+                  <Card.Text className="stats-count">32</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2026-27)</Card.Title>
+                  <Card.Text className="stats-count">0</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+        
+       
+             <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2025-26)</Card.Title>
+                  <Card.Text className="stats-count">57</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2024-2025)</Card.Title>
+                  <Card.Text className="stats-count">39</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
         
         </Container>
