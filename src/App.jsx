@@ -40,6 +40,8 @@ import MahalakshmiBen from "./components/CDPO_panel/state_schemes/mahalakshmi_ki
 import MahalaxmiYear from "./components/CDPO_panel/state_schemes/mahalakshmi_kit/MahalaxmiYear";
 import OurBenReq from "./components/CDPO_panel/state_schemes/mahalakshmi_kit/OurBenReq";
 import StockMahalakshmi from "./components/CDPO_panel/state_schemes/mahalakshmi_kit/StockMahalakshmi";
+import DemandMahilaPoshanDistirct from "./components/DPO_panel/demand_rqu/DemandMahilaPoshanDistirct";
+import DemandBalPoshanDistrict from "./components/DPO_panel/demand_rqu/DemandBalPoshanDistrict";
 
 
 
@@ -76,13 +78,13 @@ function AppContent() {
         "/DistributionMahilaPoshFinal",
          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
          "/Stockmahila", "/DistributionBalPoshan",
-          "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile"];
+          "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
   const hideFooterRoutes = ["/SectorDashBoard",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi",
      "/StockAnchal",
       "/DemandAmritAnchalProject",
        "/MahalaxmiYear",
-     "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile"];
+     "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
 
@@ -176,6 +178,8 @@ function AppContent() {
           </ProtectedRoute>
         } />
         <Route path="/DPODashboard" element={<DPODashboard />} />
+        <Route path="/DemandMahilaPoshanDistirct" element={<DemandMahilaPoshanDistirct />} />
+        <Route path="/DemandBalPoshanDistrict" element={<DemandBalPoshanDistrict />} />
         <Route path="/CDPODashboard" element={<CDPODashboard />} />
         <Route path="/DirectorDashboard" element={<DirectorDashboard />} />
         <Route path="/Login" element={<Login />} />
