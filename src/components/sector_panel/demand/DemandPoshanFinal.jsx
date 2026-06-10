@@ -331,7 +331,7 @@ useEffect(() => {
                   <th>अण्डा खाने वाले लाभार्थी</th>
                   <th>अण्डा ना खाने वाले लाभार्थी</th>
                   <th>CDPO Approval Status</th>
-                  <th>Director Approval Status</th>
+                  <th>DPO Approval Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
