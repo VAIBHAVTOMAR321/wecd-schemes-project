@@ -123,7 +123,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
       },
        {
         label: "Mahila Poshan",
-        path: "#",
+        path: "/DemandMahilaPoshanDistirct",
         icon: <FaPlusSquare />,
       },
        {
