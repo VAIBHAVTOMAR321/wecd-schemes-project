@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Form, InputGroup, FormControl, Badge, Alert, Button, Pagination, Modal } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner, Table, Form, InputGroup, FormControl, Badge, Alert, Button, Pagination } from "react-bootstrap";
 import { useAuth } from "../../all_login/AuthContext";
 import "../../../assets/css/supervisorleftnav.css";
 import "../../../assets/css/cdpo.css";
@@ -26,10 +26,10 @@ const DemandMahilaPoshanDistirct = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState("");
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [remarkText, setRemarkText] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editRemark, setEditRemark] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const { user, api, uniqueId, isReady } = useAuth();
 
@@ -130,36 +130,42 @@ const DemandMahilaPoshanDistirct = () => {
     setCurrentPage(page);
   };
 
-  const openModal = (mode, item) => {
-    setModalMode(mode);
-    setSelectedItem(item);
-    setRemarkText("");
-    setShowModal(true);
+  const toggleActionInput = (mode, item) => {
+    setPendingAction(mode);
+    setEditingId(item.id);
+    setEditRemark("");
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedItem(null);
-    setRemarkText("");
-  };
-
-  const submitAction = async () => {
-    if (!selectedItem || !api) return;
-    try {
-      const updateData = {
-        dir_status: modalMode === "approve" ? "Approve" : "Reject",
-        dir_remark: remarkText,
-      };
-      await api.put(`/dpo-mp-demand/${selectedItem.id}/`, updateData);
-      setDemandData((prev) =>
-        prev.map((item) =>
-          item.id === selectedItem.id ? { ...item, ...updateData } : item
-        )
-      );
-      closeModal();
-    } catch (err) {
-      console.error("Failed to update status:", err);
+  const handleActionSubmit = async (mode, item) => {
+    if (!api) return;
+    if (mode === "Reject" && !editRemark.trim()) {
+      alert("Please enter a remark for rejection");
+      return;
     }
+    setSubmitting(true);
+    try {
+      await api.put(`/dpo-mp-demand/`, {
+        id: item.id,
+        dir_status: mode === "approve" ? "Approve" : "Reject",
+        dir_remark: editRemark.trim(),
+      });
+      setEditingId(null);
+      setPendingAction(null);
+      setEditRemark("");
+      setFetchKey((prev) => prev + 1);
+      alert(mode === "approve" ? "Approved successfully" : "Rejected successfully");
+    } catch (err) {
+      console.error("Action failed:", err);
+      alert("Action failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingId(null);
+    setPendingAction(null);
+    setEditRemark("");
   };
 
   const getStatusBadge = (status) => {
@@ -202,8 +208,46 @@ const DemandMahilaPoshanDistirct = () => {
           <td>{item.tot_noteat_egg_bene ?? "0"}</td>
           <td>{getStatusBadge(item.cdpo_status)}</td>
           <td>
-            <Button variant="success" size="sm" className="me-1" onClick={() => openModal("approve", item)}>Approve</Button>
-            <Button variant="danger" size="sm" onClick={() => openModal("reject", item)}>Reject</Button>
+            {editingId === item.id ? (
+              <div className="d-flex flex-column gap-1">
+                <FormControl
+                  size="sm"
+                  placeholder="Enter remark"
+                  value={editRemark}
+                  onChange={(e) => setEditRemark(e.target.value)}
+                />
+                <div className="d-flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="success"
+                    onClick={() => handleActionSubmit(pendingAction, item)}
+                    disabled={submitting}
+                  >
+                    {submitting ? "Saving..." : "Save"}
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={handleCancel} disabled={submitting}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="d-flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline-success"
+                  onClick={() => toggleActionInput("approve", item)}
+                >
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline-danger"
+                  onClick={() => toggleActionInput("reject", item)}
+                >
+                  Reject
+                </Button>
+              </div>
+            )}
           </td>
         </tr>
       );
@@ -253,45 +297,33 @@ const DemandMahilaPoshanDistirct = () => {
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     const items = [];
-    for (let i = 1; i <= totalPages; i++) {
-      items.push(
-        <Pagination.Item key={i} active={i === currentPage} onClick={() => handlePageChange(i)}>
-          {i}
-        </Pagination.Item>
-      );
+    items.push(<Pagination.First key="first" onClick={() => handlePageChange(1)} disabled={currentPage === 1} />);
+    items.push(<Pagination.Prev key="prev" onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />);
+    items.push(<Pagination.Item key={1} active={1 === currentPage} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
+    if (totalPages > 1) {
+      items.push(<Pagination.Ellipsis key="ellipsis-start" disabled />);
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = startPage; i <= endPage; i++) {
+        items.push(
+          <Pagination.Item key={i} active={i === currentPage} onClick={() => handlePageChange(i)}>
+            {i}
+          </Pagination.Item>
+        );
+      }
+      if (totalPages > 2) {
+        items.push(<Pagination.Ellipsis key="ellipsis-end" disabled />);
+      }
+      items.push(<Pagination.Item key={totalPages} active={totalPages === currentPage} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
     }
+    items.push(<Pagination.Next key="next" onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />);
+    items.push(<Pagination.Last key="last" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />);
     return (
       <div className="d-flex justify-content-center mt-3">
         <Pagination>{items}</Pagination>
       </div>
     );
   };
-
-  const renderModal = () => (
-    <Modal show={showModal} onHide={closeModal}>
-      <Modal.Header closeButton>
-        <Modal.Title>{modalMode === "approve" ? "Approve" : "Reject"} Demand</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form.Group className="mb-3">
-          <Form.Label>Remark</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            value={remarkText}
-            onChange={(e) => setRemarkText(e.target.value)}
-            placeholder={modalMode === "approve" ? "Optional remark..." : "Enter remark..."}
-          />
-        </Form.Group>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={closeModal}>Close</Button>
-        <Button variant={modalMode === "approve" ? "success" : "danger"} onClick={submitAction}>
-          {modalMode === "approve" ? "Approve" : "Reject"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  );
 
   return (
     <div className="dashboard-container">
@@ -412,7 +444,6 @@ const DemandMahilaPoshanDistirct = () => {
               </Card.Footer>
             </Card>
             {renderPagination()}
-            {renderModal()}
 
             <h5 className="mb-3 fw-bold">Approve List By DPO</h5>
             <Card className="border-0 shadow-sm">
