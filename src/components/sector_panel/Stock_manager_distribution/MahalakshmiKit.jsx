@@ -193,8 +193,7 @@ const MahalakshmiKit = () => {
       alert("सफलतापूर्वक अपडेट किया गया");
       setEditingBeneficiaryId(null);
       setEditingBeneficiaryForm({});
-      const res = await api.get('/maha-beneficiary/');
-      setBeneficiaries(Array.isArray(res.data) ? res.data.filter(b => b.fin_year === searchParams.financialYear) : []);
+      setBeneficiaries(prev => prev.map(b => (b.id === editingBeneficiaryId ? editingBeneficiaryForm : b)));
     } catch (err) {
       alert("अपडेट विफल");
     }
@@ -204,8 +203,8 @@ const MahalakshmiKit = () => {
     if (window.confirm("क्या आप वाकई इस लाभार्थी को हटाना चाहते हैं?")) {
       try {
         await api.delete('/maha-beneficiary/', { data: { id } });
-        const res = await api.get('/maha-beneficiary/');
-        setBeneficiaries(Array.isArray(res.data) ? res.data.filter(b => b.fin_year === searchParams.financialYear) : []);
+        setBeneficiaries(prev => prev.filter(b => b.id !== id));
+        alert("सफलतापूर्वक हटाया गया");
       } catch (err) {
         alert("डिलीट विफल");
       }
@@ -236,7 +235,7 @@ const MahalakshmiKit = () => {
         address: registerForm.address,
         awc_code: registerForm.awc_code
       };
-      await api.post('/maha-beneficiary/', payload);
+      const response = await api.post('/maha-beneficiary/', payload);
       alert("लाभार्थी सफलतापूर्वक पंजीकृत हो गया");
       setShowRegisterModal(false);
       setRegisterForm({
@@ -244,6 +243,9 @@ const MahalakshmiKit = () => {
         caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "",
         child_born: "", child_gender: "", address: "", awc_code: ""
       });
+      if (response.data) {
+        setBeneficiaries(prev => [...prev, response.data]);
+      }
     } catch (err) {
       console.error("Registration error:", err);
       alert("पंजीकरण विफल");
