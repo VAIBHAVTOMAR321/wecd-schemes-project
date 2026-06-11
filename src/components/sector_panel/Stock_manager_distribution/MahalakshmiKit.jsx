@@ -427,7 +427,9 @@ const MahalakshmiKit = () => {
                     <th className="py-1" style={{ backgroundColor: "#eef2ff" }}>जिला</th>
                     <th className="py-1" style={{ backgroundColor: "#e0f2fe" }}>स्टेटस</th>
                     <th className="py-1 bg-slate-50">Action</th>
+
                   </tr>
+                  
                 </thead>
                 <tbody style={{ fontSize: "10px" }}>
                   {beneficiaries.length > 0 ? (
