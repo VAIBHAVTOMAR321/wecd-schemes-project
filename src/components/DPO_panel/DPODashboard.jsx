@@ -11,6 +11,24 @@ const DPODashboard = () => {
   const [isTablet, setIsTablet] = useState(false);
   
   const { user, api, uniqueId } = useAuth();
+  const [projectCount, setProjectCount] = useState(null);
+  const [sectorCount, setSectorCount] = useState(null);
+
+  useEffect(() => {
+    if (!api) return;
+    const fetchCounts = async () => {
+      try {
+        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/district-project-sector-count/");
+        if (response.data?.success) {
+          setProjectCount(response.data.project_count);
+          setSectorCount(response.data.sector_count);
+        }
+      } catch (err) {
+        console.error("Failed to fetch counts:", err);
+      }
+    };
+    fetchCounts();
+  }, [api]);
 
 
 
@@ -37,7 +55,7 @@ const DPODashboard = () => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Total Project</Card.Title>
-                  <Card.Text className="stats-count">11</Card.Text>
+                  <Card.Text className="stats-count">{projectCount !== null ? projectCount : "Loading..."}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -45,7 +63,7 @@ const DPODashboard = () => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Total Sector</Card.Title>
-                  <Card.Text className="stats-count">49</Card.Text>
+                  <Card.Text className="stats-count">{sectorCount !== null ? sectorCount : "Loading..."}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
