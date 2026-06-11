@@ -18,6 +18,8 @@ const MahalakshmiKit = () => {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [editingBeneficiaryId, setEditingBeneficiaryId] = useState(null);
   const [editingBeneficiaryForm, setEditingBeneficiaryForm] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [awcList, setAwcList] = useState([]);
   const [awcLoading, setAwcLoading] = useState(false);
 
@@ -60,16 +62,38 @@ const MahalakshmiKit = () => {
   useEffect(() => {
     if (!api) return;
     const fetchBeneficiaries = async () => {
+      setLoading(true);
       try {
-        const res = await api.get('/maha-beneficiary/');
-        const data = Array.isArray(res.data) ? res.data : [];
-        setBeneficiaries(data.filter(b => b.fin_year === searchParams.financialYear));
+        const res = await api.get('/maha-beneficiary/', {
+          params: {
+            page: currentPage, 
+            page_size: 50,
+            fin_year: searchParams.financialYear 
+          }
+        });
+        
+        // Handle paginated response wrapper (standard results/count pattern)
+        if (res.data && res.data.results) {
+          setBeneficiaries(res.data.results);
+          setTotalCount(res.data.count || 0);
+        } else {
+          const data = Array.isArray(res.data) ? res.data : [];
+          setBeneficiaries(data);
+          setTotalCount(data.length);
+        }
       } catch (err) {
         console.error("Failed to fetch beneficiaries:", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchBeneficiaries();
-  }, [api, searchParams.financialYear]);
+  }, [api, searchParams.financialYear, currentPage]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchParams.financialYear]);
 
   useEffect(() => {
     if (!api || !searchParams.financialYear) return;
@@ -434,11 +458,17 @@ const MahalakshmiKit = () => {
                   
                 </thead>
                 <tbody style={{ fontSize: "10px" }}>
-                  {beneficiaries.length > 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="17" className="py-4 text-center">
+                        <Spinner animation="border" size="sm" className="me-2" /> डेटा लोड हो रहा है...
+                      </td>
+                    </tr>
+                  ) : beneficiaries.length > 0 ? (
                     beneficiaries.map((row, index) => (
                       editingBeneficiaryId === row.id ? (
                         <tr key={row.id}>
-                          <td className="fw-bold text-muted py-1">{index + 1}</td>
+                          <td className="fw-bold text-muted py-1">{index + 1 + (currentPage - 1) * 50}</td>
                           {['name','dob','month','fin_year','kit_date','caste_category','ben_mob','adhar_num','del_no','child_gender','awc_code','sector','project','district','status'].map(field => (
                             <td key={field} style={{ backgroundColor: "#f0f9ff" }}>
                               <Form.Control size="sm" type="text" name={field} value={editingBeneficiaryForm[field] || ''} onChange={handleEditBeneficiaryChange} />
@@ -451,7 +481,7 @@ const MahalakshmiKit = () => {
                         </tr>
                       ) : (
                         <tr key={row.id}>
-                          <td className="fw-bold text-muted py-1">{index + 1}</td>
+                          <td className="fw-bold text-muted py-1">{index + 1 + (currentPage - 1) * 50}</td>
                           <td style={{ backgroundColor: "#f0f9ff" }}>{row.name}</td>
                           <td style={{ backgroundColor: "#f5f3ff" }}>{row.dob}</td>
                           <td style={{ backgroundColor: "#f0f9ff" }}>{row.month}</td>
@@ -481,6 +511,32 @@ const MahalakshmiKit = () => {
                   )}
                 </tbody>
               </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="d-flex justify-content-between align-items-center mt-3 px-2 border-top pt-2">
+              <span className="text-muted small">
+                कुल लाभार्थी: <strong>{totalCount}</strong> | दिखा रहा है: {beneficiaries.length}
+              </span>
+              <div className="d-flex gap-2">
+                <Button 
+                  variant="outline-primary" 
+                  size="sm" 
+                  disabled={currentPage === 1 || loading} 
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                  <i className="bi bi-chevron-left"></i> पिछला
+                </Button>
+                <span className="align-self-center small fw-bold px-2">पृष्ठ {currentPage}</span>
+                <Button 
+                  variant="outline-primary" 
+                  size="sm" 
+                  disabled={beneficiaries.length < 50 || (currentPage * 50 >= totalCount) || loading} 
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                  अगला <i className="bi bi-chevron-right"></i>
+                </Button>
+              </div>
             </div>
 
             <div className="d-flex justify-content-end mt-2">
