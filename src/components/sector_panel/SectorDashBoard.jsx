@@ -12,6 +12,21 @@ const SectorDashBoard = () => {
   const [isTablet, setIsTablet] = useState(false);
   
   const { user, api, uniqueId } = useAuth();
+  const [anganwadiCount, setAnganwadiCount] = useState(null);
+
+  useEffect(() => {
+    if (!api) return;
+    const fetchCount = async () => {
+      try {
+        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/anganwadi-count/");
+        const count = response.data?.anganwadi_count;
+        setAnganwadiCount(count);
+      } catch (err) {
+        console.error("Failed to fetch anganwadi count:", err);
+      }
+    };
+    fetchCount();
+  }, [api]);
 
 
 
@@ -61,7 +76,7 @@ useEffect(() => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">हमारे कुल आंगनवाड़ी केंद्र</Card.Title>
-                  <Card.Text className="stats-count">32</Card.Text>
+                  <Card.Text className="stats-count">{anganwadiCount !== null ? anganwadiCount : "Loading..."}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>

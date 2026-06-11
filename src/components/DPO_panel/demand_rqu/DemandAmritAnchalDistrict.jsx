@@ -6,7 +6,7 @@ import "../../../assets/css/cdpo.css";
 import DPOHeader from "../DPOHeader";
 import DPOLeftNav from "../DPOLeftNav";
 
-const DemandBalPoshanDistrict = () => {
+const DemandAmritAnchalDistrict = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
@@ -79,7 +79,7 @@ const DemandBalPoshanDistrict = () => {
       const params = {};
       if (selectedFinYear) params.fin_yr = selectedFinYear;
       if (selectedQuarter) params.qtr = selectedQuarter;
-        const response = await api.get("/dpo-bp-demand/", { params });
+        const response = await api.get("/dpo-am-demand/", { params });
         if (cancelled) return;
         const payload = response.data;
         if (Array.isArray(payload)) setDemandData(payload);
@@ -109,7 +109,8 @@ const DemandBalPoshanDistrict = () => {
       (item.fin_yr || "").toLowerCase().includes(term) ||
       (item.qtr_dmd || "").toLowerCase().includes(term) ||
       (item.sdname || "").toLowerCase().includes(term) ||
-      (item.sec_status || "").toLowerCase().includes(term)
+      (item.sec_status || "").toLowerCase().includes(term) ||
+      (item.avl_month || "").toLowerCase().includes(term)
     );
   });
 
@@ -146,15 +147,15 @@ const DemandBalPoshanDistrict = () => {
 
   const handleActionSubmit = async (mode, item) => {
     if (!api) return;
-    if (mode === "Rejected" && !editRemark.trim()) {
+    if (mode === "Reject" && !editRemark.trim()) {
       alert("Please enter a remark for rejection");
       return;
     }
     setSubmitting(true);
     try {
-      await api.put(`/dpo-bp-demand/`, {
+      await api.put(`/dpo-am-demand/`, {
         id: item.id,
-        dir_status: mode === "approve" ? "Approved" : "Rejected",
+        dir_status: mode === "approve" ? "Approve" : "Reject",
         dir_remark: editRemark.trim(),
       });
       setEditingId(null);
@@ -188,7 +189,7 @@ const DemandBalPoshanDistrict = () => {
     if (loading) {
       return (
         <tr>
-          <td colSpan="10" className="text-center py-4">
+          <td colSpan="11" className="text-center py-4">
             <Spinner animation="border" size="sm" /> Loading...
           </td>
         </tr>
@@ -197,7 +198,7 @@ const DemandBalPoshanDistrict = () => {
     if (pendingPaginatedData.length === 0) {
       return (
         <tr>
-          <td colSpan="10" className="text-center py-4 text-muted">No data available in table</td>
+          <td colSpan="11" className="text-center py-4 text-muted">No data available in table</td>
         </tr>
       );
     }
@@ -211,9 +212,9 @@ const DemandBalPoshanDistrict = () => {
           <td>{item.sector}</td>
           <td>{item.fin_yr}</td>
           <td>{item.qtr_dmd}</td>
-          <td>{item.kela_chips_bene ?? "0"}</td>
-          <td>{item.egg_bene ?? "0"}</td>
-          <td>{item.not_eat_egg_bene ?? "0"}</td>
+          <td>{item.avl_month || "-"}</td>
+          <td>{item.milk_bene ?? "0"}</td>
+          <td>{item.avl_milk ?? "0"}</td>
           <td>{getStatusBadge(item.cdpo_status)}</td>
           <td>
             {editingId === item.id ? (
@@ -295,9 +296,9 @@ const DemandBalPoshanDistrict = () => {
           <td>{item.sector}</td>
           <td>{item.fin_yr}</td>
           <td>{item.qtr_dmd}</td>
-          <td>{item.kela_chips_bene ?? "0"}</td>
-          <td>{item.egg_bene ?? "0"}</td>
-          <td>{item.not_eat_egg_bene ?? "0"}</td>
+          <td>{item.avl_month || "-"}</td>
+          <td>{item.milk_bene ?? "0"}</td>
+          <td>{item.avl_milk ?? "0"}</td>
           <td>{getStatusBadge(item.cdpo_status)}</td>
           <td>{getStatusBadge(item.dir_status || item.dpo_status)}</td>
         </tr>
@@ -439,9 +440,9 @@ const DemandBalPoshanDistrict = () => {
                         <th>Sector name</th>
                         <th>Financial Year</th>
                         <th>Qtr Demand</th>
-                        <th>Kela Chips Bene</th>
-                        <th>Egg Bene</th>
-                        <th>Not Eat Egg Bene</th>
+                        <th>Avl Month</th>
+                        <th>Milk Bene</th>
+                        <th>Avl Milk</th>
                         <th>CDPO Status</th>
                         <th>Action</th>
                       </tr>
@@ -489,4 +490,4 @@ const DemandBalPoshanDistrict = () => {
   );
 };
 
-export default DemandBalPoshanDistrict;
+export default DemandAmritAnchalDistrict;

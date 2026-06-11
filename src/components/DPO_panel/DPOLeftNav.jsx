@@ -133,7 +133,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
        },
       {
         label: "Anchal Amrit",
-        path: "#",
+        path: "/DemandAmritAnchalDistrict",
         icon: <FaPlusSquare />,
       },
     ],

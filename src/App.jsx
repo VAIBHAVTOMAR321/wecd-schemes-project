@@ -42,6 +42,7 @@ import OurBenReq from "./components/CDPO_panel/state_schemes/mahalakshmi_kit/Our
 import StockMahalakshmi from "./components/CDPO_panel/state_schemes/mahalakshmi_kit/StockMahalakshmi";
 import DemandMahilaPoshanDistirct from "./components/DPO_panel/demand_rqu/DemandMahilaPoshanDistirct";
 import DemandBalPoshanDistrict from "./components/DPO_panel/demand_rqu/DemandBalPoshanDistrict";
+import DemandAmritAnchalDistrict from "./components/DPO_panel/demand_rqu/DemandAmritAnchalDistrict";
 
 
 
@@ -66,7 +67,7 @@ const ProtectedRoute = ({ children }) => {
 function AppContent() {
   const location = useLocation();
 
-  const hideNavbarRoutes = ["/SectorDashBoard","/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
+  const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
      "/SectorProfile", "/StockBal",
       "/OurAwc", "/MahalakshmiKit",
       "/DemandMahilaPoshanProject",
@@ -79,7 +80,7 @@ function AppContent() {
          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
          "/Stockmahila", "/DistributionBalPoshan",
           "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
-  const hideFooterRoutes = ["/SectorDashBoard",
+  const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi",
      "/StockAnchal",
       "/DemandAmritAnchalProject",
@@ -177,6 +178,12 @@ function AppContent() {
             <DistributionBalPoshan />
           </ProtectedRoute>
         } />
+         <Route path="/DemandAmritAnchalDistrict" element={
+          <ProtectedRoute>
+            <DemandAmritAnchalDistrict />
+          </ProtectedRoute>
+        } />
+        
         <Route path="/DPODashboard" element={<DPODashboard />} />
         <Route path="/DemandMahilaPoshanDistirct" element={<DemandMahilaPoshanDistirct />} />
         <Route path="/DemandBalPoshanDistrict" element={<DemandBalPoshanDistrict />} />
