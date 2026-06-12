@@ -92,11 +92,6 @@ const OURSector = () => {
       const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
       const payload = {
         id: editForm.id,
-        sdname: editForm.sdname || "",
-        district: editForm.district || "",
-        project_code: editForm.project_code || "",
-        project_name: editForm.project_name || "",
-        sector: editForm.sector || "",
         sector_incharge: editForm.sector_incharge || "",
         incharge_mob: editForm.incharge_mob || "",
         password: editForm.password || "",
@@ -106,8 +101,8 @@ const OURSector = () => {
         const responseData = response.data.data;
         if (Array.isArray(responseData)) {
           setSectorData(responseData);
-        } else if (responseData) {
-          setSectorData((prev) => prev.map((item) => item.id === responseData.id ? responseData : item));
+        } else if (responseData && responseData.id) {
+          setSectorData((prev) => prev.map((item) => item.id === responseData.id ? { ...item, ...responseData } : item));
         }
         setEditingId(null);
         setEditForm(null);
@@ -160,7 +155,7 @@ const OURSector = () => {
                   <h6 className="fw-bold mb-0" style={{ color: "#60a5fa" }}>
                     <i className="bi bi-grid-3x3-gap-fill me-2"></i>सेक्टर सूची
                   </h6>
-                  <span className="small fw-bold text-muted">कुल आंगनवाड़ी केंद्र : {sectorData.length}</span>
+                  <span className="small fw-bold text-muted">कुल सेक्टर : {sectorData.length}</span>
                 </Card.Header>
 
                 <Card.Body className="p-0">
@@ -168,39 +163,45 @@ const OURSector = () => {
                     <Table bordered hover className="mb-0 text-center align-middle" style={{ tableLayout: "fixed", fontSize: "11px" }}>
                       <thead className="bg-light text-uppercase">
                         <tr>
-                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>क्रम संख्या</th>
+                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>क्रमांक</th>
                           <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>आईडी</th>
+                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>जिला</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>प्रोजेक्ट</th>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>सेक्टर</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>सेक्टर प्रकार</th>
-                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>अनुदान</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>सेक्टर का नाम</th>
-                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>प्रोजेक्ट का नाम</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>जिला</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>इनचार्ज</th>
+                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>मोबाइल</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>अपडेटेड</th>
+                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>एक्शन</th>
                         </tr>
                       </thead>
                       <tbody>
                         {loading ? (
                           <tr>
-                            <td colSpan="8" className="py-4 text-center">
+                            <td colSpan="9" className="py-4 text-center">
                               <Spinner animation="border" size="sm" className="me-2" /> डेटा लोड हो रहा है...
                             </td>
                           </tr>
                         ) : paginatedData.length > 0 ? (
                           paginatedData.map((row, index) => (
-                            <tr key={row.awc_code || index}>
+                            <tr key={row.id || index}>
                               <td className="py-2">{startIndex + index + 1}</td>
-                              <td>{row.awc_code}</td>
-                              <td>{row.awc_name}</td>
-                              <td>{row.awc_type}</td>
-                              <td>{row.code1}</td>
+                              <td>{row.id}</td>
+                              <td>{row.district}</td>
+                              <td>{row.project_name}</td>
                               <td>{row.sector}</td>
-                              <td>{row.project}</td>
-                              <td>{row.district_name}</td>
+                              <td>{row.sector_incharge}</td>
+                              <td>{row.incharge_mob}</td>
+                              <td>{row.updated_on}</td>
+                              <td>
+                                <Button size="sm" variant="primary" onClick={() => handleEdit(row)}>
+                                  एडिट
+                                </Button>
+                              </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="8" className="py-4 text-muted small">कोई सेक्टर केंद्र नहीं मिला</td>
+                            <td colSpan="9" className="py-4 text-muted small">कोई सेक्टर डेटा नहीं मिला</td>
                           </tr>
                         )}
                       </tbody>
@@ -208,6 +209,80 @@ const OURSector = () => {
                   </div>
                 </Card.Body>
               </Card>
+
+              {editForm && editingId !== null && (
+                <Card className="border-0 shadow-sm mt-3">
+                  <Card.Header className="bg-white border-0 py-3">
+                    <h6 className="fw-bold mb-0" style={{ color: "#60a5fa" }}>सेक्टर अपडेट करें</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Row className="g-3">
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>ID</Form.Label>
+                          <Form.Control name="id" value={editForm.id || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>SD Name</Form.Label>
+                          <Form.Control name="sdname" value={editForm.sdname || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>District</Form.Label>
+                          <Form.Control name="district" value={editForm.district || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Project Code</Form.Label>
+                          <Form.Control name="project_code" value={editForm.project_code || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Project Name</Form.Label>
+                          <Form.Control name="project_name" value={editForm.project_name || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Sector</Form.Label>
+                          <Form.Control name="sector" value={editForm.sector || ""} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Sector Incharge</Form.Label>
+                          <Form.Control name="sector_incharge" value={editForm.sector_incharge || ""} onChange={handleFormChange} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Incharge Mobile</Form.Label>
+                          <Form.Control name="incharge_mob" value={editForm.incharge_mob || ""} onChange={handleFormChange} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Password</Form.Label>
+                          <Form.Control type="password" name="password" value={editForm.password || ""} onChange={handleFormChange} />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <div className="d-flex gap-2 justify-content-end mt-3">
+                      <Button variant="secondary" onClick={() => { setEditingId(null); setEditForm(null); }}>
+                        Cancel
+                      </Button>
+                      <Button variant="primary" onClick={handleSave} disabled={saving}>
+                        {saving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
 
               {totalPages > 1 && (
                 <div className="d-flex justify-content-between align-items-center mt-3 px-2">
