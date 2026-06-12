@@ -107,9 +107,11 @@ const SectorProfile = () => {
         <SectorHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-4">
+<div className="d-flex justify-content-between align-items-center mb-4">
             <div className="text-center">
-            
+              <h3 className="fw-bold text-uppercase mb-1" style={{ color: "#60a5fa", fontSize: "clamp(1rem, 2.5vw, 1.5rem)" }}>
+                सेक्टर प्रोफ़ाइल
+              </h3>
               <h5 className="fw-bold text-uppercase mb-0" style={{ color: "#93c5fd", fontSize: "clamp(0.85rem, 2vw, 1.1rem)" }}>व्यक्तिगत जानकारी</h5>
             </div>
           </div>

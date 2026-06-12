@@ -119,9 +119,9 @@
   font-size: 0.9em;
 }
 
-.modal-content .alert-message.error .bi,
 .alert-message.error .bi,
-.alert-message.success .bi {
+.alert-message.success .bi,
+.alert-message.warning .bi {
   margin-right: 8px;
   font-size: 1.2em;
 }
@@ -140,6 +140,10 @@
   border: none;
   outline: none;
   font-size: 0.9em;
+}
+
+.input-wrapper .border-2 {
+  border: 2px solid #ddd !important;
 }
 
 .input-wrapper .password-toggle {
@@ -190,11 +194,6 @@
   display: flex;
   align-items: center;
   font-size: 0.9em;
-}
-
-.alert-message.warning .bi {
-  margin-right: 8px;
-  font-size: 1.2em;
 }
 
 @-webkit-keyframes spin {
