@@ -438,6 +438,11 @@
     margin-right: 0;
 }
 
+.sidebar-closed .nav-item {
+    justify-content: center !important;
+    padding: 0.75rem 0 !important;
+}
+
 /* Submenu Styles */
 .submenu-arrow {
     margin-left: auto;
@@ -1938,4 +1943,115 @@ img {
 
 .close-btn-custom:hover {
   background-color: #c82333 !important;
+}
+
+/* ===== SIDEBAR FLYOUT FOR COLLAPSED STATE ===== */
+.nav-item-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.user-left-nav.sidebar-closed {
+    overflow: visible !important;
+}
+
+.sidebar-flyout {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 220px;
+    background: #383be8;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9999;
+    pointer-events: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Bridge pseudo-element to prevent closing when moving cursor to flyout */
+.sidebar-flyout::before {
+    content: '';
+    position: absolute;
+    left: -15px;
+    top: 0;
+    bottom: 0;
+    width: 15px;
+    background: transparent;
+}
+
+.nav-item-wrapper:hover .sidebar-flyout,
+.nav-item-wrapper:focus-within .sidebar-flyout {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.flyout-header-title {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.flyout-body {
+    padding: 8px 0;
+}
+
+.flyout-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: rgba(255, 255, 255, 0.8) !important;
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.flyout-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white !important;
+    padding-left: 25px;
+}
+
+.flyout-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+}
+
+.flyout-icon-small {
+    margin-right: 12px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.flyout-nested-menu {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 4px 0;
+}
+
+.flyout-nested-item {
+    display: block;
+    padding: 8px 20px 8px 45px;
+    color: rgba(255, 255, 255, 0.6) !important;
+    text-decoration: none;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.flyout-nested-item:hover {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.flyout-nested-item.active {
+    color: white !important;
+    background: rgba(255, 255, 255, 0.15);
 }
