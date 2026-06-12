@@ -350,14 +350,14 @@ const MahalakshmiKit = () => {
         <SectorHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="text-center">
+          <div className="d-flex align-items-center mb-4">
+            <div className="flex-grow-1 text-center">
               <h3 className="fw-bold text-uppercase mb-1" style={{ color: "#60a5fa", fontSize: "clamp(1rem, 2.5vw, 1.5rem)" }}>
                 वितरण पैनल
               </h3>
               <h5 className="fw-bold text-uppercase mb-0" style={{ color: "#93c5fd", fontSize: "clamp(0.85rem, 2vw, 1.1rem)" }}>महालक्ष्मी किट वितरण हेतु</h5>
             </div>
-            <Button variant="light" size="sm" className="fw-bold shadow-sm text-white" style={{ fontSize: '12px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }} onClick={() => { resetRegisterForm(); setShowRegisterModal(true); }}>
+            <Button variant="light" size="sm" className="fw-bold shadow-sm text-white flex-shrink-0" style={{ fontSize: '12px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }} onClick={() => { resetRegisterForm(); setShowRegisterModal(true); }}>
               <i className="bi bi-person-plus me-1"></i> नये लाभार्थी का पंजीकरण करें
             </Button>
           </div>
