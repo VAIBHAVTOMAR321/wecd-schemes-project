@@ -119,9 +119,35 @@
   font-size: 0.9em;
 }
 
-.modal-content .alert-message.error .bi {
+.modal-content .alert-message.error .bi,
+.alert-message.error .bi,
+.alert-message.success .bi {
   margin-right: 8px;
   font-size: 1.2em;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  width: 100%;
+}
+
+.input-wrapper .form-control {
+  flex-grow: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9em;
+}
+
+.input-wrapper .password-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 5px;
+  color: #888;
 }
 
 .spinner {
@@ -135,6 +161,40 @@
   display: inline-block;
   vertical-align: middle;
   margin-right: 8px;
+}
+
+.modal-content .alert-message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.modal-content .alert-message.success .bi {
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+.alert-message.warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.alert-message.warning .bi {
+  margin-right: 8px;
+  font-size: 1.2em;
 }
 
 @-webkit-keyframes spin {
