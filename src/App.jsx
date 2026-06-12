@@ -45,6 +45,7 @@ import DemandBalPoshanDistrict from "./components/DPO_panel/demand_rqu/DemandBal
 import DemandAmritAnchalDistrict from "./components/DPO_panel/demand_rqu/DemandAmritAnchalDistrict";
 import OurAwcProject from "./components/CDPO_panel/OurAwcProject";
 import OurDpo from "./components/director_panel/our_staff/OurDpo";
+import OURSector from "./components/CDPO_panel/OURSector";
 
 
 
@@ -70,7 +71,7 @@ function AppContent() {
   const location = useLocation();
 
   const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
-     "/SectorProfile", "/StockBal", "/OurDpo",
+     "/SectorProfile", "/StockBal", "/OurDpo", "/OURSector",
       "/OurAwc", "/MahalakshmiKit",
       "/DemandMahilaPoshanProject",
        "/MahalakshmiBen",
@@ -85,7 +86,7 @@ function AppContent() {
   const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject",
      "/StockAnchal",
-      "/DemandAmritAnchalProject", "/OurDpo",
+      "/DemandAmritAnchalProject", "/OurDpo", "/OURSector",
        "/MahalaxmiYear",
      "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
@@ -106,6 +107,11 @@ function AppContent() {
          <Route path="/MahalakshmiBen" element={
           <ProtectedRoute>
             <MahalakshmiBen />
+          </ProtectedRoute>
+        } />
+         <Route path="/OURSector" element={
+          <ProtectedRoute>
+            <OURSector />
           </ProtectedRoute>
         } />
          <Route path="/OurDpo" element={

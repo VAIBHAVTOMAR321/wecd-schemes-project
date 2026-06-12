@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Pagination } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner, Table, Pagination, Form, Button } from "react-bootstrap";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
 import "../../assets/css/awc.css";
 import CDPOLeftNav from "./CDPOLeftNav";
 import CDPOHeader from "./CDPOHeader";
 
+const SECTOR_API_URL = "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-sector/";
 
-const OurAwcProject = () => {
+const OURSector = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
   const { api, accessToken } = useAuth();
-  const [awcData, setAwcData] = useState([]);
+  const [sectorData, setSectorData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [apiError, setApiError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 20;
 
@@ -39,40 +43,88 @@ const OurAwcProject = () => {
 
   useEffect(() => {
     if (!api) return;
-    const fetchAwcData = async () => {
+    const fetchSectorData = async () => {
       setLoading(true);
       setApiError("");
       try {
         const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-awc-dropdown/", { headers });
+        const response = await api.get(SECTOR_API_URL, { headers });
         if (response.data?.success) {
           const data = response.data.data || [];
-          setAwcData(data);
-          setProjectName(response.data.project || "");
-          return;
+          setSectorData(data);
+          setProjectName(response.data.project_name || response.data.project_code || "");
+        } else {
+          throw new Error("CDPO sector API response was not successful");
         }
-        throw new Error("AWC API response was not successful");
       } catch (err) {
         setApiError(err.response?.data?.error || err.response?.data?.message || err.message);
-        console.error("Failed to fetch AWC data:", err);
+        console.error("Failed to fetch sector data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAwcData();
+    fetchSectorData();
   }, [api, accessToken]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [awcData]);
+  }, [sectorData]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const totalPages = Math.ceil(awcData.length / rowsPerPage);
+  const handleEdit = (row) => {
+    setEditingId(row.id);
+    setEditForm({ ...row, password: "" });
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => prev ? { ...prev, [name]: value } : null);
+  };
+
+  const handleSave = async () => {
+    if (!editForm || !api) return;
+    setSaving(true);
+    setApiError("");
+    try {
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      const payload = {
+        id: editForm.id,
+        sdname: editForm.sdname || "",
+        district: editForm.district || "",
+        project_code: editForm.project_code || "",
+        project_name: editForm.project_name || "",
+        sector: editForm.sector || "",
+        sector_incharge: editForm.sector_incharge || "",
+        incharge_mob: editForm.incharge_mob || "",
+        password: editForm.password || "",
+      };
+      const response = await api.put(SECTOR_API_URL, payload, { headers });
+      if (response.data?.success) {
+        const responseData = response.data.data;
+        if (Array.isArray(responseData)) {
+          setSectorData(responseData);
+        } else if (responseData) {
+          setSectorData((prev) => prev.map((item) => item.id === responseData.id ? responseData : item));
+        }
+        setEditingId(null);
+        setEditForm(null);
+      } else {
+        throw new Error("CDPO sector update response was not successful");
+      }
+    } catch (err) {
+      setApiError(err.response?.data?.error || err.response?.data?.message || err.message);
+      console.error("Failed to update sector data:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const totalPages = Math.ceil(sectorData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = awcData.slice(startIndex, startIndex + rowsPerPage);
+  const paginatedData = sectorData.slice(startIndex, startIndex + rowsPerPage);
 
   return (
     <div className="dashboard-container">
@@ -88,16 +140,16 @@ const OurAwcProject = () => {
         <Container fluid className="p-4">
           <div className="d-flex justify-content-between align-items-center awc-heading mb-4">
             <h3 className="fw-bold text-uppercase mb-0" style={{ color: "#60a5fa", fontSize: "clamp(1rem, 2.5vw, 1.5rem)" }}>
-              आंगनवाड़ी केंद्र
+              CDPO सेक्टर सूची
             </h3>
             <h5 className="fw-bold text-uppercase mb-0" style={{ color: "#93c5fd", fontSize: "clamp(0.85rem, 2vw, 1.1rem)" }}>
-              सेक्टर के केंद्र : {projectName || "Almora"}
+              प्रोजेक्ट : {projectName || "Bhaisiyachana"}
             </h5>
           </div>
 
           {apiError && (
             <div className="alert alert-warning mb-3" role="alert">
-              AWC API error: {apiError}
+              CDPO sector API error: {apiError}
             </div>
           )}
 
@@ -106,9 +158,9 @@ const OurAwcProject = () => {
               <Card className="border-0 shadow-sm">
                 <Card.Header className="bg-white border-0 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
                   <h6 className="fw-bold mb-0" style={{ color: "#60a5fa" }}>
-                    <i className="bi bi-house-door-fill me-2"></i>आंगनवाड़ी केंद्र सूची
+                    <i className="bi bi-grid-3x3-gap-fill me-2"></i>सेक्टर सूची
                   </h6>
-                  <span className="small fw-bold text-muted">कुल आंगनवाड़ी केंद्र : {awcData.length}</span>
+                  <span className="small fw-bold text-muted">कुल आंगनवाड़ी केंद्र : {sectorData.length}</span>
                 </Card.Header>
 
                 <Card.Body className="p-0">
@@ -117,9 +169,9 @@ const OurAwcProject = () => {
                       <thead className="bg-light text-uppercase">
                         <tr>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>क्रम संख्या</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>आंगनवाड़ी केंद्र कोड</th>
-                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>आंगनवाड़ी</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>आंगनवाड़ी प्रकार</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>आईडी</th>
+                          <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>सेक्टर</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>सेक्टर प्रकार</th>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>अनुदान</th>
                           <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>सेक्टर का नाम</th>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>प्रोजेक्ट का नाम</th>
@@ -148,7 +200,7 @@ const OurAwcProject = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan="8" className="py-4 text-muted small">कोई आंगनवाड़ी केंद्र नहीं मिला</td>
+                            <td colSpan="8" className="py-4 text-muted small">कोई सेक्टर केंद्र नहीं मिला</td>
                           </tr>
                         )}
                       </tbody>
@@ -160,7 +212,7 @@ const OurAwcProject = () => {
               {totalPages > 1 && (
                 <div className="d-flex justify-content-between align-items-center mt-3 px-2">
                   <span className="text-muted small">
-                    कुल आंगनवाड़ी केंद्र : <strong>{awcData.length}</strong> | दिखा रहा है : {paginatedData.length}
+                    कुल सेक्टर : <strong>{sectorData.length}</strong> | दिखा रहा है : {paginatedData.length}
                   </span>
                   <Pagination size="sm" className="mb-0">
                     <Pagination.Prev 
@@ -192,4 +244,4 @@ const OurAwcProject = () => {
   );
 };
 
-export default OurAwcProject;
+export default OURSector;
