@@ -51,10 +51,22 @@ const SupervisorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, on
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [userRole, setUserRole] = useState(user ? user.role : null);
+  const userRole = user ? user.role : null;
   const [openSubmenu, setOpenSubmenu] = useState(null);
   const toggleSubmenu = (index) => {
     setOpenSubmenu(openSubmenu === index ? null : index);
+  };
+
+  const isItemActive = (item) => {
+    if (item.path && item.path !== "#" && location.pathname === item.path) return true;
+    if (item.submenu) {
+      return item.submenu.some((sub) => {
+        if (sub.path && sub.path !== "#" && location.pathname === sub.path) return true;
+        if (sub.submenu) return sub.submenu.some((nested) => nested.path === location.pathname);
+        return false;
+      });
+    }
+    return false;
   };
 
   // Automatically close sidebar when navigating on mobile or tablet views
@@ -64,13 +76,10 @@ const SupervisorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, on
     }
   }, [location.pathname, isMobile, isTablet, setSidebarOpen]);
 
-  const handleItemClick = (e, path, isActive) => {
+  const handleItemClick = (e, path) => {
     if (onNavClick) {
       e.preventDefault();
       onNavClick(path);
-    } else if (!isActive) {
-      // Only close sidebar if navigating to a different page
-      setSidebarOpen(false);
     }
   };
 
@@ -163,11 +172,11 @@ const menuItems = [
     item.allowedRoles ? item.allowedRoles.includes(userRole) : true
   )
   .map((item, index) => (
-    <div key={index}>
+    <div key={index} className={`nav-item-wrapper ${isItemActive(item) ? "active-parent" : ""}`}>
       {/* If submenu exists */}
       {item.submenu ? (
         <Nav.Link
-          className={`nav-item ${item.active ? "active" : ""}`}
+          className={`nav-item ${isItemActive(item) ? "active" : ""}`}
           onClick={() => toggleSubmenu(index)}
         >
           <span className="nav-icon">{item.icon}</span>
@@ -179,8 +188,8 @@ const menuItems = [
       ) : (
          <Link
            to={item.path}
-           className={`nav-item nav-link ${item.active ? "active" : ""}`}
-           onClick={(e) => handleItemClick(e, item.path, item.active)}
+           className={`nav-item nav-link ${isItemActive(item) ? "active" : ""}`}
+           onClick={(e) => handleItemClick(e, item.path)}
          >
            <span className="nav-icon">{item.icon}</span>
            <span className="nav-text">{item.label}</span>
@@ -188,15 +197,15 @@ const menuItems = [
       )}
 
       {/* Submenu */}
-      {item.submenu && (
+      {sidebarOpen && item.submenu && (
         <Collapse in={openSubmenu === index}>
           <div className="submenu-container-user">
             {item.submenu.map((subItem, subIndex) => (
                  <Link
                    key={subIndex}
                    to={subItem.path}
-                   className="submenu-item-user nav-link"
-                   onClick={(e) => handleItemClick(e, subItem.path, false)}
+                   className={`submenu-item-user nav-link ${location.pathname === subItem.path ? "active" : ""}`}
+                   onClick={(e) => handleItemClick(e, subItem.path)}
                  >
                    <span className="submenu-icon">{subItem.icon}</span>
                    <span className="nav-text br-text-sub">{subItem.label}</span>
@@ -205,12 +214,34 @@ const menuItems = [
           </div>
         </Collapse>
       )}
+
+      {!sidebarOpen && !isMobile && !isTablet && (
+        <div className="sidebar-flyout">
+          <div className="flyout-header-title">{item.label}</div>
+          {item.submenu && item.submenu.length > 0 && (
+            <div className="flyout-body">
+              {item.submenu.map((subItem, subIndex) => (
+                <Link
+                  key={subIndex}
+                  to={subItem.path}
+                  className={`flyout-item ${location.pathname === subItem.path ? "active" : ""}`}
+                  onClick={(e) => handleItemClick(e, subItem.path)}
+                >
+                  {subItem.icon && <span className="flyout-icon-small">{subItem.icon}</span>}
+                  <span>{subItem.label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   ))}
 
         </Nav>
 
         <div className="sidebar-footer">
+          <div className="nav-item-wrapper">
           <Nav.Link
             className="nav-item logout-btn"
             onClick={() => {
@@ -225,6 +256,12 @@ const menuItems = [
             </span>
             <span className="nav-text">Logout</span>
           </Nav.Link>
+          {!sidebarOpen && !isMobile && !isTablet && (
+            <div className="sidebar-flyout">
+              <div className="flyout-header-title">Logout</div>
+            </div>
+          )}
+          </div>
         </div>
       </div>
 
