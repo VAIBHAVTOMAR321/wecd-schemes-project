@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Card } from "react-bootstrap";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
 import "../../assets/css/dashboard.css";
@@ -11,21 +11,51 @@ const SectorDashBoard = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
-  const { user, api, uniqueId } = useAuth();
+  const { api } = useAuth();
   const [anganwadiCount, setAnganwadiCount] = useState(null);
+  const [isLoadingAnganwadiCount, setIsLoadingAnganwadiCount] = useState(false);
+  const [mahalaxmiCounts, setMahalaxmiCounts] = useState({
+    "2026-2027": null,
+    "2025-2026": null,
+    "2024-2025": null,
+  });
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
 
   useEffect(() => {
     if (!api) return;
-    const fetchCount = async () => {
+
+    const fetchDashboardCounts = async () => {
+      setIsLoadingAnganwadiCount(true);
+      setIsLoadingCounts(true);
+
       try {
-        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/anganwadi-count/");
-        const count = response.data?.anganwadi_count;
-        setAnganwadiCount(count);
-      } catch (err) {
-        console.error("Failed to fetch anganwadi count:", err);
+        const [anganwadiRes, mahalaxmiRes] = await Promise.allSettled([
+          api.get("/anganwadi-count/"),
+          api.get("/mahalaxmi-financial-year-count/"),
+        ]);
+
+        if (anganwadiRes.status === "fulfilled") {
+          setAnganwadiCount(anganwadiRes.value.data?.anganwadi_count ?? null);
+        } else {
+          console.error("Failed to fetch anganwadi count:", anganwadiRes.reason);
+        }
+
+        if (mahalaxmiRes.status === "fulfilled") {
+          setMahalaxmiCounts(mahalaxmiRes.value.data || {
+            "2026-2027": null,
+            "2025-2026": null,
+            "2024-2025": null,
+          });
+        } else {
+          console.error("Failed to fetch Mahalakshmi financial-year counts:", mahalaxmiRes.reason);
+        }
+      } finally {
+        setIsLoadingAnganwadiCount(false);
+        setIsLoadingCounts(false);
       }
     };
-    fetchCount();
+
+    fetchDashboardCounts();
   }, [api]);
 
 
@@ -76,7 +106,7 @@ useEffect(() => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">हमारे कुल आंगनवाड़ी केंद्र</Card.Title>
-                  <Card.Text className="stats-count">{anganwadiCount !== null ? anganwadiCount : "Loading..."}</Card.Text>
+                  <Card.Text className="stats-count">{isLoadingAnganwadiCount || anganwadiCount === null ? "Loading..." : anganwadiCount}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -84,7 +114,7 @@ useEffect(() => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2026-27)</Card.Title>
-                  <Card.Text className="stats-count">0</Card.Text>
+                  <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2026-2027"] === null ? "Loading..." : mahalaxmiCounts["2026-2027"]}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -94,7 +124,7 @@ useEffect(() => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2025-26)</Card.Title>
-                  <Card.Text className="stats-count">57</Card.Text>
+                  <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2025-2026"] === null ? "Loading..." : mahalaxmiCounts["2025-2026"]}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -102,7 +132,7 @@ useEffect(() => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2024-2025)</Card.Title>
-                  <Card.Text className="stats-count">39</Card.Text>
+                  <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2024-2025"] === null ? "Loading..." : mahalaxmiCounts["2024-2025"]}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
