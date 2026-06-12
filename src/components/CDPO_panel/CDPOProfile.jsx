@@ -11,7 +11,7 @@ const CDPOProfile = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
-  const { user, api } = useAuth();
+  const { api } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,13 +20,32 @@ const CDPOProfile = () => {
     confirmPassword: ""
   });
   const [profileData, setProfileData] = useState({
-    loginType: "Project Panel",
-    district: "Almora",
-    projectName: "Bhaisiyachana [0506401]",
-    cdpoIncharge: "Sunita Pant",
-    cdpoMobile: "9412980734"
+    id: "",
+    district: "",
+    bill_use: "",
+    project_code: "",
+    project_name: "",
+    project_show: "",
+    stat_fin: "",
+    ang_pur: "",
+    adhar_stat: "",
   });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState({ text: "", type: "" });
   const [message, setMessage] = useState({ text: "", type: "" });
+
+  const profileFields = [
+  
+    { label: "District", key: "district" },
+    { label: "Bill Use", key: "bill_use" },
+    { label: "Project Code", key: "project_code" },
+    { label: "Project Name", key: "project_name" },
+    { label: "Project Show", key: "project_show" },
+    { label: "Status", key: "stat_fin" },
+    { label: "Anganwadi Purchase Year", key: "ang_pur" },
+    { label: "Aadhar Status", key: "adhar_stat" },
+  ];
 
   useEffect(() => {
     const handleResize = () => {
@@ -45,7 +64,61 @@ const CDPOProfile = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!api) return;
+
+    const fetchProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const response = await api.get("/cdpo/profile/");
+        setProfileData(response.data?.data || {});
+      } catch (err) {
+        console.error("Failed to fetch CDPO profile:", err);
+        setProfileData({});
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [api]);
+
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setProfileMessage({ text: "", type: "" });
+    setProfileSaving(true);
+
+    try {
+      const payload = {
+        id: profileData.id,
+        district: profileData.district,
+        bill_use: profileData.bill_use,
+        project_code: profileData.project_code,
+        project_name: profileData.project_name,
+        project_show: profileData.project_show,
+        stat_fin: profileData.stat_fin,
+        ang_pur: profileData.ang_pur,
+        adhar_stat: profileData.adhar_stat,
+      };
+
+      const response = await api.put("/cdpo/profile/", payload);
+      if (response.status === 200) {
+        setProfileMessage({ text: "प्रोफ़ाइल सफलतापूर्वक अपडेट कर दी गई", type: "success" });
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || "प्रोफ़ाइल अपडेट करने में विफल";
+      setProfileMessage({ text: errorMsg, type: "error" });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
@@ -66,17 +139,17 @@ const CDPOProfile = () => {
       return;
     }
 
-    if (passwordData.password.length < 6) {
-      setMessage({ text: "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए", type: "error" });
+    if (passwordData.password.length < 3) {
+      setMessage({ text: "पासवर्ड कम से कम 3 अक्षरों का होना चाहिए", type: "error" });
       return;
     }
 
     setLoading(true);
     try {
       const payload = {
-        new_password: passwordData.password
+        password: passwordData.password
       };
-      const response = await api.post('/change-password/', payload);
+      const response = await api.put('/cdpo/profile/', payload);
       if (response.status === 200) {
         setMessage({ text: "पासवर्ड सफलतापूर्वक बदल दिया गया", type: "success" });
         setPasswordData({ password: "", confirmPassword: "" });
@@ -115,73 +188,52 @@ const CDPOProfile = () => {
                   <h6 className="mb-0 fw-bold"><i className="bi bi-info-circle me-2"></i>जानकारी</h6>
                 </Card.Header>
                 <Card.Body className="p-3">
-                  <Row className="g-3">
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Login Type</Form.Label>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          value={profileData.loginType}
-                          readOnly
-                          className="border-0 bg-light"
-                          style={{ fontSize: '12px' }}
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>District</Form.Label>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          value={profileData.district}
-                          readOnly
-                          className="border-0 bg-light"
-                          style={{ fontSize: '12px' }}
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Project Name</Form.Label>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          value={profileData.projectName}
-                          readOnly
-                          className="border-0 bg-light"
-                          style={{ fontSize: '12px' }}
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>CDPO Incharge</Form.Label>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          value={profileData.cdpoIncharge}
-                          readOnly
-                          className="border-0 bg-light"
-                          style={{ fontSize: '12px' }}
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>CDPO Mobile</Form.Label>
-                        <Form.Control
-                          size="sm"
-                          type="text"
-                          value={profileData.cdpoMobile}
-                          readOnly
-                          className="border-0 bg-light"
-                          style={{ fontSize: '12px' }}
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
+                  <Form onSubmit={handleUpdateProfile}>
+                    <Row className="g-3">
+                      {profileFields.map((field) => (
+                        <Col md={4} key={field.key}>
+                          <Form.Group>
+                            <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>{field.label}</Form.Label>
+                            <Form.Control
+                              size="sm"
+                              type="text"
+                              name={field.key}
+                              value={profileLoading ? "Loading..." : profileData[field.key] || ""}
+                              onChange={handleProfileChange}
+                              className="border-2"
+                              style={{ fontSize: '12px' }}
+                            />
+                          </Form.Group>
+                        </Col>
+                      ))}
+                    </Row>
+
+                    {profileMessage.text && (
+                      <div className={`alert-message ${profileMessage.type === "success" ? "success" : "error"}`} style={{ marginTop: '15px' }}>
+                        <i className={`bi ${profileMessage.type === "success" ? "bi-check-circle" : "bi-exclamation-circle"}`}></i>
+                        {profileMessage.text}
+                      </div>
+                    )}
+
+                    <div className="text-center mt-4">
+                      <Button
+                        type="submit"
+                        variant="light"
+                        className="px-4 py-1 fw-bold shadow-sm text-white"
+                        style={{ fontSize: '13px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }}
+                        disabled={profileLoading || profileSaving}
+                      >
+                        {profileSaving ? (
+                          <>
+                            <Spinner animation="border" size="sm" className="me-2" />
+                            सेव कर रहा है...
+                          </>
+                        ) : (
+                          "प्रोफ़ाइल सेव करें"
+                        )}
+                      </Button>
+                    </div>
+                  </Form>
                 </Card.Body>
               </Card>
             </Col>
