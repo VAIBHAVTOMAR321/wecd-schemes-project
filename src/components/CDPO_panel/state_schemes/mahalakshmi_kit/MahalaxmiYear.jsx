@@ -21,6 +21,9 @@ const MahalaxmiYear = () => {
   const [kitDemandCount, setKitDemandCount] = useState("");
   const [demandQuarter, setDemandQuarter] = useState("");
   const [demandLogData, setDemandLogData] = useState([]);
+  const [kitSummaryData, setKitSummaryData] = useState([]);
+  const [kitSummaryLoading, setKitSummaryLoading] = useState(true);
+  const [kitSummaryError, setKitSummaryError] = useState(null);
   const [demandLoading, setDemandLoading] = useState(false);
   const [demandError, setDemandError] = useState(null);
   // State for Allotment (Prapt Kit)
@@ -99,6 +102,36 @@ useEffect(() => {
       setDemandLoading(false);
     }
   };
+
+  // Fetch Mahalaxmi Kit Summary Data
+  const fetchKitSummaryData = async () => {
+    if (!selectedYear) return;
+    setKitSummaryLoading(true);
+    setKitSummaryError(null);
+    try {
+      const response = await api.get("/cdpo/maha-kit-summary/");
+      if (response.data.success && Array.isArray(response.data.data)) {
+        const filteredByYear = response.data.data.filter(
+          (item) => item.financial_year === selectedYear
+        );
+        setKitSummaryData(filteredByYear);
+      } else {
+        setKitSummaryError("Failed to fetch kit summary data.");
+      }
+    } catch (err) {
+      setKitSummaryError("An error occurred while fetching kit summary data.");
+      console.error(err);
+    } finally {
+      setKitSummaryLoading(false);
+    }
+  };
+
+  // Effect to fetch kit summary when year is selected and not in demand registration view
+  useEffect(() => {
+    if (isYearSelected && !showDemandRegistration) {
+      fetchKitSummaryData();
+    }
+  }, [isYearSelected, showDemandRegistration, selectedYear]);
 
   useEffect(() => {
     if (isYearSelected && showDemandRegistration) {
@@ -320,7 +353,7 @@ useEffect(() => {
             <Col xs={12} md={6} lg={4} className="text-center">
               <h6 className="fw-bold text-primary mb-2">उपलब्ध किट</h6>
               <Badge pill bg="warning" className="p-3 fs-3 fw-bold shadow-sm" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '15px', backgroundColor: '#ffc107 !important', color: '#343a40' }}>
-                25
+                {kitSummaryData.reduce((sum, item) => sum + (parseInt(item.total_available_kits) || 0), 0)}
               </Badge>
             </Col>
           </Row>
@@ -367,7 +400,7 @@ useEffect(() => {
                   <th rowSpan="2">ज़िला</th>
                   <th rowSpan="2">परियोजना</th>
                   <th rowSpan="2">तिमाही ({selectedYear})</th>
-                  <th colSpan="6" className="bg-secondary text-white">वितरण विवरण</th>
+                  <th colSpan="6" className="bg-secondary text-white">किट विवरण</th>
                 </tr>
                 <tr className="small font-weight-bold">
                   <th className="bg-secondary-subtle text-dark">अनुमानित लाभार्थी</th>
@@ -391,67 +424,36 @@ useEffect(() => {
                 </tr>
               </thead>
               <tbody>
-                {/* Sample Data Rows */}
-                <tr className="table-row-white">
-                  <td>1</td>
-                  <td>Almora</td>
-                  <td>Bhaisiyachana [0506401]</td>
-                  <td>पिछला अवशेष</td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>10</td>
-                  <td>-</td>
-                  <td>10</td>
-                  <td>-</td>
-                </tr>
-                <tr className="table-row-offwhite">
-                  <td>2</td>
-                  <td>Almora</td>
-                  <td>Bhaisiyachana [0506401]</td>
-                  <td>Apr-May-Jun</td>
-                  <td>150</td>
-                  <td>140</td>
-                  <td>10</td>
-                  <td>130</td>
-                  <td>140</td>
-                  <td>120</td>
-                </tr>
-                <tr className="table-row-white">
-                  <td>3</td>
-                  <td>Almora</td>
-                  <td>Bhaisiyachana [0506401]</td>
-                  <td>Jul-Aug-Sep</td>
-                  <td>160</td>
-                  <td>150</td>
-                  <td>20</td>
-                  <td>140</td>
-                  <td>160</td>
-                  <td>130</td>
-                </tr>
-                <tr className="table-row-offwhite">
-                  <td>4</td>
-                  <td>Almora</td>
-                  <td>Bhaisiyachana [0506401]</td>
-                  <td>Oct-Nov-Dec</td>
-                  <td>170</td>
-                  <td>160</td>
-                  <td>30</td>
-                  <td>150</td>
-                  <td>180</td>
-                  <td>140</td>
-                </tr>
-                <tr className="table-row-white">
-                  <td>5</td>
-                  <td>Almora</td>
-                  <td>Bhaisiyachana [0506401]</td>
-                  <td>Jan-Feb-Mar</td>
-                  <td>180</td>
-                  <td>170</td>
-                  <td>40</td>
-                  <td>160</td>
-                  <td>200</td>
-                  <td>150</td>
-                </tr>
+                {kitSummaryLoading ? (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4">
+                      <Spinner animation="border" size="sm" /> डेटा लोड हो रहा है...
+                    </td>
+                  </tr>
+                ) : kitSummaryError ? (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4 text-danger">{kitSummaryError}</td>
+                  </tr>
+                ) : kitSummaryData.length > 0 ? (
+                  kitSummaryData.map((item, index) => (
+                    <tr key={index} className={index % 2 === 0 ? "table-row-white" : "table-row-offwhite"}>
+                      <td>{index + 1}</td>
+                      <td>{item.district}</td>
+                      <td>{item.project}</td>
+                      <td>{item.quarter}</td>
+                      <td>{item.estimated_beneficiary}</td>
+                      <td>{item.total_demand_kits}</td>
+                      <td>{item.previous_balance}</td>
+                      <td>{item.total_received_kits}</td>
+                      <td>{item.total_available_kits}</td>
+                      <td>{item.distributed_kits}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="10" className="text-center py-4 text-muted">कोई डेटा उपलब्ध नहीं है।</td>
+                  </tr>
+                )}
               </tbody>
             </Table>
           </div>
