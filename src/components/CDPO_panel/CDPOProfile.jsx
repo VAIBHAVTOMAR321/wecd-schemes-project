@@ -38,7 +38,7 @@ const CDPOProfile = () => {
   const profileFields = [
   
     { label: "District", key: "district" },
-    { label: "Bill Use", key: "bill_use" },
+    // { label: "Bill Use", key: "bill_use" },
     { label: "Project Code", key: "project_code" },
     { label: "Project Name", key: "project_name" },
     { label: "Project Show", key: "project_show" },

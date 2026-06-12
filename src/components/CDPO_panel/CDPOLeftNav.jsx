@@ -108,6 +108,11 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
                  path: "/OurAwcProject",
                  icon: <FaFemale />,
                },
+                {
+                label: "Our Sector",
+                 path: "/OURSector",
+                 icon: <FaFemale />,
+               },
              
              ],
            },

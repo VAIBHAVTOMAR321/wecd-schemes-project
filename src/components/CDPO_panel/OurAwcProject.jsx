@@ -12,10 +12,11 @@ const OurAwcProject = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
-  const { user, api } = useAuth();
+  const { api, accessToken } = useAuth();
   const [awcData, setAwcData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sectorName, setSectorName] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [apiError, setApiError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 20;
 
@@ -40,20 +41,26 @@ const OurAwcProject = () => {
     if (!api) return;
     const fetchAwcData = async () => {
       setLoading(true);
+      setApiError("");
       try {
-        const response = await api.get("/sector-awc-dropdown/");
+        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-awc-dropdown/", { headers });
         if (response.data?.success) {
-          setAwcData(response.data.data || []);
-          setSectorName(response.data.sector || "");
+          const data = response.data.data || [];
+          setAwcData(data);
+          setProjectName(response.data.project || "");
+          return;
         }
+        throw new Error("AWC API response was not successful");
       } catch (err) {
+        setApiError(err.response?.data?.error || err.response?.data?.message || err.message);
         console.error("Failed to fetch AWC data:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchAwcData();
-  }, [api]);
+  }, [api, accessToken]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -84,9 +91,15 @@ const OurAwcProject = () => {
               आंगनवाड़ी केंद्र
             </h3>
             <h5 className="fw-bold text-uppercase mb-0" style={{ color: "#93c5fd", fontSize: "clamp(0.85rem, 2vw, 1.1rem)" }}>
-              सेक्टर के केंद्र : {sectorName || "Almora"}
+              सेक्टर के केंद्र : {projectName || "Almora"}
             </h5>
           </div>
+
+          {apiError && (
+            <div className="alert alert-warning mb-3" role="alert">
+              AWC API error: {apiError}
+            </div>
+          )}
 
           <Row>
             <Col lg={12}>
