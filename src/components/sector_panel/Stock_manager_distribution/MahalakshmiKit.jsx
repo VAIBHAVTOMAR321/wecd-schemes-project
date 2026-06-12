@@ -37,7 +37,7 @@ const MahalakshmiKit = () => {
   const [registerForm, setRegisterForm] = useState({
     name: "", dob: "", month: "", fin_year: "2025-2026", kit_date: new Date().toISOString().split('T')[0],
     caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "",
-    child_born: "", child_gender: "", address: "", awc_code: ""
+    child_born: "", child_gender: "Female", address: "", awc_code: ""
   });
 
   const { user, api } = useAuth();
@@ -237,6 +237,8 @@ const MahalakshmiKit = () => {
 
   const handleRegisterChange = (e) => {
     const { name, value } = e.target;
+    if (name === "ben_mob" && value && !/^\d{0,10}$/.test(value)) return;
+    if (name === "adhar_num" && value && !/^\d{0,12}$/.test(value)) return;
     setRegisterForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -249,6 +251,7 @@ const MahalakshmiKit = () => {
         dob: registerForm.dob,
         fin_year: finYear,
         kit_date: registerForm.kit_date,
+        month: registerForm.kit_date,
         caste_category: registerForm.caste_category,
         ben_mob: registerForm.ben_mob,
         adhar_num: registerForm.adhar_num,
@@ -265,7 +268,7 @@ const MahalakshmiKit = () => {
       setRegisterForm({
         name: "", dob: "", fin_year: searchParams.financialYear, kit_date: new Date().toISOString().split('T')[0],
         caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "",
-        child_born: "", child_gender: "", address: "", awc_code: ""
+        child_born: "", child_gender: "Female", address: "", awc_code: ""
       });
       if (response.data) {
         setBeneficiaries(prev => [...prev, response.data]);
@@ -442,7 +445,7 @@ const MahalakshmiKit = () => {
                     <th className="py-1" style={{ backgroundColor: "#e0f2fe" }}>माह</th>
                     <th className="py-1" style={{ backgroundColor: "#eef2ff" }}>वित्तीय वर्ष</th>
                     <th className="py-1" style={{ backgroundColor: "#e0f2fe" }}>किट दिनांक</th>
-                    <th className="py-1" style={{ backgroundColor: "#eef2ff" }}>जाति श्रेणी</th>
+                    <th className="py-1" style={{ backgroundColor: "#eef2ff" }}>जाति वर्ग</th>
                     <th className="py-1" style={{ backgroundColor: "#e0f2fe" }}>मोबाइल</th>
                     <th className="py-1" style={{ backgroundColor: "#eef2ff" }}>आधार</th>
                     <th className="py-1" style={{ backgroundColor: "#e0f2fe" }}>डिलीवरी नं</th>
@@ -611,34 +614,42 @@ const MahalakshmiKit = () => {
             </Modal.Header>
             <Modal.Body>
               <Form onSubmit={handleRegisterSubmit}>
-                <Row className="g-2">
+<Row className="g-2">
                   {[
                     { label: "लाभार्थी का नाम", name: "name", type: "text", md: 6 },
                     { label: "जन्म तिथि", name: "dob", type: "date", md: 6 },
                     { label: "वित्तीय वर्ष", name: "fin_year", type: "select", md: 6,
                       options: ["", "2025-2026", "2026-2027"] },
                     { label: "किट दिनांक", name: "kit_date", type: "date", md: 6 },
-                    { label: "जाति श्रेणी", name: "caste_category", type: "select", md: 4,
-                      options: ["", "Gen", "OBC", "SC", "ST", "Other"] },
-                    { label: "लाभार्थी मोबाइल", name: "ben_mob", type: "text", md: 4 },
-                    { label: "आधार नंबर", name: "adhar_num", type: "text", md: 4 },
+                    { label: "जाति वर्ग", name: "caste_category", type: "select", md: 4,
+                      options: [{ value: "", label: "--जाति वर्ग चुनें--" }, { value: "GEN", label: "जनरल" }, { value: "SC", label: "अनुसूचित जाति" }, { value: "ST", label: "अनुसूचित जनजाति" }, { value: "OBC", label: "अन्य पिछड़ा वर्ग" }, { value: "Other", label: "अन्य" }] },
+                    { label: "लाभार्थी मोबाइल", name: "ben_mob", type: "text", md: 4, maxLength: 10 },
+                    { label: "आधार नंबर", name: "adhar_num", type: "text", md: 4, maxLength: 12 },
                     { label: "डिलीवरी नंबर", name: "del_no", type: "text", md: 4 },
                     { label: "डिलीवरी दिनांक", name: "del_date", type: "date", md: 4 },
                     { label: "जन्मित बच्चा", name: "child_born", type: "number", md: 4 },
                     { label: "बच्चा लिंग", name: "child_gender", type: "select", md: 4,
-                      options: ["", "Male", "Female"] },
+                      options: ["Female", "Male"] },
                     { label: "पता", name: "address", type: "text", md: 6 },
                     { label: "आंगनवाड़ी केंद्र", name: "awc_code", type: "select", md: 6,
                       options: ["", ...awcList.map(a => ({ value: a.awc_code, label: `${a.awc_name} (${a.awc_code})` }))] }
                   ].map((f) => (
                     <Col md={f.md} key={f.name}>
                       <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>{f.label}</Form.Label>
-                        {f.type === "select" ? (
-                          <Form.Select size="sm" name={f.name} value={registerForm[f.name]} onChange={handleRegisterChange}>
-                            {(f.options || []).map(opt => <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt || "-- चयन करें --"}</option>)}
-                          </Form.Select>
+                      {f.type === "select" ? (
+                        <Form.Select size="sm" name={f.name} value={registerForm[f.name]} onChange={handleRegisterChange}>
+                          {(f.options || []).map(opt => <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt || "-- चयन करें --"}</option>)}
+                        </Form.Select>
                       ) : (
-                        <Form.Control size="sm" type={f.type} name={f.name} value={registerForm[f.name]} onChange={handleRegisterChange} placeholder={`${f.label} दर्ज करें`} />
+                        <Form.Control 
+                          size="sm" 
+                          type={f.type} 
+                          name={f.name} 
+                          value={registerForm[f.name]} 
+                          onChange={handleRegisterChange} 
+                          placeholder={`${f.label} दर्ज करें`}
+                          maxLength={f.maxLength || undefined}
+                        />
                       )}
                     </Col>
                   ))}
