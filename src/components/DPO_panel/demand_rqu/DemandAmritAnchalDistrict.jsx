@@ -365,7 +365,7 @@ const DemandAmritAnchalDistrict = () => {
         {isReady && (
           <Container fluid className="dashboard-box mt-3">
             <div className="main-heading">
-              <h3 className="mb-4 fw-bold">मुख्यमंत्री महिला पोषण योजना अवलोकन(डिमांड पैनल)</h3>
+              <h3 className="mb-4 fw-bold">मुख्यमंत्री अमृत अंचल योजना अवलोकन(डिमांड पेनल)</h3>
             </div>
 
             <Card className="mb-4 border-0 shadow-sm">
