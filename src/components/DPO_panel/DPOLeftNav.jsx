@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Nav, Offcanvas, Collapse } from "react-bootstrap";
 import {
   FaTachometerAlt,
@@ -55,20 +55,23 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
     );
   };
 
-  // Automatically close sidebar when navigating on mobile or tablet views
-  useEffect(() => {
-    if (isMobile || isTablet) {
-      setSidebarOpen(false);
+  // Helper to check if a menu item or any of its submenus are active
+  const isItemActive = (item) => {
+    if (item.path && item.path !== "#" && location.pathname === item.path) return true;
+    if (item.submenu) {
+      return item.submenu.some(sub => {
+        if (sub.path && sub.path !== "#" && location.pathname === sub.path) return true;
+        if (sub.submenu) return sub.submenu.some(nested => nested.path === location.pathname);
+        return false;
+      });
     }
-  }, [location.pathname, isMobile, isTablet, setSidebarOpen]);
+    return false;
+  };
 
   const handleItemClick = (e, path, isActive) => {
     if (onNavClick) {
       e.preventDefault();
       onNavClick(path);
-    } else if (!isActive) {
-      // Only close sidebar if navigating to a different page
-      setSidebarOpen(false);
     }
   };
 
@@ -77,38 +80,32 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         icon: <FaTachometerAlt />,
         label: "DashBoard",
         path: "/DPODashboard",
-        active: true,
       },
 
        {
         icon: <FaTachometerAlt />,
         label: "Our Projects  ",
         path: "#",
-   
       },
       {
         icon: <FaTachometerAlt />,
         label: "Our Sectors  ",
         path: "#",
-     
       },
        {
         icon: <FaTachometerAlt />,
         label: "Our AWC Centers  ",
         path: "#",
-      
       },
       {
         icon: <FaTachometerAlt />,
         label: "AWC Kalyan Kosh    ",
         path: "#",
-      
       },
       {
         icon: <FaTachometerAlt />,
         label: " Mahalaxmi Beneficiary     ",
         path: "#",
-   
       },
     
      
@@ -229,11 +226,11 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
     item.allowedRoles ? item.allowedRoles.includes(userRole) : true
   )
   .map((item, index) => (
-    <div key={index}>
+    <div key={index} className={`nav-item-wrapper ${isItemActive(item) ? "active-parent" : ""}`}>
       {/* If submenu exists */}
       {item.submenu ? (
         <Nav.Link
-          className={`nav-item ${item.active ? "active" : ""}`}
+          className={`nav-item ${isItemActive(item) ? "active" : ""}`}
           onClick={() => toggleSubmenu(index)}
         >
           <span className="nav-icon">{item.icon}</span>
@@ -245,8 +242,8 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
       ) : (
          <Link
            to={item.path}
-           className={`nav-item nav-link ${item.active ? "active" : ""}`}
-           onClick={(e) => handleItemClick(e, item.path, item.active)}
+           className={`nav-item nav-link ${isItemActive(item) ? "active" : ""}`}
+           onClick={(e) => handleItemClick(e, item.path, isItemActive(item))}
          >
            <span className="nav-icon">{item.icon}</span>
            <span className="nav-text">{item.label}</span>
@@ -254,7 +251,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
       )}
 
       {/* Submenu */}
-       {item.submenu && item.submenu.length > 0 && (
+       {sidebarOpen && item.submenu && item.submenu.length > 0 && (
          <Collapse in={openSubmenu.includes(index)}>
            <div className="submenu-container-user">
              {item.submenu.map((subItem, subIndex) => {
@@ -275,7 +272,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
                     ) : (
                       <Link
                         to={subItem.path}
-                        className="submenu-item-user nav-link"
+                        className={`submenu-item-user nav-link ${location.pathname === subItem.path ? "active" : ""}`}
                         onClick={(e) => handleItemClick(e, subItem.path, false)}
                       >
                         <span className="submenu-icon">{subItem.icon}</span>
@@ -306,12 +303,53 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
            </div>
          </Collapse>
        )}
+
+      {/* Flyout for Collapsed State */}
+      {!sidebarOpen && !isMobile && !isTablet && (
+        <div className="sidebar-flyout">
+          <div className="flyout-header-title">{item.label}</div>
+          {item.submenu && item.submenu.length > 0 && (
+            <div className="flyout-body">
+              {item.submenu.map((subItem, subIndex) => {
+                const hasNested = subItem.submenu && subItem.submenu.length > 0;
+                return (
+                  <div key={subIndex}>
+                    <Link
+                      to={subItem.path}
+                      className={`flyout-item ${location.pathname === subItem.path ? "active" : ""}`}
+                      onClick={(e) => handleItemClick(e, subItem.path, false)}
+                    >
+                      {subItem.icon && <span className="flyout-icon-small">{subItem.icon}</span>}
+                      <span>{subItem.label}</span>
+                    </Link>
+                    {hasNested && (
+                      <div className="flyout-nested-menu">
+                        {subItem.submenu.map((nested, nIdx) => (
+                          <Link
+                            key={nIdx}
+                            to={nested.path}
+                            className={`flyout-nested-item ${location.pathname === nested.path ? "active" : ""}`}
+                            onClick={(e) => handleItemClick(e, nested.path, false)}
+                          >
+                            {nested.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   ))}
 
         </Nav>
 
         <div className="sidebar-footer">
+          <div className="nav-item-wrapper">
           <Nav.Link
             className="nav-item logout-btn"
             onClick={() => {
@@ -326,6 +364,12 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
             </span>
             <span className="nav-text">Logout</span>
           </Nav.Link>
+          {!sidebarOpen && !isMobile && !isTablet && (
+            <div className="sidebar-flyout">
+              <div className="flyout-header-title">Logout</div>
+            </div>
+          )}
+          </div>
         </div>
       </div>
 
