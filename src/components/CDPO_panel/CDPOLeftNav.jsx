@@ -53,12 +53,24 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [userRole, setUserRole] = useState(user ? user.role : null);
+  const userRole = user ? user.role : null;
   const [openSubmenu, setOpenSubmenu] = useState([]);
   const toggleSubmenu = (index) => {
     setOpenSubmenu((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
+  };
+
+  const isItemActive = (item) => {
+    if (item.path && item.path !== "#" && location.pathname === item.path) return true;
+    if (item.submenu) {
+      return item.submenu.some((sub) => {
+        if (sub.path && sub.path !== "#" && location.pathname === sub.path) return true;
+        if (sub.submenu) return sub.submenu.some((nested) => nested.path === location.pathname);
+        return false;
+      });
+    }
+    return false;
   };
 
   // Automatically close sidebar when navigating on mobile or tablet views
@@ -68,13 +80,10 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
     }
   }, [location.pathname, isMobile, isTablet, setSidebarOpen]);
 
-  const handleItemClick = (e, path, isActive) => {
+  const handleItemClick = (e, path) => {
     if (onNavClick) {
       e.preventDefault();
       onNavClick(path);
-    } else if (!isActive) {
-      // Only close sidebar if navigating to a different page
-      setSidebarOpen(false);
     }
   };
 
@@ -214,11 +223,11 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
     item.allowedRoles ? item.allowedRoles.includes(userRole) : true
   )
   .map((item, index) => (
-    <div key={index}>
+    <div key={index} className={`nav-item-wrapper ${isItemActive(item) ? "active-parent" : ""}`}>
       {/* If submenu exists */}
       {item.submenu ? (
         <Nav.Link
-          className={`nav-item ${item.active ? "active" : ""}`}
+          className={`nav-item ${isItemActive(item) ? "active" : ""}`}
           onClick={() => toggleSubmenu(index)}
         >
           <span className="nav-icon">{item.icon}</span>
@@ -230,8 +239,8 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
       ) : (
          <Link
            to={item.path}
-           className={`nav-item nav-link ${item.active ? "active" : ""}`}
-           onClick={(e) => handleItemClick(e, item.path, item.active)}
+           className={`nav-item nav-link ${isItemActive(item) ? "active" : ""}`}
+           onClick={(e) => handleItemClick(e, item.path, isItemActive(item))}
          >
            <span className="nav-icon">{item.icon}</span>
            <span className="nav-text">{item.label}</span>
@@ -239,7 +248,7 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
       )}
 
       {/* Submenu */}
-       {item.submenu && item.submenu.length > 0 && (
+       {sidebarOpen && item.submenu && item.submenu.length > 0 && (
          <Collapse in={openSubmenu.includes(index)}>
            <div className="submenu-container-user">
              {item.submenu.map((subItem, subIndex) => {
@@ -260,7 +269,7 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
                     ) : (
                       <Link
                         to={subItem.path}
-                        className="submenu-item-user nav-link"
+                        className={`submenu-item-user nav-link ${location.pathname === subItem.path ? "active" : ""}`}
                         onClick={(e) => handleItemClick(e, subItem.path, false)}
                       >
                         <span className="submenu-icon">{subItem.icon}</span>
@@ -275,7 +284,7 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
                            <Link
                              key={nestedIndex}
                              to={nestedItem.path}
-                             className="submenu-item-user nav-link"
+                             className={`submenu-item-user nav-link ${location.pathname === nestedItem.path ? "active" : ""}`}
                              onClick={(e) => handleItemClick(e, nestedItem.path, false)}
                            >
                              <span className="submenu-icon">{nestedItem.icon}</span>
@@ -291,27 +300,73 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
            </div>
          </Collapse>
        )}
+
+       {!sidebarOpen && !isMobile && !isTablet && (
+         <div className="sidebar-flyout">
+           <div className="flyout-header-title">{item.label}</div>
+           {item.submenu && item.submenu.length > 0 && (
+             <div className="flyout-body">
+               {item.submenu.map((subItem, subIndex) => {
+                 const hasNested = subItem.submenu && subItem.submenu.length > 0;
+                 return (
+                   <div key={subIndex}>
+                     <Link
+                       to={subItem.path}
+                       className={`flyout-item ${location.pathname === subItem.path ? "active" : ""}`}
+                       onClick={(e) => handleItemClick(e, subItem.path, false)}
+                     >
+                       {subItem.icon && <span className="flyout-icon-small">{subItem.icon}</span>}
+                       <span>{subItem.label}</span>
+                     </Link>
+                     {hasNested && (
+                       <div className="flyout-nested-menu">
+                         {subItem.submenu.map((nested, nIdx) => (
+                           <Link
+                             key={nIdx}
+                             to={nested.path}
+                             className={`flyout-nested-item ${location.pathname === nested.path ? "active" : ""}`}
+                             onClick={(e) => handleItemClick(e, nested.path, false)}
+                           >
+                             {nested.label}
+                           </Link>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                 );
+               })}
+             </div>
+           )}
+         </div>
+       )}
     </div>
   ))}
 
         </Nav>
 
-        <div className="sidebar-footer">
-          <Nav.Link
-            className="nav-item logout-btn"
-            onClick={() => {
-              if (typeof logout === "function") {
-                logout();
-                navigate("/login");
-              }
-            }}
-          >
-            <span className="nav-icon">
-              <FaSignOutAlt />
-            </span>
-            <span className="nav-text">Logout</span>
-          </Nav.Link>
-        </div>
+         <div className="sidebar-footer">
+           <div className="nav-item-wrapper">
+           <Nav.Link
+             className="nav-item logout-btn"
+             onClick={() => {
+               if (typeof logout === "function") {
+                 logout();
+                 navigate("/login");
+               }
+             }}
+           >
+             <span className="nav-icon">
+               <FaSignOutAlt />
+             </span>
+             <span className="nav-text">Logout</span>
+           </Nav.Link>
+           {!sidebarOpen && !isMobile && !isTablet && (
+             <div className="sidebar-flyout">
+               <div className="flyout-header-title">Logout</div>
+             </div>
+           )}
+           </div>
+         </div>
       </div>
 
       {/*  Mobile / Tablet Sidebar (Offcanvas) */}
