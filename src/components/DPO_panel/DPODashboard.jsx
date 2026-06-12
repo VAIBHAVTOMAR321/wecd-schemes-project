@@ -96,6 +96,39 @@ const DPODashboard = () => {
             </Col>
           </Row>
 
+          <Card className="mb-4 border-0 shadow-sm bg-white">
+            <Card.Body>
+              <h4 className="fw-bold mb-3">Our Schemes & Beneficiaries</h4>
+            </Card.Body>
+          </Card>
+
+          <Row className="g-4 mb-4">
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2024-2025)</Card.Title>
+                  <Card.Text className="stats-count">2475</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2025-2026)</Card.Title>
+                  <Card.Text className="stats-count">3150</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={4} md={4} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Anganwadi Establishment Stats</Card.Title>
+                  <Card.Text className="stats-count">View</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
           {showProjectsTable && (
             <Card className="mb-4 border-0 shadow-sm">
               <Card.Body className="p-0">

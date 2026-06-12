@@ -111,11 +111,8 @@ const DemandMahilaPoshanDistirct = () => {
     );
   });
 
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedData = filteredData.slice(startIndex, endIndex);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -176,6 +173,25 @@ const DemandMahilaPoshanDistirct = () => {
     return <Badge bg="secondary">{status || "-"}</Badge>;
   };
 
+  const isPendingStatus = (status) => {
+    const s = (status || "").toLowerCase();
+    return s !== "approve" && s !== "approved" && s !== "reject" && s !== "rejected";
+  };
+
+  const isApprovedOrRejected = (status) => {
+    const s = (status || "").toLowerCase();
+    return s === "approve" || s === "approved" || s === "reject" || s === "rejected";
+  };
+
+  const pendingFilteredData = filteredData.filter((item) => isPendingStatus(item.dir_status));
+  const pendingPaginatedData = pendingFilteredData.slice(startIndex, endIndex);
+  const approvedFilteredData = filteredData.filter((item) => isApprovedOrRejected(item.dir_status));
+  const approvedPaginatedData = approvedFilteredData.slice(startIndex, endIndex);
+  const pendingTotalItems = pendingFilteredData.length;
+  const approvedTotalItems = approvedFilteredData.length;
+  const totalPages = Math.ceil(pendingTotalItems / itemsPerPage);
+  const approvedTotalPages = Math.ceil(approvedTotalItems / itemsPerPage);
+
   const renderDemandTable = () => {
     if (loading) {
       return (
@@ -186,14 +202,14 @@ const DemandMahilaPoshanDistirct = () => {
         </tr>
       );
     }
-    if (paginatedData.length === 0) {
+    if (pendingPaginatedData.length === 0) {
       return (
         <tr>
           <td colSpan="10" className="text-center py-4 text-muted">No data available in table</td>
         </tr>
       );
     }
-    return paginatedData.map((item, index) => {
+    return pendingPaginatedData.map((item, index) => {
       const actualIndex = startIndex + index + 1;
       return (
         <tr key={item.id ?? actualIndex}>
@@ -254,9 +270,6 @@ const DemandMahilaPoshanDistirct = () => {
     });
   };
 
-  const approvedFilteredData = filteredData.filter((item) => (item.dir_status || "").toLowerCase() === "approve");
-  const approvedPaginatedData = approvedFilteredData.slice(startIndex, endIndex);
-
   const renderApprovalTable = () => {
     if (loading) {
       return (
@@ -294,16 +307,16 @@ const DemandMahilaPoshanDistirct = () => {
     });
   };
 
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
+  const renderPagination = (pageCount) => {
+    if (pageCount <= 1) return null;
     const items = [];
     items.push(<Pagination.First key="first" onClick={() => handlePageChange(1)} disabled={currentPage === 1} />);
     items.push(<Pagination.Prev key="prev" onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />);
     items.push(<Pagination.Item key={1} active={1 === currentPage} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
-    if (totalPages > 1) {
+    if (pageCount > 1) {
       items.push(<Pagination.Ellipsis key="ellipsis-start" disabled />);
       const startPage = Math.max(2, currentPage - 1);
-      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      const endPage = Math.min(pageCount - 1, currentPage + 1);
       for (let i = startPage; i <= endPage; i++) {
         items.push(
           <Pagination.Item key={i} active={i === currentPage} onClick={() => handlePageChange(i)}>
@@ -311,13 +324,13 @@ const DemandMahilaPoshanDistirct = () => {
           </Pagination.Item>
         );
       }
-      if (totalPages > 2) {
+      if (pageCount > 2) {
         items.push(<Pagination.Ellipsis key="ellipsis-end" disabled />);
       }
-      items.push(<Pagination.Item key={totalPages} active={totalPages === currentPage} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
+      items.push(<Pagination.Item key={pageCount} active={pageCount === currentPage} onClick={() => handlePageChange(pageCount)}>{pageCount}</Pagination.Item>);
     }
-    items.push(<Pagination.Next key="next" onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />);
-    items.push(<Pagination.Last key="last" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />);
+    items.push(<Pagination.Next key="next" onClick={() => handlePageChange(Math.min(pageCount, currentPage + 1))} disabled={currentPage === pageCount} />);
+    items.push(<Pagination.Last key="last" onClick={() => handlePageChange(pageCount)} disabled={currentPage === pageCount} />);
     return (
       <div className="d-flex justify-content-center mt-3">
         <Pagination>{items}</Pagination>
@@ -440,10 +453,10 @@ const DemandMahilaPoshanDistirct = () => {
                 </div>
               </Card.Body>
               <Card.Footer className="bg-white border-0 py-2">
-                <small className="text-muted">Showing {totalItems === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries</small>
+                <small className="text-muted">Showing {pendingTotalItems === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, pendingTotalItems)} of {pendingTotalItems} entries</small>
               </Card.Footer>
             </Card>
-            {renderPagination()}
+            {renderPagination(totalPages)}
 
             <h5 className="mb-3 fw-bold">Approve List By DPO</h5>
             <Card className="border-0 shadow-sm">
@@ -469,8 +482,11 @@ const DemandMahilaPoshanDistirct = () => {
                   </Table>
                 </div>
               </Card.Body>
+              <Card.Footer className="bg-white border-0 py-2">
+                <small className="text-muted">Showing {approvedTotalItems} entries</small>
+              </Card.Footer>
             </Card>
-            {renderPagination()}
+            {renderPagination(approvedTotalPages)}
           </Container>
         )}
       </div>
