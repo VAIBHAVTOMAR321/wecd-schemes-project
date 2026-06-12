@@ -102,7 +102,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
 {
        icon: <FaBuilding />,
        label: "Our Districts",
-       path: "#",
+       path: "/OurDpo",
      },
              {
        icon: <FaProjectDiagram />,
