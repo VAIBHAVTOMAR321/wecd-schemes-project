@@ -17,8 +17,8 @@ const MahalakshmiKit = () => {
   const [editingId, setEditingId] = useState(null);
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [editingBeneficiaryId, setEditingBeneficiaryId] = useState(null);
-  const [editingBeneficiaryForm, setEditingBeneficiaryForm] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshBeneficiaryTrigger, setRefreshBeneficiaryTrigger] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [awcList, setAwcList] = useState([]);
   const [awcLoading, setAwcLoading] = useState(false);
@@ -36,8 +36,7 @@ const MahalakshmiKit = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     name: "", dob: "", month: "", fin_year: "2025-2026", kit_date: new Date().toISOString().split('T')[0],
-    caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "",
-    child_born: "", child_gender: "Female", address: "", awc_code: ""
+    caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "", child_born: 0, child_gender: [], address: "", awc_code: ""
   });
 
   const { user, api } = useAuth();
@@ -86,9 +85,9 @@ const MahalakshmiKit = () => {
       } finally {
         setLoading(false);
       }
-    };
+    }; 
     fetchBeneficiaries();
-  }, [api, searchParams.financialYear, currentPage]);
+  }, [api, searchParams.financialYear, currentPage, refreshBeneficiaryTrigger]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -114,6 +113,13 @@ const MahalakshmiKit = () => {
   }, [api, searchParams.financialYear]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  const getShortMonth = (dateString) => {
+    if (!dateString) return "";
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const parts = dateString.split('-');
+    return parts.length === 3 ? monthNames[parseInt(parts[1], 10) - 1] : "";
+  };
 
   const handleSearchChange = (e) => {
     const { name, value } = e.target;
@@ -189,8 +195,16 @@ const MahalakshmiKit = () => {
     window.scrollTo({ top: 500, behavior: 'smooth' });
   };
 
+  const resetRegisterForm = useCallback(() => {
+    setRegisterForm({
+      name: "", dob: "", month: "", fin_year: "2025-2026", kit_date: new Date().toISOString().split('T')[0],
+      caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "", child_born: 0, child_gender: [], address: "", awc_code: ""
+    });
+    setEditingBeneficiaryId(null);
+  }, []);
+
   const handleDelete = async (id) => {
-    if (window.confirm("क्या आप वाकई इस वितरण रिकॉर्ड को हटाना चाहते हैं?")) {
+    if (window.confirm("क्या आप वाकई इस वितरण रिकॉर्ड को डिलीट करने का अनुरोध भेजना चाहते हैं?")) {
       try {
         await api.delete('/mk-distribution/', { data: { id } });
         fetchDistributionData();
@@ -202,32 +216,32 @@ const MahalakshmiKit = () => {
 
   const handleEditBeneficiary = (row) => {
     setEditingBeneficiaryId(row.id);
-    setEditingBeneficiaryForm({ ...row });
-  };
-
-  const handleEditBeneficiaryChange = (e) => {
-    const { name, value } = e.target;
-    setEditingBeneficiaryForm(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleUpdateBeneficiary = async () => {
-    if (!editingBeneficiaryId) return;
-    try {
-      await api.put('/maha-beneficiary/', { ...editingBeneficiaryForm, id: editingBeneficiaryId });
-      alert("सफलतापूर्वक अपडेट किया गया");
-      setEditingBeneficiaryId(null);
-      setEditingBeneficiaryForm({});
-      setBeneficiaries(prev => prev.map(b => (b.id === editingBeneficiaryId ? editingBeneficiaryForm : b)));
-    } catch (err) {
-      alert("अपडेट विफल");
-    }
+    setRegisterForm({
+      name: row.name || "",
+      dob: row.dob || "",
+      month: row.month || "",
+      fin_year: row.fin_year || "2025-2026",
+      kit_date: row.kit_date || "",
+      caste_category: row.caste_category || "",
+      ben_mob: row.ben_mob || "",
+      adhar_num: row.adhar_num || "",
+      del_no: row.del_no || "",
+      del_date: row.del_date || "",
+      child_born: row.child_born || 0,
+      child_gender: typeof row.child_gender === 'string' ? row.child_gender.split(',').filter(g => g) : [],
+      address: row.address || "",
+      awc_code: row.awc_code || "",
+      awc_name: row.awc_name || "",
+      awc_type: row.awc_type || ""
+    });
+    setShowRegisterModal(true);
   };
 
   const handleDeleteBeneficiary = async (id) => {
-    if (window.confirm("क्या आप वाकई इस लाभार्थी को हटाना चाहते हैं?")) {
+    if (window.confirm("क्या आप वाकई इस लाभार्थी को डिलीट करने का अनुरोध भेजना चाहते हैं?")) {
       try {
         await api.delete('/maha-beneficiary/', { data: { id } });
-        setBeneficiaries(prev => prev.filter(b => b.id !== id));
+        setRefreshBeneficiaryTrigger(prev => prev + 1); // Trigger re-fetch
         alert("सफलतापूर्वक हटाया गया");
       } catch (err) {
         alert("डिलीट विफल");
@@ -237,45 +251,90 @@ const MahalakshmiKit = () => {
 
   const handleRegisterChange = (e) => {
     const { name, value } = e.target;
-    if (name === "ben_mob" && value && !/^\d{0,10}$/.test(value)) return;
-    if (name === "adhar_num" && value && !/^\d{0,12}$/.test(value)) return;
-    setRegisterForm(prev => ({ ...prev, [name]: value }));
+    if (name === "ben_mob" && value && !/^\d{0,10}$/.test(value)) {
+      return;
+    }
+    if (name === "adhar_num" && value && !/^\d{0,12}$/.test(value)) {
+      return;
+    }
+    if (name === "child_born") {
+      const numChildren = parseInt(value, 10);
+      setRegisterForm(prev => ({
+        ...prev,
+        child_born: isNaN(numChildren) ? 0 : numChildren,
+        child_gender: Array(isNaN(numChildren) ? 0 : numChildren).fill("female"), // Default to female
+      }));
+    } else {
+      setRegisterForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleChildGenderChange = (index, gender) => {
+    setRegisterForm(prev => {
+      const newChildGender = [...prev.child_gender];
+      newChildGender[index] = gender;
+      return { ...prev, child_gender: newChildGender };
+    });
   };
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     try {
+      const selectedAwc = awcList.find(a => a.awc_code === registerForm.awc_code);
       const finYear = registerForm.fin_year.replace(/^(\d{4})-(\d{4})$/, "$1-$2");
+      const kitMonth = getShortMonth(registerForm.kit_date) || registerForm.month;
+
       const payload = {
         name: registerForm.name,
         dob: registerForm.dob,
         fin_year: finYear,
         kit_date: registerForm.kit_date,
-        month: registerForm.kit_date,
+        month: kitMonth,
         caste_category: registerForm.caste_category,
         ben_mob: registerForm.ben_mob,
         adhar_num: registerForm.adhar_num,
         del_no: registerForm.del_no,
         del_date: registerForm.del_date,
-        child_born: registerForm.child_born ? parseInt(registerForm.child_born) : 0,
-        child_gender: registerForm.child_gender,
+        child_born: registerForm.child_born,
+        child_gender: registerForm.child_gender.join(','), // Join array into comma-separated string
         address: registerForm.address,
-        awc_code: registerForm.awc_code
+        awc_code: registerForm.awc_code,
+        awc_name: selectedAwc ? selectedAwc.awc_name : (editingBeneficiaryId ? registerForm.awc_name : ""),
+        awc_type: selectedAwc ? selectedAwc.awc_type : (editingBeneficiaryId ? registerForm.awc_type : "AWC")
       };
-      const response = await api.post('/maha-beneficiary/', payload);
-      alert("लाभार्थी सफलतापूर्वक पंजीकृत हो गया");
-      setShowRegisterModal(false);
-      setRegisterForm({
-        name: "", dob: "", fin_year: searchParams.financialYear, kit_date: new Date().toISOString().split('T')[0],
-        caste_category: "", ben_mob: "", adhar_num: "", del_no: "", del_date: "",
-        child_born: "", child_gender: "Female", address: "", awc_code: ""
-      });
-      if (response.data) {
-        setBeneficiaries(prev => [...prev, response.data]);
+
+      let response;
+      if (editingBeneficiaryId) {
+        response = await api.put('/maha-beneficiary/', { ...payload, id: editingBeneficiaryId });
+        alert("लाभार्थी का विवरण सफलतापूर्वक अपडेट किया गया");
+      } else {
+        response = await api.post('/maha-beneficiary/', payload);
+        alert("लाभार्थी सफलतापूर्वक पंजीकृत हो गया");
       }
+      setRefreshBeneficiaryTrigger(prev => prev + 1); // Trigger re-fetch for both post and put
+
+      setShowRegisterModal(false);
+      resetRegisterForm();
     } catch (err) {
-      console.error("Registration error:", err);
-      alert("पंजीकरण विफल");
+      console.error("Registration error:", err); // Log the full error object
+      if (err.response && err.response.data) {
+        console.error("Server error details:", err.response.data); // Log specific server error data
+        let errorMessages = [];
+        if (typeof err.response.data === 'object') {
+          for (const key in err.response.data) {
+            if (Array.isArray(err.response.data[key])) {
+              errorMessages.push(`${key}: ${err.response.data[key].join(', ')}`);
+            } else {
+              errorMessages.push(`${key}: ${err.response.data[key]}`);
+            }
+          }
+          alert("पंजीकरण विफल: " + errorMessages.join('; '));
+        } else {
+          alert("पंजीकरण विफल: " + err.response.data);
+        }
+      } else {
+        alert("पंजीकरण विफल। कृपया पुनः प्रयास करें।");
+      }
     }
   };
 
@@ -291,14 +350,14 @@ const MahalakshmiKit = () => {
         <SectorHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="text-center">
+          <div className="d-flex align-items-center mb-4">
+            <div className="flex-grow-1 text-center">
               <h3 className="fw-bold text-uppercase mb-1" style={{ color: "#60a5fa", fontSize: "clamp(1rem, 2.5vw, 1.5rem)" }}>
                 वितरण पैनल
               </h3>
               <h5 className="fw-bold text-uppercase mb-0" style={{ color: "#93c5fd", fontSize: "clamp(0.85rem, 2vw, 1.1rem)" }}>महालक्ष्मी किट वितरण हेतु</h5>
             </div>
-            <Button variant="light" size="sm" className="fw-bold shadow-sm text-white" style={{ fontSize: '12px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }} onClick={() => { setEditingBeneficiaryId(null); setShowRegisterModal(true); }}>
+            <Button variant="light" size="sm" className="fw-bold shadow-sm text-white flex-shrink-0" style={{ fontSize: '12px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }} onClick={() => { resetRegisterForm(); setShowRegisterModal(true); }}>
               <i className="bi bi-person-plus me-1"></i> नये लाभार्थी का पंजीकरण करें
             </Button>
           </div>
@@ -469,43 +528,28 @@ const MahalakshmiKit = () => {
                     </tr>
                   ) : beneficiaries.length > 0 ? (
                     beneficiaries.map((row, index) => (
-                      editingBeneficiaryId === row.id ? (
-                        <tr key={row.id}>
-                          <td className="fw-bold text-muted py-1">{index + 1 + (currentPage - 1) * 50}</td>
-                          {['name','dob','month','fin_year','kit_date','caste_category','ben_mob','adhar_num','del_no','child_gender','awc_code','sector','project','district','status'].map(field => (
-                            <td key={field} style={{ backgroundColor: "#f0f9ff" }}>
-                              <Form.Control size="sm" type="text" name={field} value={editingBeneficiaryForm[field] || ''} onChange={handleEditBeneficiaryChange} />
-                            </td>
-                          ))}
-                          <td className="d-flex gap-1 justify-content-center">
-                            <Button variant="link" size="sm" className="text-success p-0" onClick={handleUpdateBeneficiary}><i className="bi bi-check-lg"></i></Button>
-                            <Button variant="link" size="sm" className="text-danger p-0" onClick={() => setEditingBeneficiaryId(null)}><i className="bi bi-x-lg"></i></Button>
-                          </td>
-                        </tr>
-                      ) : (
-                        <tr key={row.id}>
-                          <td className="fw-bold text-muted py-1">{index + 1 + (currentPage - 1) * 50}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.name}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.dob}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.month}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.fin_year}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.kit_date}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.caste_category}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.ben_mob}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.adhar_num}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.del_no}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.child_gender}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.awc_code}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.sector}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.project}</td>
-                          <td style={{ backgroundColor: "#f5f3ff" }}>{row.district}</td>
-                          <td style={{ backgroundColor: "#f0f9ff" }}>{row.status}</td>
-                          <td className="d-flex gap-1 justify-content-center">
-                            <Button variant="link" size="sm" className="text-primary p-0" onClick={() => handleEditBeneficiary(row)}><i className="bi bi-pencil-square"></i></Button>
-                            <Button variant="link" size="sm" className="text-danger p-0" onClick={() => handleDeleteBeneficiary(row.id)}><i className="bi bi-trash3-fill"></i></Button>
-                          </td>
-                        </tr>
-                      )
+                      <tr key={row.id || `row-${index}`}>
+                        <td className="fw-bold text-muted py-1">{index + 1 + (currentPage - 1) * 50}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.name}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.dob}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.month}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.fin_year}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.kit_date}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.caste_category}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.ben_mob}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.adhar_num}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.del_no}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.child_gender}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.awc_code}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.sector}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.project}</td>
+                        <td style={{ backgroundColor: "#f5f3ff" }}>{row.district}</td>
+                        <td style={{ backgroundColor: "#f0f9ff" }}>{row.status}</td>
+                        <td className="d-flex gap-1 justify-content-center">
+                          <Button variant="link" size="sm" className="text-primary p-0" onClick={() => handleEditBeneficiary(row)}><i className="bi bi-pencil-square"></i></Button>
+                          <Button variant="link" size="sm" className="text-danger p-0" onClick={() => handleDeleteBeneficiary(row.id)}><i className="bi bi-trash3-fill"></i></Button>
+                        </td>
+                      </tr>
                     ))
                   ) : (
                     <tr>
@@ -575,7 +619,7 @@ const MahalakshmiKit = () => {
                 <tbody style={{ fontSize: "10px" }}>
                   {tableData.length > 0 ? (
                     tableData.map((row, index) => (
-                      <tr key={row.id}>
+                      <tr key={row.id || `dist-${index}`}>
                         <td className="fw-bold text-muted py-1">{index + 1}</td>
                         <td style={{ backgroundColor: "#f0f9ff" }}>{row.fin_yr}</td>
                         <td style={{ backgroundColor: "#f5f3ff" }}>{row.month}</td>
@@ -610,7 +654,9 @@ const MahalakshmiKit = () => {
 
           <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" centered>
             <Modal.Header closeButton style={{ backgroundColor: '#dbeafe' }}>
-              <Modal.Title className="fw-bold" style={{ color: '#1e40af' }}>नया लाभार्थी पंजीकरण</Modal.Title>
+              <Modal.Title className="fw-bold" style={{ color: '#1e40af' }}>
+                {editingBeneficiaryId ? "लाभार्थी विवरण अपडेट करें" : "नया लाभार्थी पंजीकरण"}
+              </Modal.Title>
             </Modal.Header>
             <Modal.Body>
               <Form onSubmit={handleRegisterSubmit}>
@@ -619,17 +665,17 @@ const MahalakshmiKit = () => {
                     { label: "लाभार्थी का नाम", name: "name", type: "text", md: 6 },
                     { label: "जन्म तिथि", name: "dob", type: "date", md: 6 },
                     { label: "वित्तीय वर्ष", name: "fin_year", type: "select", md: 6,
-                      options: ["", "2025-2026", "2026-2027"] },
+                      options: ["", "2024-2025", "2025-2026", "2026-2027"] },
                     { label: "किट दिनांक", name: "kit_date", type: "date", md: 6 },
                     { label: "जाति वर्ग", name: "caste_category", type: "select", md: 4,
                       options: [{ value: "", label: "--जाति वर्ग चुनें--" }, { value: "GEN", label: "जनरल" }, { value: "SC", label: "अनुसूचित जाति" }, { value: "ST", label: "अनुसूचित जनजाति" }, { value: "OBC", label: "अन्य पिछड़ा वर्ग" }, { value: "Other", label: "अन्य" }] },
                     { label: "लाभार्थी मोबाइल", name: "ben_mob", type: "text", md: 4, maxLength: 10 },
                     { label: "आधार नंबर", name: "adhar_num", type: "text", md: 4, maxLength: 12 },
-                    { label: "डिलीवरी नंबर", name: "del_no", type: "text", md: 4 },
+                    { label: "डिलीवरी संख्या", name: "del_no", type: "select", md: 4,
+                      options: [{ value: "", label: "--चयन करें--" }, { value: "First", label: "प्रथम" }, { value: "Second", label: "द्वितीय" }] },
                     { label: "डिलीवरी दिनांक", name: "del_date", type: "date", md: 4 },
                     { label: "जन्मित बच्चा", name: "child_born", type: "number", md: 4 },
-                    { label: "बच्चा लिंग", name: "child_gender", type: "select", md: 4,
-                      options: ["Female", "Male"] },
+                    // child_gender will be dynamically rendered based on child_born
                     { label: "पता", name: "address", type: "text", md: 6 },
                     { label: "आंगनवाड़ी केंद्र", name: "awc_code", type: "select", md: 6,
                       options: ["", ...awcList.map(a => ({ value: a.awc_code, label: `${a.awc_name} (${a.awc_code})` }))] }
@@ -638,7 +684,11 @@ const MahalakshmiKit = () => {
                       <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>{f.label}</Form.Label>
                       {f.type === "select" ? (
                         <Form.Select size="sm" name={f.name} value={registerForm[f.name]} onChange={handleRegisterChange}>
-                          {(f.options || []).map(opt => <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt || "-- चयन करें --"}</option>)}
+                          {(f.options || []).map((opt, idx) => {
+                            const val = typeof opt === 'object' ? opt.value : opt;
+                            const label = typeof opt === 'object' ? opt.label : (opt || "-- चयन करें --");
+                            return <option key={idx} value={val}>{label}</option>;
+                          })}
                         </Form.Select>
                       ) : (
                         <Form.Control 
@@ -654,9 +704,40 @@ const MahalakshmiKit = () => {
                     </Col>
                   ))}
                 </Row>
+                <Row className="g-2 mt-2">
+                  {Array.from({ length: registerForm.child_born }).map((_, index) => (
+                    <Col md={4} key={`child-gender-${index}`}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>
+                          बच्चा {index + 1} लिंग
+                        </Form.Label>
+                        <div>
+                          <Form.Check
+                            inline
+                            type="radio"
+                            label="Female"
+                            name={`child_gender_${index}`}
+                            value="female"
+                            checked={registerForm.child_gender[index] === "female"}
+                            onChange={() => handleChildGenderChange(index, "female")}
+                          />
+                          <Form.Check
+                            inline
+                            type="radio"
+                            label="Male"
+                            name={`child_gender_${index}`}
+                            value="male"
+                            checked={registerForm.child_gender[index] === "male"}
+                            onChange={() => handleChildGenderChange(index, "male")}
+                          />
+                        </div>
+                      </Form.Group>
+                    </Col>
+                  ))}
+                </Row>
                 <div className="text-center mt-4">
                   <Button type="submit" variant="light" className="px-4 py-1 fw-bold shadow-sm text-white" style={{ fontSize: '13px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }}>
-                    सबमिट करें
+                    {editingBeneficiaryId ? "अपडेट करें" : "सबमिट करें"}
                   </Button>
                 </div>
               </Form>
