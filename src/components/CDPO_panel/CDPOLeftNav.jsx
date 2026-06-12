@@ -90,6 +90,18 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
          label: "Change Password",
          path: "/CDPOProfile",
        },
+          {
+             icon: <FaServer />,
+             label: "Data Bank",
+             submenu: [
+               {
+                label: "Our Anganwadi",
+                 path: "/OurAwcProject",
+                 icon: <FaFemale />,
+               },
+             
+             ],
+           },
        {
          icon: <FaUsers />,
          label: "State Schemes",

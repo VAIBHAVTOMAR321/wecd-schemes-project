@@ -43,6 +43,7 @@ import StockMahalakshmi from "./components/CDPO_panel/state_schemes/mahalakshmi_
 import DemandMahilaPoshanDistirct from "./components/DPO_panel/demand_rqu/DemandMahilaPoshanDistirct";
 import DemandBalPoshanDistrict from "./components/DPO_panel/demand_rqu/DemandBalPoshanDistrict";
 import DemandAmritAnchalDistrict from "./components/DPO_panel/demand_rqu/DemandAmritAnchalDistrict";
+import OurAwcProject from "./components/CDPO_panel/OurAwcProject";
 
 
 
@@ -75,13 +76,13 @@ function AppContent() {
        "/DemandanchalAamrit", 
        "/DemandPoshanFinal", 
        "/MahalaxmiYear",
-       "/DemandBalPoshan",
+       "/DemandBalPoshan", "/OurAwcProject",
         "/DistributionMahilaPoshFinal",
          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
          "/Stockmahila", "/DistributionBalPoshan",
           "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
   const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict",
-    "/StockBal", "/OurBenReq", "/StockMahalakshmi",
+    "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject",
      "/StockAnchal",
       "/DemandAmritAnchalProject",
        "/MahalaxmiYear",
@@ -120,6 +121,12 @@ function AppContent() {
          <Route path="/MahalaxmiYear" element={
           <ProtectedRoute>
             <MahalaxmiYear />
+          </ProtectedRoute>
+        } />
+
+          <Route path="/OurAwcProject" element={
+          <ProtectedRoute>
+            <OurAwcProject />
           </ProtectedRoute>
         } />
           <Route path="/DemandAmritAnchalProject" element={
