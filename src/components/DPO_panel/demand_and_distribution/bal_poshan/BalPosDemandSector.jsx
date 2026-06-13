@@ -370,9 +370,6 @@ const BalPosDemandSector = () => {
                       <th>Kela Chips Beneficiary</th>
                       <th>Egg Beneficiary</th>
                       <th>Not Eat Egg Beneficiary</th>
-                      <th>Sector Status</th>
-                      <th>CDPO Status</th>
-                      <th>Director Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -389,26 +386,11 @@ const BalPosDemandSector = () => {
                         <td>{item.kela_chips_beneficiary ?? "-"}</td>
                         <td>{item.egg_beneficiary ?? "-"}</td>
                         <td>{item.not_eat_egg_beneficiary ?? "-"}</td>
-                        <td>
-                          <Badge bg={getVariant(item.sector_status)} style={{ fontSize: "8px" }}>
-                            {item.sector_status || "-"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge bg={getVariant(item.cdpo_status)} style={{ fontSize: "8px" }}>
-                            {item.cdpo_status || "-"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge bg={getVariant(item.director_status)} style={{ fontSize: "8px" }}>
-                            {item.director_status || "-"}
-                          </Badge>
-                        </td>
                       </tr>
                     ))}
                     {paginatedData.length === 0 && (
                       <tr>
-                        <td colSpan={14} className="text-center">
+                        <td colSpan={11} className="text-center">
                           No matching records
                         </td>
                       </tr>
