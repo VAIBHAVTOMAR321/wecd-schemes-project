@@ -25,7 +25,7 @@ const BalPosDemandProj = () => {
   const [data, setData] = useState([]);
   const [totalDemands, setTotalDemands] = useState(null);
 
-  const [selectedFinYear, setSelectedFinYear] = useState("");
+  const [selectedFinYear, setSelectedFinYear] = useState("2025-26");
   const [selectedQuarter, setSelectedQuarter] = useState("All");
   const [fetchKey, setFetchKey] = useState(0);
   const [hasAppliedFilter, setHasAppliedFilter] = useState(true);
@@ -135,6 +135,11 @@ const BalPosDemandProj = () => {
   };
 
   const emptyMessage = hasAppliedFilter ? "No records found." : "Select Financial Year or Quarter and click Filter.";
+
+  const displayFinancialYear = (year) => {
+    if (!year) return "All";
+    return year.replace(/^(\d{4})-(\d{2})$/, "$1-20$2");
+  };
 
   const renderPaginationItems = () => {
     const pages = [];
@@ -260,6 +265,10 @@ const BalPosDemandProj = () => {
         <DPOHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="dashboard-box mt-3">
+          <div className="main-heading">
+            <h3 className="mb-2 fw-bold">Bal Poshan Demand Data | Project Wise</h3>
+          </div>
+
           <Row className="g-3 mb-3 align-items-end">
             <Col md={4}>
               <Form.Group>
@@ -299,13 +308,32 @@ const BalPosDemandProj = () => {
                 </Form.Select>
               </Form.Group>
             </Col>
-            {(selectedFinYear || selectedQuarter !== "All") && (
+             {(selectedFinYear || selectedQuarter !== "All") && (
               <Col md={2}>
                 <Button size="sm" variant="primary" onClick={handleFilterClick} disabled={loading} style={{ fontSize: "8px" }}>
                   Filter
                 </Button>
               </Col>
             )}
+            <Col md={3}>
+              <Card className="border-0 shadow-sm stats-card h-100">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Total Demand</Card.Title>
+                  <Card.Text className="stats-count">
+                    {typeof totalDemands === "number" ? totalDemands : "-"}
+                  </Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+           
+          </Row>
+
+          <Row className="g-3 mb-3 align-items-center">
+            <Col md={12}>
+              <p className="mb-0" style={{ color: "red", fontWeight: 600 }}>
+                For the year : {displayFinancialYear(selectedFinYear)} and Quarter : {selectedQuarter || "All"}
+              </p>
+            </Col>
           </Row>
 
           {loading ? (
@@ -318,19 +346,6 @@ const BalPosDemandProj = () => {
             </Alert>
           ) : (
             <>
-              <Row className="g-3 mb-3">
-                <Col md={3}>
-                  <Card className="border-0 shadow-sm stats-card h-100">
-                    <Card.Body className="text-center">
-                      <Card.Title className="stats-title">Total Demand</Card.Title>
-                      <Card.Text className="stats-count">
-                        {typeof totalDemands === "number" ? totalDemands : "-"}
-                      </Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
               <InputGroup className="mb-3">
                 <FormControl
                   placeholder="Search by Project, Sector, Demand ID..."
@@ -354,9 +369,6 @@ const BalPosDemandProj = () => {
                       <th>Kela Chips Beneficiary</th>
                       <th>Egg Beneficiary</th>
                       <th>Not Eat Egg Beneficiary</th>
-                      <th>Sector Status</th>
-                      <th>CDPO Status</th>
-                      <th>Director Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -373,26 +385,11 @@ const BalPosDemandProj = () => {
                         <td>{item.kela_chips_beneficiary ?? "-"}</td>
                         <td>{item.egg_beneficiary ?? "-"}</td>
                         <td>{item.not_eat_egg_beneficiary ?? "-"}</td>
-                        <td>
-                          <Badge bg={getVariant(item.sector_status)}>
-                            {item.sector_status || "-"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge bg={getVariant(item.cdpo_status)}>
-                            {item.cdpo_status || "-"}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge bg={getVariant(item.director_status)}>
-                            {item.director_status || "-"}
-                          </Badge>
-                        </td>
                       </tr>
                     ))}
                     {paginatedData.length === 0 && (
                       <tr>
-                        <td colSpan={14} className="text-center">
+                        <td colSpan={11} className="text-center">
                           No matching records
                         </td>
                       </tr>
