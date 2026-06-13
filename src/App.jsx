@@ -56,6 +56,9 @@ import MahilaPoshanDemandSector from "./components/DPO_panel/demand_and_distribu
 import MahilaPoshanDemandProj from "./components/DPO_panel/demand_and_distribution/mahila_poshan/MahilaPoshanDemandProj";
 import BalPosDemandSector from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandSector";
 import BalPosDemandProj from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandProj";
+import OurSector from "./components/director_panel/our_staff/DirectorOurSector";
+import OurCdpo from "./components/director_panel/our_staff/OurCdpo";
+import DirectorOurSector from "./components/director_panel/our_staff/DirectorOurSector";
 
 
 
@@ -82,20 +85,20 @@ function AppContent() {
 
   const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
      "/SectorProfile", "/StockBal", "/OurDpo", "/OURSector",
-      "/OurAwc", "/MahalakshmiKit",
+      "/OurAwc", "/MahalakshmiKit", "/OurSector",
       "/DemandMahilaPoshanProject",
        "/MahalakshmiBen",
        "/DemandanchalAamrit", 
        "/DemandPoshanFinal", "/DemandkitProject", "/DemandAnchalSec", "/DemandAnchalProj",
        "/MahalaxmiYear",
-        "/DemandBalPoshan", "/OurAwcProject",
+        "/DemandBalPoshan", "/OurAwcProject", "/OurCdpo", "/DirectorOurSector",
          "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
           "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
            "/Stockmahila", "/DistributionBalPoshan",
             "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
   const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
-    "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject",
-       "/StockAnchal", "/OurCdpoProject", "/OurSectors",
+    "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
+       "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
       "/DemandAmritAnchalProject", "/OurDpo", "/OURSector",
        "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec",
        "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
@@ -119,9 +122,25 @@ function AppContent() {
             <MahalakshmiBen />
           </ProtectedRoute>
         } />
+         <Route path="/DirectorOurSector" element={
+          <ProtectedRoute>
+            <DirectorOurSector />
+          </ProtectedRoute>
+        } />
+          <Route path="/OurCdpo" element={
+          <ProtectedRoute>
+            <OurCdpo />
+          </ProtectedRoute>
+        } />
+        
          <Route path="/OURSector" element={
           <ProtectedRoute>
             <OURSector />
+          </ProtectedRoute>
+        } />
+        <Route path="/OurSector" element={
+          <ProtectedRoute>
+            <OurSector />
           </ProtectedRoute>
         } />
          <Route path="/OurDpo" element={
