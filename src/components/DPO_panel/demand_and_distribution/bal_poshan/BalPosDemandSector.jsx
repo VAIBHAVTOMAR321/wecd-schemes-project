@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Table, Form, InputGroup, FormControl, Spinner, Badge, Button, Alert } from "react-bootstrap";
+import React, { useState, useEffect, useRef } from "react";
+import { Container, Row, Col, Card, Table, Form, InputGroup, FormControl, Spinner, Button, Alert, Modal } from "react-bootstrap";
 import Pagination from "react-bootstrap/Pagination";
+import { FaCopy, FaFileExcel, FaFilePdf, FaCheck, FaEye } from "react-icons/fa";
 import DPOLeftNav from "../../DPOLeftNav";
 import DPOHeader from "../../DPOHeader";
 import { useAuth } from "../../../all_login/AuthContext";
@@ -12,6 +13,34 @@ const quarters = [
   { value: "July-Aug-Sept", label: "Second Quarter(July/Aug/Sept)" },
   { value: "Oct-Nov-Dec", label: "Third Quarter(Oct/Nov/Dec)" },
   { value: "Jan-Feb-March", label: "Fourth Quarter(Jan/Feb/March)" },
+];
+
+const mainTableColumns = [
+  { key: "sno", label: "S.No" },
+  { key: "demandId", label: "Demand ID" },
+  { key: "projectName", label: "Project Name" },
+  { key: "sector", label: "Sector" },
+  { key: "financialYear", label: "Financial Year" },
+  { key: "quarter", label: "Quarter" },
+  { key: "oldBalance", label: "Old Balance" },
+  { key: "kelaBeneficiary", label: "Kela Chips Beneficiary" },
+  { key: "eggBeneficiary", label: "Egg Beneficiary" },
+  { key: "nonEggBeneficiary", label: "Not Eat Egg Beneficiary" },
+];
+
+const distTableColumns = [
+  { key: "distProjectName", label: "Project Name" },
+  { key: "distSector", label: "Sector" },
+  { key: "distMonth", label: "Month" },
+  { key: "allottedKela", label: "Allotted Kela" },
+  { key: "allottedEgg", label: "Allotted Egg" },
+  { key: "allottedKhajur", label: "Allotted Khajur" },
+  { key: "kelaBene", label: "Kela Bene" },
+  { key: "eggBene", label: "Egg Bene" },
+  { key: "khajurBene", label: "Khajur Bene" },
+  { key: "kelaDist", label: "Kela Dist" },
+  { key: "eggDist", label: "Egg Dist" },
+  { key: "khajurDist", label: "Khajur Dist" },
 ];
 
 const BalPosDemandSector = () => {
@@ -30,9 +59,38 @@ const BalPosDemandSector = () => {
   const [fetchKey, setFetchKey] = useState(0);
   const [hasAppliedFilter, setHasAppliedFilter] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [showColumnModal, setShowColumnModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const tableRef = useRef(null);
+  const distTableRef = useRef(null);
+
+  const [visibleColumns, setVisibleColumns] = useState({
+    sno: true,
+    demandId: true,
+    projectName: true,
+    sector: true,
+    financialYear: true,
+    quarter: true,
+    oldBalance: true,
+    kelaBeneficiary: true,
+    eggBeneficiary: true,
+    nonEggBeneficiary: true,
+    distProjectName: true,
+    distSector: true,
+    distMonth: true,
+    allottedKela: true,
+    allottedEgg: true,
+    allottedKhajur: true,
+    kelaBene: true,
+    eggBene: true,
+    khajurBene: true,
+    kelaDist: true,
+    eggDist: true,
+    khajurDist: true,
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -127,18 +185,45 @@ const BalPosDemandSector = () => {
   const paginatedData = filteredData.slice(startIndex, endIndex);
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
+  const distributionRows = paginatedData.flatMap((item) => {
+    if (!Array.isArray(item.distribution)) return [];
+    return item.distribution.map((dist) => ({
+      distProjectName: item.project_name || "",
+      distSector: item.sector || "",
+      distMonth: dist.month || "",
+      allottedKela: dist.allotted_kela ?? "",
+      allottedEgg: dist.allotted_egg ?? "",
+      allottedKhajur: dist.allotted_khajur ?? "",
+      kelaBene: dist.kela_beneficiary ?? "",
+      eggBene: dist.egg_beneficiary ?? "",
+      khajurBene: dist.khajur_beneficiary ?? "",
+      kelaDist: dist.kela_distribution ?? "",
+      eggDist: dist.egg_distribution ?? "",
+      khajurDist: dist.khajur_distribution ?? "",
+    }));
+  });
+
+  const mainRows = paginatedData.map((item, idx) => {
+    const rowNumber = filteredData.findIndex(
+      (row) => row.demand_id === item.demand_id && row.project_name === item.project_name && row.sector === item.sector
+    );
+    return {
+      sno: rowNumber >= 0 ? rowNumber + 1 : startIndex + idx + 1,
+      demandId: item.demand_id ?? "",
+      projectName: item.project_name ?? "",
+      sector: item.sector ?? "",
+      financialYear: item.financial_year ?? "",
+      quarter: item.quarter ?? "",
+      oldBalance: item.old_balance ?? "",
+      kelaBeneficiary: item.kela_chips_beneficiary ?? "",
+      eggBeneficiary: item.egg_beneficiary ?? "",
+      nonEggBeneficiary: item.not_eat_egg_beneficiary ?? "",
+    };
+  });
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
-
-  const getVariant = (status) => {
-    if (!status) return "secondary";
-    const s = String(status).toLowerCase();
-    if (s === "approve") return "success";
-    if (s === "pending") return "warning";
-    if (s === "rejected" || s === "reject") return "danger";
-    return "secondary";
-  };
 
   const handleFilterClick = () => {
     if (!selectedFinYear && selectedQuarter === "All") return;
@@ -147,6 +232,91 @@ const BalPosDemandSector = () => {
   };
 
   const emptyMessage = hasAppliedFilter ? "No records found." : "Select Financial Year or Quarter and click Filter.";
+
+  const displayFinancialYear = (year) => {
+    if (!year) return "All";
+    return year.replace(/^(\d{4})-(\d{2})$/, "$1-20$2");
+  };
+
+  const getVisibleRows = (rows, columns) => rows.map((row) => columns.map((col) => row[col.key] ?? ""));
+
+  const handleCopy = async () => {
+    const visibleMainColumns = mainTableColumns.filter((col) => visibleColumns[col.key]);
+    const visibleDistColumns = distTableColumns.filter((col) => visibleColumns[col.key]);
+    const text = [
+      "BAL POSHAN DEMAND DATA (SECTOR WISE)",
+      `For the year : ${displayFinancialYear(selectedFinYear)} and Quarter : ${selectedQuarter || "All"}`,
+      "",
+      visibleMainColumns.map((col) => col.label).join("\t"),
+      ...getVisibleRows(mainRows, visibleMainColumns).map((row) => row.join("\t")),
+      "",
+      "DISTRIBUTION DETAILS",
+      visibleDistColumns.map((col) => col.label).join("\t"),
+      ...getVisibleRows(distributionRows, visibleDistColumns).map((row) => row.join("\t")),
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  };
+
+  const handleExcel = () => {
+    const visibleMainColumns = mainTableColumns.filter((col) => visibleColumns[col.key]);
+    const visibleDistColumns = distTableColumns.filter((col) => visibleColumns[col.key]);
+    const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    let csv = "BAL POSHAN DEMAND DATA (SECTOR WISE)\n";
+    csv += `For the year : ${displayFinancialYear(selectedFinYear)}, Quarter : ${selectedQuarter || "All"}\n\n`;
+    csv += visibleMainColumns.map((col) => escapeCsv(col.label)).join(",") + "\n";
+    csv += getVisibleRows(mainRows, visibleMainColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
+    csv += "\n\nDISTRIBUTION DETAILS\n";
+    csv += visibleDistColumns.map((col) => escapeCsv(col.label)).join(",") + "\n";
+    csv += getVisibleRows(distributionRows, visibleDistColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Bal_Poshan_Sector_Report_${selectedFinYear || "All"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePDF = () => {
+    if (!tableRef.current) return;
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    const distHtml = distributionRows.length > 0 && distTableRef.current
+      ? `<div style="margin-top:30px;"><h4 style="color:#dc2626;">Distribution Details</h4>${distTableRef.current.outerHTML}</div>`
+      : "";
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Bal Poshan Sector Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+            th { background-color: #f1f5f9; }
+            h2, h4 { text-align: center; color: #dc2626; }
+          </style>
+        </head>
+        <body>
+          <h2>Bal Poshan Demand Data | Sector Wise</h2>
+          <h4>For the year : ${displayFinancialYear(selectedFinYear)} and Quarter : ${selectedQuarter || "All"}</h4>
+          ${tableRef.current.outerHTML}
+          ${distHtml}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   const renderPaginationItems = () => {
     const pages = [];
@@ -210,53 +380,6 @@ const BalPosDemandSector = () => {
     );
 
     return pages;
-  };
-
-  const renderDistributionTable = (distribution) => {
-    if (!Array.isArray(distribution) || distribution.length === 0) {
-      return <span className="text-muted">No distribution</span>;
-    }
-
-    return (
-      <Table bordered size="sm" className="mb-0" style={{ fontSize: "11px" }}>
-        <thead className="table-light">
-          <tr>
-            <th>Month</th>
-            <th>Allotted Kela</th>
-            <th>Kela Bene</th>
-            <th>Kela Dist Bene</th>
-            <th>Kela Dist</th>
-            <th>Allotted Egg</th>
-            <th>Egg Bene</th>
-            <th>Egg Dist Bene</th>
-            <th>Egg Dist</th>
-            <th>Allotted Khajur</th>
-            <th>Khajur Bene</th>
-            <th>Khajur Dist Bene</th>
-            <th>Khajur Dist</th>
-          </tr>
-        </thead>
-        <tbody>
-          {distribution.map((dist) => (
-            <tr key={dist.distribution_id || dist.month}>
-              <td>{dist.month || "-"}</td>
-              <td>{dist.allotted_kela ?? "-"}</td>
-              <td>{dist.kela_beneficiary ?? "-"}</td>
-              <td>{dist.kela_distribution_beneficiary ?? "-"}</td>
-              <td>{dist.kela_distribution ?? "-"}</td>
-              <td>{dist.allotted_egg ?? "-"}</td>
-              <td>{dist.egg_beneficiary ?? "-"}</td>
-              <td>{dist.egg_distribution_beneficiary ?? "-"}</td>
-              <td>{dist.egg_distribution ?? "-"}</td>
-              <td>{dist.allotted_khajur ?? "-"}</td>
-              <td>{dist.khajur_beneficiary ?? "-"}</td>
-              <td>{dist.khajur_distribution_beneficiary ?? "-"}</td>
-              <td>{dist.khajur_distribution ?? "-"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    );
   };
 
   return (
@@ -334,7 +457,7 @@ const BalPosDemandSector = () => {
           </Row>
 
           <p className="mb-3" style={{ color: "red" }}>
-            For the year : {selectedFinYear || "All"} and Quarter : {selectedQuarter || "All"}
+            For the year : {displayFinancialYear(selectedFinYear)} and Quarter : {selectedQuarter || "All"}
           </p>
 
           {loading ? (
@@ -347,50 +470,69 @@ const BalPosDemandSector = () => {
             </Alert>
           ) : (
             <>
-              <InputGroup className="mb-3">
-                <FormControl
-                  placeholder="Search by Project, Sector, Demand ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
+              <div className="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+                <div className="d-flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={handleCopy}>
+                    {copySuccess ? <FaCheck className="me-1" /> : <FaCopy className="me-1" />}
+                    {copySuccess ? "Copied" : "Copy"}
+                  </Button>
+                  <Button size="sm" variant="success" onClick={handleExcel}>
+                    <FaFileExcel className="me-1" />
+                    Excel
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={handlePDF}>
+                    <FaFilePdf className="me-1" />
+                    PDF
+                  </Button>
+                  <Button size="sm" variant="info" onClick={() => setShowColumnModal(true)}>
+                    <FaEye className="me-1" />
+                    Column visibility
+                  </Button>
+                </div>
+                <InputGroup style={{ maxWidth: "260px" }}>
+                  <FormControl
+                    size="sm"
+                    placeholder="Search by Project, Sector, Demand ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </InputGroup>
+              </div>
 
               <div className="table-responsive">
-                <Table bordered hover size="sm" className="mb-0">
+                <Table bordered hover size="sm" className="mb-0" ref={tableRef}>
                   <thead className="table-light">
                     <tr>
-                      <th>S.No</th>
-                      <th>Demand ID</th>
-                      <th>Project Name</th>
-                      <th>Sector</th>
-                      <th>Financial Year</th>
-                      <th>Quarter</th>
-                      <th>Old Balance</th>
-                      <th>Distribution Details</th>
-                      <th>Kela Chips Beneficiary</th>
-                      <th>Egg Beneficiary</th>
-                      <th>Not Eat Egg Beneficiary</th>
+                      {visibleColumns.sno && <th>S.No</th>}
+                      {visibleColumns.demandId && <th>Demand ID</th>}
+                      {visibleColumns.projectName && <th>Project Name</th>}
+                      {visibleColumns.sector && <th>Sector</th>}
+                      {visibleColumns.financialYear && <th>Financial Year</th>}
+                      {visibleColumns.quarter && <th>Quarter</th>}
+                      {visibleColumns.oldBalance && <th>Old Balance</th>}
+                      {visibleColumns.kelaBeneficiary && <th>Kela Chips Beneficiary</th>}
+                      {visibleColumns.eggBeneficiary && <th>Egg Beneficiary</th>}
+                      {visibleColumns.nonEggBeneficiary && <th>Not Eat Egg Beneficiary</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedData.map((item, idx) => (
-                      <tr key={item.demand_id || `${item.project_name}-${item.sector}-${idx}`}>
-                        <td>{startIndex + idx + 1}</td>
-                        <td>{item.demand_id}</td>
-                        <td>{item.project_name}</td>
-                        <td>{item.sector}</td>
-                        <td>{item.financial_year}</td>
-                        <td>{item.quarter}</td>
-                        <td>{item.old_balance ?? "-"}</td>
-                        <td>{renderDistributionTable(item.distribution)}</td>
-                        <td>{item.kela_chips_beneficiary ?? "-"}</td>
-                        <td>{item.egg_beneficiary ?? "-"}</td>
-                        <td>{item.not_eat_egg_beneficiary ?? "-"}</td>
+                    {mainRows.map((row, idx) => (
+                      <tr key={`${row.demandId}-${idx}`}>
+                        {visibleColumns.sno && <td>{row.sno}</td>}
+                        {visibleColumns.demandId && <td>{row.demandId}</td>}
+                        {visibleColumns.projectName && <td>{row.projectName}</td>}
+                        {visibleColumns.sector && <td>{row.sector}</td>}
+                        {visibleColumns.financialYear && <td>{row.financialYear}</td>}
+                        {visibleColumns.quarter && <td>{row.quarter}</td>}
+                        {visibleColumns.oldBalance && <td>{row.oldBalance}</td>}
+                        {visibleColumns.kelaBeneficiary && <td>{row.kelaBeneficiary}</td>}
+                        {visibleColumns.eggBeneficiary && <td>{row.eggBeneficiary}</td>}
+                        {visibleColumns.nonEggBeneficiary && <td>{row.nonEggBeneficiary}</td>}
                       </tr>
                     ))}
-                    {paginatedData.length === 0 && (
+                    {mainRows.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="text-center">
+                        <td colSpan={mainTableColumns.filter((col) => visibleColumns[col.key]).length} className="text-center">
                           No matching records
                         </td>
                       </tr>
@@ -398,6 +540,50 @@ const BalPosDemandSector = () => {
                   </tbody>
                 </Table>
               </div>
+
+              {distributionRows.length > 0 && (
+                <div className="mt-4">
+                  <h6 className="fw-bold text-danger mb-3">Distribution Details</h6>
+                  <div className="table-responsive">
+                    <Table bordered hover size="sm" className="mb-0" ref={distTableRef}>
+                      <thead className="table-light">
+                        <tr>
+                          {visibleColumns.distProjectName && <th>Project Name</th>}
+                          {visibleColumns.distSector && <th>Sector</th>}
+                          {visibleColumns.distMonth && <th>Month</th>}
+                          {visibleColumns.allottedKela && <th>Allotted Kela</th>}
+                          {visibleColumns.allottedEgg && <th>Allotted Egg</th>}
+                          {visibleColumns.allottedKhajur && <th>Allotted Khajur</th>}
+                          {visibleColumns.kelaBene && <th>Kela Bene</th>}
+                          {visibleColumns.eggBene && <th>Egg Bene</th>}
+                          {visibleColumns.khajurBene && <th>Khajur Bene</th>}
+                          {visibleColumns.kelaDist && <th>Kela Dist</th>}
+                          {visibleColumns.eggDist && <th>Egg Dist</th>}
+                          {visibleColumns.khajurDist && <th>Khajur Dist</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {distributionRows.map((dist, idx) => (
+                          <tr key={`${dist.distProjectName}-${dist.distSector}-${idx}`}>
+                            {visibleColumns.distProjectName && <td>{dist.distProjectName}</td>}
+                            {visibleColumns.distSector && <td>{dist.distSector}</td>}
+                            {visibleColumns.distMonth && <td>{dist.distMonth}</td>}
+                            {visibleColumns.allottedKela && <td>{dist.allottedKela}</td>}
+                            {visibleColumns.allottedEgg && <td>{dist.allottedEgg}</td>}
+                            {visibleColumns.allottedKhajur && <td>{dist.allottedKhajur}</td>}
+                            {visibleColumns.kelaBene && <td>{dist.kelaBene}</td>}
+                            {visibleColumns.eggBene && <td>{dist.eggBene}</td>}
+                            {visibleColumns.khajurBene && <td>{dist.khajurBene}</td>}
+                            {visibleColumns.kelaDist && <td>{dist.kelaDist}</td>}
+                            {visibleColumns.eggDist && <td>{dist.eggDist}</td>}
+                            {visibleColumns.khajurDist && <td>{dist.khajurDist}</td>}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </div>
+              )}
 
               <Row className="mt-3">
                 <Col className="d-flex justify-content-between align-items-center">
@@ -430,6 +616,44 @@ const BalPosDemandSector = () => {
           )}
         </Container>
       </div>
+
+      <Modal show={showColumnModal} onHide={() => setShowColumnModal(false)} size="sm" centered>
+        <Modal.Header closeButton className="border-0 pb-2">
+          <Modal.Title style={{ fontSize: "14px", fontWeight: "bold" }}>Column Visibility</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-0">
+          <div className="mb-3">
+            <h6 className="fw-bold small text-primary border-bottom pb-1">Demand Table</h6>
+            {mainTableColumns.map((col) => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                label={col.label}
+                checked={visibleColumns[col.key]}
+                onChange={() => setVisibleColumns((prev) => ({ ...prev, [col.key]: !prev[col.key] }))}
+                className="mb-2"
+                style={{ fontSize: "13px" }}
+              />
+            ))}
+          </div>
+          <div>
+            <h6 className="fw-bold small text-success border-bottom pb-1">Distribution Table</h6>
+            {distTableColumns.map((col) => (
+              <Form.Check
+                key={col.key}
+                type="checkbox"
+                id={`col-${col.key}`}
+                label={col.label}
+                checked={visibleColumns[col.key]}
+                onChange={() => setVisibleColumns((prev) => ({ ...prev, [col.key]: !prev[col.key] }))}
+                className="mb-2"
+                style={{ fontSize: "13px" }}
+              />
+            ))}
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
