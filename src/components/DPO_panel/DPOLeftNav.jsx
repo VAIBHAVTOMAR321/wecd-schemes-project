@@ -92,21 +92,8 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         label: "Our Sectors  ",
         path: "/OurSectors",
       },
-      {
-        icon: <FaTachometerAlt />,
-        label: "Our Sectors  ",
-        path: "/OurSectors",
-      },
-      {
-        icon: <FaTachometerAlt />,
-        label: "AWC Kalyan Kosh    ",
-        path: "#",
-      },
-      {
-        icon: <FaTachometerAlt />,
-        label: " Mahalaxmi Beneficiary     ",
-        path: "#",
-      },
+      
+     
     
      
   {
@@ -115,7 +102,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
     submenu: [
       {
         label: "Mahalakshmi Kit",
-        path: "#",
+        path: "/DemandMahalakshmi",
         icon: <FaPlusSquare />,
       },
        {
@@ -201,11 +188,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
     ],
   },
 
-      {
-        icon: <FaComments />,
-        label: "Employee Details",
-        path: "#",
-      },
+     
       
        
       
