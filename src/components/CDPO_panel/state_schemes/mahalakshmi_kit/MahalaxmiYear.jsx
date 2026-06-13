@@ -37,6 +37,13 @@ const MahalaxmiYear = () => {
   const [selectedProject, setSelectedProject] = useState("All");
   const [editingDemandId, setEditingDemandId] = useState(null);
   
+  // State for Distributed Kit Log
+  const [showDistributedLog, setShowDistributedLog] = useState(false);
+  const [distributedData, setDistributedData] = useState([]);
+  const [distLoading, setDistLoading] = useState(false);
+  const [distError, setDistError] = useState(null);
+  const [currentDistPage, setCurrentDistPage] = useState(1);
+
   const { user, api, uniqueId } = useAuth();
 
 useEffect(() => {
@@ -69,7 +76,7 @@ useEffect(() => {
 
   // Fetch Mahalaxmi Demand Data
   const fetchDemandLogData = async () => {
-    if (!selectedYear) return;
+    if (!selectedYear || !api) return;
     setDemandLoading(true);
     setDemandError(null);
     try {
@@ -86,7 +93,7 @@ useEffect(() => {
       }
 
       // Filter data by selected year
-      const filteredByYear = rawData.filter(
+      const filteredByYear = (Array.isArray(rawData) ? rawData : []).filter(
         (item) => item.fin_year === selectedYear
       );
       setDemandLogData(filteredByYear);
@@ -105,7 +112,7 @@ useEffect(() => {
 
   // Fetch Mahalaxmi Kit Summary Data
   const fetchKitSummaryData = async () => {
-    if (!selectedYear) return;
+    if (!selectedYear || !api) return;
     setKitSummaryLoading(true);
     setKitSummaryError(null);
     try {
@@ -204,6 +211,41 @@ useEffect(() => {
     setDemandQuarter("");
   };
 
+  // Fetch Distributed Kit Log Data
+  const fetchDistributedLogData = async () => {
+    if (!api) return;
+    setDistLoading(true);
+    setDistError(null);
+    try {
+      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-beneficiary/");
+      
+      let rawData = [];
+      if (Array.isArray(response.data)) {
+        rawData = response.data;
+      } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+        rawData = response.data.results;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        rawData = response.data.data;
+      }
+      setDistributedData(rawData);
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setDistributedData([]); // Handle case where no data exists
+      }
+      setDistError("डेटा प्राप्त करने में विफल। कृपया पुनः प्रयास करें।");
+      console.error(err);
+    } finally {
+      setDistLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showDistributedLog) {
+      setCurrentDistPage(1);
+      fetchDistributedLogData();
+    }
+  }, [showDistributedLog, selectedYear]);
+
   // Allotment (Prapt Kit) Handlers
   const fetchAllotmentLogData = async () => {
     setAllotmentLoading(true);
@@ -285,6 +327,18 @@ useEffect(() => {
     ? demandLogData
     : demandLogData.filter(item => item.project === selectedProject);
 
+  const ITEMS_PER_PAGE_DIST = 50;
+  const filteredDistributedData = distributedData.filter(item => {
+    if (selectedYear && item.fin_year) {
+      return item.fin_year === selectedYear || item.fin_year === selectedYear.replace("-20", "-");
+    }
+    return true;
+  });
+
+  const totalDistPages = Math.ceil(filteredDistributedData.length / ITEMS_PER_PAGE_DIST) || 1;
+  const startDistIndex = (currentDistPage - 1) * ITEMS_PER_PAGE_DIST;
+  const paginatedDistData = filteredDistributedData.slice(startDistIndex, startDistIndex + ITEMS_PER_PAGE_DIST);
+
 
 
 
@@ -335,7 +389,104 @@ useEffect(() => {
             </Row>
           ) : (
             <>
-              {!showDemandRegistration ? (
+              {showDistributedLog ? (
+                /* Distributed Kit Log View */
+                <div className="animate-in fade-in duration-500">
+                  <div className="mb-4">
+                    <Button 
+                      variant="success" 
+                      size="sm" 
+                      onClick={() => setShowDistributedLog(false)} 
+                      className="d-flex align-items-center shadow-sm px-3 py-2 fw-bold"
+                      style={{ backgroundColor: '#2972e0', borderColor: '#00a6ff' }}
+                    >
+                      <FaArrowLeft className="me-2" /> वापस जाएं
+                    </Button>
+                  </div>
+
+                  <div className="text-center mb-4">
+                    <h3 className="fw-bold mb-1" style={{ color: "#495057" }}>महालक्ष्मी किट लॉग वितरित किट लॉग</h3>
+                  </div>
+
+                  <div className="table-responsive shadow-sm rounded border bg-white">
+                    {distLoading ? (
+                      <div className="text-center py-5">
+                        <Spinner animation="border" variant="primary" />
+                        <p className="mt-2">डेटा लोड हो रहा है...</p>
+                      </div>
+                    ) : distError ? (
+                      <Alert variant="danger" className="m-3"><FaInfoCircle className="me-2" />{distError}</Alert>
+                    ) : (
+                      <Table bordered hover className="mb-0 align-middle text-center" style={{ fontSize: '12px', border: '1px solid #dee2e6' }}>
+                        <thead style={{ backgroundColor: '#e3f2fd' }}>
+                          <tr className="fw-bold">
+                            <th>क्रम संख्या</th>
+                            <th>नाम</th>
+                            <th>जन्म तिथि</th>
+                            <th>किट वितरण तिथि</th>
+                            <th>जाति श्रेणी</th>
+                            <th>मोबाइल नंबर</th>
+                            <th>आधार नंबर</th>
+                            <th>वितरण संख्या</th>
+                            <th>डिलीवरी की तारीख</th>
+                            <th>बच्चों की जन्म की संख्या</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedDistData.length > 0 ? (
+                            paginatedDistData.map((item, index) => item && (
+                              <tr key={item.id || `dist-row-${index}`} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
+                                <td>{startDistIndex + index + 1}</td>
+                                <td>{item.name || "-"}</td>
+                                <td>{item.dob || "-"}</td>
+                                <td>{item.kit_date || "-"}</td>
+                                <td>{item.caste_category || "-"}</td>
+                                <td className="text-nowrap">{item.ben_mob || "-"}</td>
+                                <td className="text-nowrap">{item.adhar_num || "-"}</td>
+                                <td>{item.del_no || "-"}</td>
+                                <td>{item.del_date || "-"}</td>
+                                <td>{item.child_born || "0"}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="10" className="py-5 text-muted italic">कोई वितरित किट डेटा उपलब्ध नहीं है</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    )}
+                  </div>
+
+                  {/* Pagination Controls for Distributed Log */}
+                  {!distLoading && filteredDistributedData.length > 0 && (
+                    <div className="d-flex justify-content-between align-items-center mt-3 px-2 border-top pt-3">
+                      <span className="text-muted small">
+                        कुल रिकॉर्ड ({selectedYear}): <strong>{filteredDistributedData.length}</strong> | दिखा रहा है: {paginatedDistData.length}
+                      </span>
+                      <div className="d-flex gap-2">
+                        <Button 
+                          variant="outline-success" 
+                          size="sm" 
+                          disabled={currentDistPage === 1} 
+                          onClick={() => { setCurrentDistPage(prev => prev - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        >
+                          ← पिछला
+                        </Button>
+                        <span className="align-self-center small fw-bold px-2">पृष्ठ {currentDistPage} / {totalDistPages || 1}</span>
+                        <Button 
+                          variant="outline-success" 
+                          size="sm" 
+                          disabled={currentDistPage >= totalDistPages} 
+                          onClick={() => { setCurrentDistPage(prev => prev + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        >
+                          अगला →
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : !showDemandRegistration ? (
                 <>
                 <div className="main-heading">
                 <div className="d-flex justify-content-between align-items-center mb-3">
@@ -385,7 +536,12 @@ useEffect(() => {
                 >
                   <FaListAlt className="me-2" /> प्राप्त लॉग
                 </Button>
-                <Button variant="danger" className="flex-grow-1 flex-md-grow-0 rounded-pill px-4 py-2 fw-bold shadow-sm" style={{ backgroundColor: '#dc3545', borderColor: '#dc3545', color: 'white' }}>
+                <Button 
+                  variant="danger" 
+                  className="flex-grow-1 flex-md-grow-0 rounded-pill px-4 py-2 fw-bold shadow-sm" 
+                  style={{ backgroundColor: '#dc3545', borderColor: '#dc3545', color: 'white' }}
+                  onClick={() => setShowDistributedLog(true)}
+                >
                   <FaListAlt className="me-2" /> वितरित लॉग
                 </Button>
               </div>
