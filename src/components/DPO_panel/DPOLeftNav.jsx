@@ -90,12 +90,12 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
       {
         icon: <FaTachometerAlt />,
         label: "Our Sectors  ",
-        path: "#",
+        path: "/OurSectors",
       },
-       {
+      {
         icon: <FaTachometerAlt />,
-        label: "Our AWC Centers  ",
-        path: "#",
+        label: "Our Sectors  ",
+        path: "/OurSectors",
       },
       {
         icon: <FaTachometerAlt />,
