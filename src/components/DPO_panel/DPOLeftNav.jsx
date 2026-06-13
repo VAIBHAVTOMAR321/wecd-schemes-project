@@ -162,7 +162,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
           submenu: [
           {
             label: "Project Wise",
-            path: "/MahilaPoshanDemandProj",
+            path: "/BalPosDemandProj",
           },
           {
             label: "Sector Wise",
