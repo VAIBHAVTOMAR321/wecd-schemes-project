@@ -85,7 +85,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
        {
         icon: <FaTachometerAlt />,
         label: "Our Projects  ",
-        path: "#",
+        path: "/OurCdpoProject",
       },
       {
         icon: <FaTachometerAlt />,
@@ -155,18 +155,33 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
           },
         ],
       },
-      {
-        label: "Bal Poshan",
+        {
+          label: "Bal Poshan",
+          path: "#",
+          icon: <FaPlusSquare />,
+          submenu: [
+            {
+              label: "Demand",
+              path: "/BalPosDemandProj",
+            },
+            {
+              label: "Sector Wise",
+              path: "/BalPosDemandSector",
+            },
+          ],
+        },
+       {
+        label: "Amrit Anchal",
         path: "#",
         icon: <FaPlusSquare />,
         submenu: [
           {
             label: "Project Wise",
-            path: "#",
+            path: "/DemandAnchalProj",
           },
           {
-            label: "District Wise",
-            path: "#",
+            label: "Sector Wise",
+            path: "/DemandAnchalSec",
           },
         ],
       },
@@ -177,12 +192,9 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         submenu: [
           {
             label: "Project Wise",
-            path: "#",
+            path: "/DemandkitProject",
           },
-          {
-            label: "District Wise",
-            path: "#",
-          },
+         
         ],
       },
     ],

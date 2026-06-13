@@ -46,6 +46,12 @@ import DemandAmritAnchalDistrict from "./components/DPO_panel/demand_rqu/DemandA
 import OurAwcProject from "./components/CDPO_panel/OurAwcProject";
 import OurDpo from "./components/director_panel/our_staff/OurDpo";
 import OURSector from "./components/CDPO_panel/OURSector";
+import OurCdpoProject from "./components/DPO_panel/OurCdpoProject";
+import DemandkitProject from "./components/DPO_panel/demand_and_distribution/mahalaxmi_kit/DemandkitProject";
+import DemandAnchalProj from "./components/DPO_panel/demand_and_distribution/amrit_anchal/DemandAnchalProj";
+import DemandAnchalSec from "./components/DPO_panel/demand_and_distribution/amrit_anchal/DemandAnchalSec";
+import BalPosDemandSector from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandSector";
+import BalPosDemandProj from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandProj";
 
 
 
@@ -76,19 +82,19 @@ function AppContent() {
       "/DemandMahilaPoshanProject",
        "/MahalakshmiBen",
        "/DemandanchalAamrit", 
-       "/DemandPoshanFinal", 
+       "/DemandPoshanFinal", "/DemandkitProject", "/DemandAnchalSec", "/DemandAnchalProj",
        "/MahalaxmiYear",
-       "/DemandBalPoshan", "/OurAwcProject",
-        "/DistributionMahilaPoshFinal",
-         "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
-         "/Stockmahila", "/DistributionBalPoshan",
-          "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
-  const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict",
+        "/DemandBalPoshan", "/OurAwcProject",
+         "/DistributionMahilaPoshFinal", "/OurCdpoProject",
+          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
+          "/Stockmahila", "/DistributionBalPoshan",
+           "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/BalPosDemandSector", "/BalPosDemandProj"];
+  const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject",
-     "/StockAnchal",
+     "/StockAnchal", "/OurCdpoProject",
       "/DemandAmritAnchalProject", "/OurDpo", "/OURSector",
-       "/MahalaxmiYear",
-     "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict"];
+       "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec",
+      "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/BalPosDemandSector", "/BalPosDemandProj"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
 
@@ -135,12 +141,37 @@ function AppContent() {
             <MahalaxmiYear />
           </ProtectedRoute>
         } />
+          <Route path="/DemandkitProject" element={
+          <ProtectedRoute>
+            <DemandkitProject />
+          </ProtectedRoute>
+        } />
 
           <Route path="/OurAwcProject" element={
           <ProtectedRoute>
             <OurAwcProject />
           </ProtectedRoute>
         } />
+         <Route path="/DemandAnchalProj" element={
+          <ProtectedRoute>
+            <DemandAnchalProj />
+          </ProtectedRoute>
+        } />
+         <Route path="/DemandAnchalSec" element={
+           <ProtectedRoute>
+             <DemandAnchalSec />
+           </ProtectedRoute>
+         } />
+         <Route path="/BalPosDemandSector" element={
+           <ProtectedRoute>
+             <BalPosDemandSector />
+           </ProtectedRoute>
+         } />
+         <Route path="/BalPosDemandProj" element={
+           <ProtectedRoute>
+             <BalPosDemandProj />
+           </ProtectedRoute>
+         } />
           <Route path="/DemandAmritAnchalProject" element={
           <ProtectedRoute>
             <DemandAmritAnchalProject />
@@ -151,6 +182,12 @@ function AppContent() {
             <StockAnchal />
           </ProtectedRoute>
         } />
+         <Route path="/OurCdpoProject" element={
+          <ProtectedRoute>
+            <OurCdpoProject />
+          </ProtectedRoute>
+        } />
+        
         {/* <Route path="/SectorDashBoard" element={
           <ProtectedRoute>
             <SectorDashBoard />

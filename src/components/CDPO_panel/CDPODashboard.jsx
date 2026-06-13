@@ -16,6 +16,8 @@ const CDPODashboard = () => {
   const navigate = useNavigate();
   const [awcCount, setAwcCount] = useState(null);
   const [awcLoading, setAwcLoading] = useState(false);
+  const [fyData, setFyData] = useState(null);
+  const [fyLoading, setFyLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -48,6 +50,26 @@ const CDPODashboard = () => {
     };
 
     fetchAwcCount();
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) return;
+
+    const fetchFyCount = async () => {
+      setFyLoading(true);
+      try {
+        const response = await api.get("/cdpo/financial-year-count/");
+        if (response.data?.success) {
+          setFyData(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch FY count:", err);
+      } finally {
+        setFyLoading(false);
+      }
+    };
+
+    fetchFyCount();
   }, [api]);
 
   const toggleSidebar = () => {
@@ -94,24 +116,41 @@ const CDPODashboard = () => {
             <h1>Our Schemes & Beneficiaries</h1>
           </div>
           <Row className="g-4">
-            <Col lg={6} md={6} sm={6} xs={12}>
+            <Col lg={4} md={6} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Mahalakshmi Kit Beneficiary (2024-2025)</Card.Title>
-                  <Card.Text className="stats-count">103</Card.Text>
+                  <Card.Text className="stats-count">{fyLoading ? "Loading..." : (fyData?.data?.["2024-2025"] ?? "-")}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
-            <Col lg={6} md={6} sm={6} xs={12}>
+            <Col lg={4} md={6} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Mahalakshmi Kit Beneficiary (2025-2026)</Card.Title>
-                  <Card.Text className="stats-count">241</Card.Text>
+                  <Card.Text className="stats-count">{fyLoading ? "Loading..." : (fyData?.data?.["2025-2026"] ?? "-")}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
-           
+            <Col lg={4} md={6} sm={6} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Mahalakshmi Kit Beneficiary (2026-2027)</Card.Title>
+                  <Card.Text className="stats-count">{fyLoading ? "Loading..." : (fyData?.data?.["2026-2027"] ?? "-")}</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
+             <Col lg={4} md={12} sm={12} xs={12}>
+              <Card className="h-100 shadow-sm border-0 stats-card">
+                <Card.Body className="text-center">
+                  <Card.Title className="stats-title">Total Mahalakshmi Kit Beneficiary Count</Card.Title>
+                  <Card.Text className="stats-count">{fyLoading ? "Loading..." : (fyData ? Object.values(fyData.data).reduce((a, b) => a + b, 0) : "-")}</Card.Text>
+                </Card.Body>
+              </Card>
+            </Col>
           </Row>
+          
+         
 
         
         </Container>
