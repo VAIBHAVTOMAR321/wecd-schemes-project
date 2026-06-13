@@ -352,15 +352,15 @@ const MahilaPoshanDemandSector = () => {
         <DPOHeader toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <Container fluid className="p-4 bg-white" style={{ minHeight: '100vh' }}>
           
-          <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="text-center mb-4">
             <h4 className="fw-bold text-dark m-0" style={{ letterSpacing: '-0.5px' }}>
               Mahila Poshan Demand Data | <span className="text-muted fw-normal">Sector wise</span>
             </h4>
           </div>
 
           {/* Filtering Row */}
-          <div className="d-flex align-items-end gap-3 mb-4 flex-wrap">
-            <Form.Group style={{ width: '200px' }}>
+          <div className="d-flex align-items-end gap-3 mb-4 flex-wrap justify-content-center">
+            <Form.Group style={{ width: '220px' }}>
               <Form.Label className="small fw-bold text-muted">Choose Financial Year</Form.Label>
               <Form.Select size="sm" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="border-light shadow-sm">
                 <option value="">Select Year</option>
@@ -369,7 +369,7 @@ const MahilaPoshanDemandSector = () => {
                 <option value="2026-27">2026-2027</option>
               </Form.Select>
             </Form.Group>
-            <Form.Group style={{ width: '200px' }}>
+            <Form.Group style={{ width: '220px' }}>
               <Form.Label className="small fw-bold text-muted">Choose Quarter</Form.Label>
               <Form.Select size="sm" value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)} className="border-light shadow-sm">
                 <option value="All">All Quarters</option>
