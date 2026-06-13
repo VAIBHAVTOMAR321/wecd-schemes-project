@@ -166,12 +166,9 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
           },
           {
             label: "Sector Wise",
-            path: "/MahilaPoshanDemandSector",
+            path: "/BalPosDemandSector",
           },
-            {
-              label: "Sector Wise",
-              path: "/BalPosDemandSector",
-            },
+           
           ],
         },
        {
