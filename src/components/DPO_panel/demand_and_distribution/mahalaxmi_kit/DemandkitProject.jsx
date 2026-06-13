@@ -12,6 +12,7 @@ const DemandkitProject = () => {
   const [isTablet, setIsTablet] = useState(false);
 
   const { user, api } = useAuth();
+  const [viewMode, setViewMode] = useState("demand");
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,6 +34,10 @@ const DemandkitProject = () => {
     quarter: true,
     beneficiary: true,
     demandKits: true,
+    receivedKits: true,
+    prevBalance: true,
+    distributedKits: true,
+    availableBalance: true,
   });
 
   const ITEMS_PER_PAGE = 10;
@@ -69,16 +74,25 @@ const DemandkitProject = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-demand-kit-report/");
+      const endpoint = viewMode === "demand" 
+        ? "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-demand-kit-report/"
+        : "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-mahalaxmi-stock-report/";
+        
+      const response = await api.get(endpoint);
       let rawData = [];
       if (response.data && Array.isArray(response.data.data)) {
         rawData = response.data.data;
       } else if (Array.isArray(response.data)) {
         rawData = response.data;
       }
-      setData(rawData);
 
-      const years = [...new Set(rawData.map(item => item.fin_year).filter(Boolean))].sort();
+      const normalizedData = rawData.map(item => ({
+        ...item,
+        fin_year: item.fin_year || item.financial_year || ""
+      }));
+      setData(normalizedData);
+
+      const years = [...new Set(normalizedData.map(item => item.fin_year).filter(Boolean))].sort();
       setAvailableYears(years);
       if (years.length > 0 && !selectedYear) {
         setSelectedYear(years[0]);
@@ -92,7 +106,7 @@ const DemandkitProject = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [viewMode]);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -120,8 +134,8 @@ const DemandkitProject = () => {
     const sorted = [...filteredData].sort((a, b) => {
       let aVal, bVal;
       if (sortColumn === "sno") {
-        aVal = a.id || 0;
-        bVal = b.id || 0;
+        aVal = viewMode === "demand" ? (a.id || 0) : (a.s_no || 0);
+        bVal = viewMode === "demand" ? (b.id || 0) : (b.s_no || 0);
       } else if (sortColumn === "district") {
         aVal = a.district || "";
         bVal = b.district || "";
@@ -132,11 +146,23 @@ const DemandkitProject = () => {
         aVal = a.quarter || "";
         bVal = b.quarter || "";
       } else if (sortColumn === "beneficiary") {
-        aVal = parseInt(a.req_kit_count) || 0;
-        bVal = parseInt(b.req_kit_count) || 0;
+        aVal = parseInt(a.req_kit_count || a.beneficiary) || 0;
+        bVal = parseInt(b.req_kit_count || b.beneficiary) || 0;
       } else if (sortColumn === "demandKits") {
-        aVal = parseInt(a.req_kit) || 0;
-        bVal = parseInt(b.req_kit) || 0;
+        aVal = parseInt(a.req_kit || a.demand_kits) || 0;
+        bVal = parseInt(b.req_kit || b.demand_kits) || 0;
+      } else if (sortColumn === "receivedKits") {
+        aVal = parseInt(a.received_kits) || 0;
+        bVal = parseInt(b.received_kits) || 0;
+      } else if (sortColumn === "prevBalance") {
+        aVal = 0; // Placeholder as API sample doesn't show balance field explicitly
+        bVal = 0;
+      } else if (sortColumn === "distributedKits") {
+        aVal = parseInt(a.distributed_kits) || 0;
+        bVal = parseInt(b.distributed_kits) || 0;
+      } else if (sortColumn === "availableBalance") {
+        aVal = parseInt(a.available_balance) || 0;
+        bVal = parseInt(b.available_balance) || 0;
       } else {
         aVal = "";
         bVal = "";
@@ -150,10 +176,19 @@ const DemandkitProject = () => {
         : String(bVal).localeCompare(String(aVal));
     });
     return sorted;
-  }, [filteredData, sortColumn, sortDirection]);
+  }, [filteredData, sortColumn, sortDirection, viewMode]);
 
-  const totalBeneficiary = filteredData.reduce((sum, item) => sum + (parseInt(item.req_kit_count) || 0), 0);
-  const totalDemandKits = filteredData.reduce((sum, item) => sum + (parseInt(item.req_kit) || 0), 0);
+  const totals = useMemo(() => {
+    return filteredData.reduce((acc, item) => {
+      acc.beneficiary += (parseInt(item.req_kit_count || item.beneficiary) || 0);
+      acc.demandKits += (parseInt(item.req_kit || item.demand_kits) || 0);
+      acc.receivedKits += (parseInt(item.received_kits) || 0);
+      acc.distributedKits += (parseInt(item.distributed_kits) || 0);
+      acc.availableBalance += (parseInt(item.available_balance) || 0);
+      return acc;
+    }, { beneficiary: 0, demandKits: 0, receivedKits: 0, distributedKits: 0, availableBalance: 0 });
+  }, [filteredData]);
+
   const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedData = sortedData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -174,16 +209,25 @@ const DemandkitProject = () => {
 
   const handleCopy = async () => {
     if (paginatedData.length === 0) return;
-    const headers = ["S.no", "District", "Project", "Quarter", "Beneficiary", "Demand Kits"];
-    const rows = paginatedData.map(item => [
-      startIndex + paginatedData.indexOf(item) + 1,
-      item.district || "-",
-      item.project || "-",
-      item.quarter || "-",
-      item.req_kit_count || "0",
-      item.req_kit || "0",
-    ]);
-    const text = [headers.join("\t"), ...rows.map(r => r.join("\t"))].join("\n");
+    const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
+    const headers = activeCols.map(c => c.label);
+    const rows = paginatedData.map((item, index) => {
+      return activeCols.map(col => {
+        if (col.key === "sno") return startIndex + index + 1;
+        if (col.key === "district") return item.district || "-";
+        if (col.key === "project") return item.project || "-";
+        if (col.key === "quarter") return item.quarter || "-";
+        if (col.key === "beneficiary") return item.req_kit_count || item.beneficiary || "0";
+        if (col.key === "demandKits") return item.req_kit || item.demand_kits || "0";
+        if (col.key === "receivedKits") return item.received_kits || "0";
+        if (col.key === "prevBalance") return "0";
+        if (col.key === "distributedKits") return item.distributed_kits || "0";
+        if (col.key === "availableBalance") return item.available_balance || "0";
+        return "-";
+      });
+    });
+    const title = viewMode === "demand" ? "MAHALAXMI KIT DEMAND DATA" : "MAHALAXMI KIT DISTRIBUTION DATA";
+    const text = `${title}\n` + [headers.join("\t"), ...rows.map(r => r.join("\t"))].join("\n");
     try {
       await navigator.clipboard.writeText(text);
       setCopySuccess(true);
@@ -195,15 +239,23 @@ const DemandkitProject = () => {
 
   const handleExcel = () => {
     if (paginatedData.length === 0) return;
-    const headers = ["S.no", "District", "Project", "Quarter", "Beneficiary", "Demand Kits"];
-    const rows = paginatedData.map(item => [
-      startIndex + paginatedData.indexOf(item) + 1,
-      item.district || "-",
-      item.project || "-",
-      item.quarter || "-",
-      item.req_kit_count || "0",
-      item.req_kit || "0",
-    ]);
+    const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
+    const headers = activeCols.map(c => c.label);
+    const rows = paginatedData.map((item, index) => {
+      return activeCols.map(col => {
+        if (col.key === "sno") return startIndex + index + 1;
+        if (col.key === "district") return item.district || "-";
+        if (col.key === "project") return item.project || "-";
+        if (col.key === "quarter") return item.quarter || "-";
+        if (col.key === "beneficiary") return item.req_kit_count || item.beneficiary || "0";
+        if (col.key === "demandKits") return item.req_kit || item.demand_kits || "0";
+        if (col.key === "receivedKits") return item.received_kits || "0";
+        if (col.key === "prevBalance") return "0";
+        if (col.key === "distributedKits") return item.distributed_kits || "0";
+        if (col.key === "availableBalance") return item.available_balance || "0";
+        return "-";
+      });
+    });
     let csv = headers.join(",") + "\n";
     rows.forEach(row => {
       csv += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
@@ -213,7 +265,8 @@ const DemandkitProject = () => {
     const link = document.createElement("a");
     link.href = url;
     const timestamp = new Date().toISOString().slice(0, 10);
-    link.download = `Demand_Kit_Report_${selectedYear || "All"}_${selectedQuarter || "All"}_${timestamp}.csv`;
+    const reportType = viewMode === "demand" ? "Demand" : "Distribution";
+    link.download = `${reportType}_Kit_Report_${selectedYear || "All"}_${selectedQuarter || "All"}_${timestamp}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -228,7 +281,7 @@ const DemandkitProject = () => {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Mahalaxmi Kit Demand Data</title>
+        <title>Mahalaxmi Kit Report</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; }
           h3 { text-align: center; font-size: 22px; margin-bottom: 4px; }
@@ -242,7 +295,7 @@ const DemandkitProject = () => {
         </style>
       </head>
       <body>
-        <h3>Mahalaxmi Kit Demand Data</h3>
+        <h3>${viewMode === 'demand' ? 'Mahalaxmi Kit Demand Data' : 'Mahalaxmi Kit Distribution Data'}</h3>
         <h5>Demand for the year : ${selectedYear || "All"} and Quarter : ${selectedQuarter === "All" ? "All" : getDisplayQuarter(selectedQuarter)}</h5>
         ${tableRef.current.outerHTML}
       </body>
@@ -264,6 +317,19 @@ const DemandkitProject = () => {
     { key: "demandKits", label: "Demand Kits" },
   ];
 
+  const distributionColumns = [
+    { key: "sno", label: "S.no" },
+    { key: "district", label: "District" },
+    { key: "project", label: "Project" },
+    { key: "quarter", label: "Quarter" },
+    { key: "beneficiary", label: "Beneficiary" },
+    { key: "demandKits", label: "Demand Kits" },
+    { key: "receivedKits", label: "Recieved Kits" },
+    { key: "prevBalance", label: "Balance (पिछ्ला वित्तीय वर्ष)" },
+    { key: "distributedKits", label: "Distributed Kits" },
+    { key: "availableBalance", label: "Available Balance" },
+  ];
+
   return (
     <div className="dashboard-container">
       <DPOLeftNav
@@ -280,7 +346,7 @@ const DemandkitProject = () => {
           <div className="main-heading">
             <div className="text-center mb-4">
               <h3 className="mb-0 fw-bold" style={{ color: "#343a40" }}>
-                Mahalaxmi Kit Demand Data
+                {viewMode === "demand" ? "Mahalaxmi Kit Demand Data" : "Mahalaxmi Kit Distribution Data"}
               </h3>
             </div>
           </div>
@@ -341,9 +407,10 @@ const DemandkitProject = () => {
                     variant="teal"
                     className="fw-bold shadow-sm d-flex align-items-center justify-content-center"
                     size="sm"
-                    style={{ backgroundColor: '#009688', borderColor: '#009688', color: 'white', fontSize: '12px', padding: '5px 14px', fontWeight: 600 }}
+                    style={{ backgroundColor: viewMode === 'demand' ? '#009688' : '#6c757d', borderColor: viewMode === 'demand' ? '#009688' : '#6c757d', color: 'white', fontSize: '12px', padding: '5px 14px', fontWeight: 600 }}
+                    onClick={() => { setViewMode(viewMode === "demand" ? "distribution" : "demand"); setCurrentPage(1); }}
                   >
-                    <FaListAlt className="me-2" size={13} /> Distribution Report
+                    <FaListAlt className="me-2" size={13} /> {viewMode === "demand" ? "Distribution Report" : "Demand Report"}
                   </Button>
                 </Col>
               </Row>
@@ -361,38 +428,34 @@ const DemandkitProject = () => {
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div className="d-flex flex-wrap gap-1">
               <Button
-                variant="secondary"
                 size="sm"
-                className="d-flex align-items-center"
-                style={{ backgroundColor: '#6c757d', borderColor: '#6c757d', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '20px' }}
+                className="d-flex align-items-center border-0"
+                style={{ backgroundColor: '#64748b', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '4px' }}
                 onClick={handleCopy}
               >
                 {copySuccess ? <FaCheck className="me-2" size={11} /> : <FaCopy className="me-2" size={11} />}
                 {copySuccess ? "Copied" : "Copy"}
               </Button>
               <Button
-                variant="secondary"
                 size="sm"
-                className="d-flex align-items-center"
-                style={{ backgroundColor: '#6c757d', borderColor: '#6c757d', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '20px' }}
+                className="d-flex align-items-center border-0"
+                style={{ backgroundColor: '#64748b', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '4px' }}
                 onClick={handleExcel}
               >
                 <FaFileExcel className="me-2" size={11} /> Excel
               </Button>
               <Button
-                variant="secondary"
                 size="sm"
-                className="d-flex align-items-center"
-                style={{ backgroundColor: '#6c757d', borderColor: '#6c757d', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '20px' }}
+                className="d-flex align-items-center border-0"
+                style={{ backgroundColor: '#64748b', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '4px' }}
                 onClick={handlePDF}
               >
                 <FaFilePdf className="me-2" size={11} /> PDF
               </Button>
               <Button
-                variant="secondary"
                 size="sm"
-                className="d-flex align-items-center"
-                style={{ backgroundColor: '#6c757d', borderColor: '#6c757d', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '20px' }}
+                className="d-flex align-items-center border-0"
+                style={{ backgroundColor: '#64748b', color: 'white', fontSize: '11px', padding: '4px 12px', borderRadius: '4px' }}
                 onClick={() => setShowColumnModal(true)}
               >
                 <FaEye className="me-2" size={11} /> Column visibility
@@ -418,7 +481,7 @@ const DemandkitProject = () => {
               <Modal.Title style={{ fontSize: '14px', fontWeight: 'bold' }}>Column Visibility</Modal.Title>
             </Modal.Header>
             <Modal.Body className="pt-0">
-              {allColumns.map(col => (
+              {(viewMode === "demand" ? allColumns : distributionColumns).map(col => (
                 <Form.Check
                   key={col.key}
                   type="checkbox"
@@ -444,75 +507,74 @@ const DemandkitProject = () => {
               <Table bordered hover className="mb-0 align-middle text-center" style={{ fontSize: '12px', borderColor: '#dee2e6' }} ref={tableRef}>
                 <thead>
                   <tr style={{ backgroundColor: '#f1f3f5' }} className="fw-bold text-dark">
-                    {visibleColumns.sno && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("sno")} className="text-center">
-                        S.no <SortIcon column="sno" />
-                      </th>
-                    )}
-                    {visibleColumns.district && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("district")} className="text-center">
-                        District <SortIcon column="district" />
-                      </th>
-                    )}
-                    {visibleColumns.project && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("project")} className="text-center">
-                        Project <SortIcon column="project" />
-                      </th>
-                    )}
-                    {visibleColumns.quarter && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("quarter")} className="text-center">
-                        Quarter <SortIcon column="quarter" />
-                      </th>
-                    )}
-                    {visibleColumns.beneficiary && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("beneficiary")} className="text-center">
-                        Beneficiary <SortIcon column="beneficiary" />
-                      </th>
-                    )}
-                    {visibleColumns.demandKits && (
-                      <th style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort("demandKits")} className="text-center">
-                        Demand Kits <SortIcon column="demandKits" />
-                      </th>
+                    {(viewMode === "demand" ? allColumns : distributionColumns).map(col => 
+                      visibleColumns[col.key] && (
+                        <th key={col.key} style={{ cursor: 'pointer', userSelect: 'none', padding: '7px 6px', whiteSpace: 'nowrap' }} onClick={() => handleSort(col.key)} className="text-center">
+                          {col.label} <SortIcon column={col.key} />
+                        </th>
+                      )
                     )}
                   </tr>
+                  {viewMode === "distribution" && (
+                    <tr style={{ backgroundColor: '#f8f9fa', fontSize: '11px' }}>
+                      {distributionColumns.map((col, idx) => {
+                        const formula = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)', '(g)', '(h)', '(i)', '(j=(g+h)-i)'];
+                        return visibleColumns[col.key] && <th key={`formula-${idx}`} className="text-center py-1 fw-normal text-muted">{formula[idx]}</th>;
+                      })}
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
                   {paginatedData.length > 0 ? (
                     paginatedData.map((item, index) => {
-                      const visibleCols = allColumns.filter(c => visibleColumns[c.key]);
+                      const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
                       return (
-                        <tr key={item.id || `row-${index}`} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
-                          {visibleCols.map(col => {
-                            let value = "";
+                        <tr key={item.id || item.s_no || `row-${index}`} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
+                          {activeCols.map(col => {
+                            let value = "-";
                             if (col.key === "sno") value = startIndex + index + 1;
-                            else if (col.key === "district") value = item.district || "-";
-                            else if (col.key === "project") value = item.project || "-";
-                            else if (col.key === "quarter") value = item.quarter || "-";
-                            else if (col.key === "beneficiary") value = item.req_kit_count || "0";
-                            else if (col.key === "demandKits") value = item.req_kit || "0";
-                            return (
-                              <td key={col.key} className="text-center" style={{ padding: '6px' }}>{col.key === "district" || col.key === "project" ? value : value}</td>
-                            );
+                            else if (col.key === "district") value = item.district;
+                            else if (col.key === "project") value = item.project;
+                            else if (col.key === "quarter") value = item.quarter;
+                            else if (col.key === "beneficiary") value = item.req_kit_count || item.beneficiary || "0";
+                            else if (col.key === "demandKits") value = item.req_kit || item.demand_kits || "0";
+                            else if (col.key === "receivedKits") value = item.received_kits || "0";
+                            else if (col.key === "prevBalance") value = "0";
+                            else if (col.key === "distributedKits") value = item.distributed_kits || "0";
+                            else if (col.key === "availableBalance") value = item.available_balance || "0";
+                            return <td key={col.key} className="text-center" style={{ padding: '6px' }}>{value}</td>;
                           })}
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={Object.values(visibleColumns).filter(Boolean).length} className="py-5 text-muted text-center">कोई डेटा उपलब्ध नहीं है।</td>
+                      <td colSpan={10} className="py-5 text-muted text-center">कोई डेटा उपलब्ध नहीं है।</td>
                     </tr>
                   )}
                   {paginatedData.length > 0 && (
                     <tr style={{ backgroundColor: '#ffffff', fontWeight: 'bold', fontSize: '12px' }}>
-                      <td className="text-end" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>Total -&gt;</td>
+                      <td className="text-end" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>Total &rarr;</td>
                       {visibleColumns.district && <td></td>}
                       {visibleColumns.project && <td></td>}
                       {visibleColumns.quarter && <td></td>}
                       {visibleColumns.beneficiary && (
-                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totalBeneficiary}</td>
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totals.beneficiary}</td>
                       )}
                       {visibleColumns.demandKits && (
-                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totalDemandKits}</td>
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totals.demandKits}</td>
+                      )}
+                      {viewMode === "distribution" && visibleColumns.receivedKits && (
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totals.receivedKits}</td>
+                      )}
+                      {viewMode === "distribution" && visibleColumns.prevBalance && (
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>0</td>
+                      )}
+                      {viewMode === "distribution" && visibleColumns.distributedKits && (
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totals.distributedKits}</td>
+                      )}
+                      {viewMode === "distribution" && visibleColumns.availableBalance && (
+                        <td className="text-center" style={{ padding: '8px 6px', borderTop: '2px solid #dee2e6' }}>{totals.availableBalance}</td>
                       )}
                     </tr>
                   )}
