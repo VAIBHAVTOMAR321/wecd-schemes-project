@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Button } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner, Table, Pagination } from "react-bootstrap";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
 import DPOHeader from "./DPOHeader";
 import DPOLeftNav from "./DPOLeftNav";
+
+const DPO_DASHBOARD_API = "dpo-dashboard/";
+const ITEMS_PER_PAGE = 20;
 
 const DPODashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
 
-  const { user, api, uniqueId } = useAuth();
+  const { api } = useAuth();
   const [projectCount, setProjectCount] = useState(null);
   const [sectorCount, setSectorCount] = useState(null);
   const [projects, setProjects] = useState([]);
   const [sectors, setSectors] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [distributionData, setDistributionData] = useState(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [currentProjectPage, setCurrentProjectPage] = useState(1);
+  const [currentSectorPage, setCurrentSectorPage] = useState(1);
   const [showProjectsTable, setShowProjectsTable] = useState(false);
   const [showSectorsTable, setShowSectorsTable] = useState(false);
 
@@ -36,24 +43,96 @@ const DPODashboard = () => {
 
   useEffect(() => {
     if (!api) return;
-    const fetchCounts = async () => {
-      setLoading(true);
+
+    const fetchDashboardData = async () => {
+      setDashboardLoading(true);
       try {
-        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/district-project-sector-details/");
+        const response = await api.get(DPO_DASHBOARD_API);
+        const dashboard = response.data?.dashboard;
+
+        if (response.data?.success && dashboard) {
+          setProjectCount(dashboard.total_projects);
+          setSectorCount(dashboard.total_sectors);
+          setDistributionData(dashboard.financial_year_wise_distribution || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch DPO dashboard data:", err);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [api]);
+
+  useEffect(() => {
+    if (!api) return;
+
+    const fetchDistrictDetails = async () => {
+      setDetailsLoading(true);
+      try {
+        const response = await api.get("district-project-sector-details/");
         if (response.data?.success) {
-          setProjectCount(response.data.project_count);
-          setSectorCount(response.data.sector_count);
           setProjects(response.data.projects || []);
           setSectors(response.data.sectors || []);
         }
       } catch (err) {
-        console.error("Failed to fetch counts:", err);
+        console.error("Failed to fetch district project sector details:", err);
       } finally {
-        setLoading(false);
+        setDetailsLoading(false);
       }
     };
-    fetchCounts();
+
+    fetchDistrictDetails();
   }, [api]);
+
+  const getDistributionCount = (financialYear) => {
+    if (dashboardLoading) return "Loading...";
+
+    const data = distributionData?.find((item) => item.financial_year === financialYear);
+    return data?.distributed_mahalaxmi_kits ?? "No data available";
+  };
+
+  const projectTotalPages = Math.ceil(projects.length / ITEMS_PER_PAGE);
+  const sectorTotalPages = Math.ceil(sectors.length / ITEMS_PER_PAGE);
+  const projectPageItems = projects.slice(
+    (currentProjectPage - 1) * ITEMS_PER_PAGE,
+    currentProjectPage * ITEMS_PER_PAGE
+  );
+  const sectorPageItems = sectors.slice(
+    (currentSectorPage - 1) * ITEMS_PER_PAGE,
+    currentSectorPage * ITEMS_PER_PAGE
+  );
+
+  const renderPagination = (currentPage, totalPages, setCurrentPage) => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="d-flex justify-content-center mt-3">
+        <Pagination>
+          <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
+          <Pagination.Prev onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} />
+          {Array.from({ length: totalPages }, (_, index) => (
+            <Pagination.Item
+              key={index + 1}
+              active={index + 1 === currentPage}
+              onClick={() => setCurrentPage(index + 1)}
+            >
+              {index + 1}
+            </Pagination.Item>
+          ))}
+          <Pagination.Next
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          />
+          <Pagination.Last
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+          />
+        </Pagination>
+      </div>
+    );
+  };
 
   const handleProjectClick = () => {
     setShowProjectsTable((prev) => !prev);
@@ -107,7 +186,7 @@ const DPODashboard = () => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2024-2025)</Card.Title>
-                  <Card.Text className="stats-count">2475</Card.Text>
+                  <Card.Text className="stats-count">{getDistributionCount("2024-2025")}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -115,15 +194,15 @@ const DPODashboard = () => {
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2025-2026)</Card.Title>
-                  <Card.Text className="stats-count">3150</Card.Text>
+                  <Card.Text className="stats-count">{getDistributionCount("2025-2026")}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Anganwadi Establishment Stats</Card.Title>
-                  <Card.Text className="stats-count">View</Card.Text>
+                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2026-2027)</Card.Title>
+                  <Card.Text className="stats-count">{getDistributionCount("2026-2027")}</Card.Text>
                 </Card.Body>
               </Card>
             </Col>
@@ -144,7 +223,7 @@ const DPODashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {loading ? (
+                      {detailsLoading ? (
                         <tr>
                           <td colSpan="5" className="text-center py-4">
                             <Spinner animation="border" size="sm" /> Loading...
@@ -155,9 +234,9 @@ const DPODashboard = () => {
                           <td colSpan="5" className="text-center py-4 text-muted">No data available</td>
                         </tr>
                       ) : (
-                        projects.map((item, index) => (
+                        projectPageItems.map((item, index) => (
                           <tr key={item.project_code || index}>
-                            <td>{index + 1}</td>
+                            <td>{(currentProjectPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                             <td>{item.district}</td>
                             <td>{item.project_name}</td>
                             <td>{item.project_code}</td>
@@ -168,6 +247,7 @@ const DPODashboard = () => {
                     </tbody>
                   </Table>
                 </div>
+                {renderPagination(currentProjectPage, projectTotalPages, setCurrentProjectPage)}
               </Card.Body>
             </Card>
           )}
@@ -189,7 +269,7 @@ const DPODashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {loading ? (
+                      {detailsLoading ? (
                         <tr>
                           <td colSpan="7" className="text-center py-4">
                             <Spinner animation="border" size="sm" /> Loading...
@@ -200,9 +280,9 @@ const DPODashboard = () => {
                           <td colSpan="7" className="text-center py-4 text-muted">No data available</td>
                         </tr>
                       ) : (
-                        sectors.map((item, index) => (
+                        sectorPageItems.map((item, index) => (
                           <tr key={item.sector_name + item.project_name + index}>
-                            <td>{index + 1}</td>
+                            <td>{(currentSectorPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                             <td>{item.district}</td>
                             <td>{item.project_name}</td>
                             <td>{item.sector_name}</td>
@@ -215,6 +295,7 @@ const DPODashboard = () => {
                     </tbody>
                   </Table>
                 </div>
+                {renderPagination(currentSectorPage, sectorTotalPages, setCurrentSectorPage)}
               </Card.Body>
             </Card>
           )}
