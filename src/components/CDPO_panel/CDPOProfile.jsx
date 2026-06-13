@@ -202,6 +202,7 @@ const CDPOProfile = () => {
                               onChange={handleProfileChange}
                               className="border-2"
                               style={{ fontSize: '12px' }}
+                              disabled
                             />
                           </Form.Group>
                         </Col>
