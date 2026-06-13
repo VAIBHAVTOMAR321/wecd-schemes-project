@@ -147,11 +147,11 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         submenu: [
           {
             label: "Project Wise",
-            path: "#",
+            path: "/MahilaPoshanDemandProj",
           },
           {
-            label: "District Wise",
-            path: "#",
+            label: "Sector Wise",
+            path: "/MahilaPoshanDemandSector",
           },
         ],
       },
@@ -160,10 +160,14 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
           path: "#",
           icon: <FaPlusSquare />,
           submenu: [
-            {
-              label: "Demand",
-              path: "/BalPosDemandProj",
-            },
+          {
+            label: "Project Wise",
+            path: "/MahilaPoshanDemandProj",
+          },
+          {
+            label: "Sector Wise",
+            path: "/MahilaPoshanDemandSector",
+          },
             {
               label: "Sector Wise",
               path: "/BalPosDemandSector",
