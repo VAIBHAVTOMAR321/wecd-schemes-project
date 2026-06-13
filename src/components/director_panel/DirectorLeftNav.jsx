@@ -115,6 +115,11 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
        label: "Our Sector",
        path: "/DirectorOurSector",
      },
+     {
+       icon: <FaCube />,
+       label: "Our Awc Centers",
+       path: "/AWCS",
+     },
          
           ],
         },
