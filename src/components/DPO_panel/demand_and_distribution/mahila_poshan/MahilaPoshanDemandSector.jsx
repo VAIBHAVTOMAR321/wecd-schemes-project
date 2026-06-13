@@ -16,7 +16,7 @@ const MahilaPoshanDemandSector = () => {
   const [district, setDistrict] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedYear, setSelectedYear] = useState("2025-2026");
+  const [selectedYear, setSelectedYear] = useState("");
   const [selectedQuarter, setSelectedQuarter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: 'sector', direction: 'asc' });
