@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Badge, Alert } from "react-bootstrap";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Badge, Alert, Modal } from "react-bootstrap";
 import { FaCopy, FaFileExcel, FaFilePdf, FaColumns, FaSearch, FaCheck } from "react-icons/fa";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
@@ -30,8 +30,128 @@ const Mahalaxmi = () => {
   const [totalEntries, setTotalEntries] = useState(0);
   const [error, setError] = useState(null);
 
+  const tableRef = useRef(null);
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const [visibleColumns, setVisibleColumns] = useState({
+    sno: true,
+    district: true,
+    project: true,
+    sector: true,
+    awc_name: true,
+    name: true,
+    dob: true,
+    mobile: true,
+    adhar: true,
+    delivery_date: true,
+  });
+
+  const columns = [
+    { key: "sno", label: "S.no" },
+    { key: "district", label: "District" },
+    { key: "project", label: "Project" },
+    { key: "sector", label: "Sector" },
+    { key: "awc_name", label: "AWC Name" },
+    { key: "name", label: "Name" },
+    { key: "dob", label: "DOB" },
+    { key: "mobile", label: "Mobile" },
+    { key: "adhar", label: "Adhar Num" },
+    { key: "delivery_date", label: "Delivery Date" },
+  ];
+
+  const filteredData = tableData.filter((item) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      item.district?.toLowerCase().includes(search) ||
+      item.project?.toLowerCase().includes(search) ||
+      item.sector?.toLowerCase().includes(search) ||
+      item.name?.toLowerCase().includes(search) ||
+      item.ben_mob?.toLowerCase().includes(search) ||
+      item.adhar_num?.toLowerCase().includes(search)
+    );
+  });
+
   const entriesPerPage = 10;
-  const totalPages = Math.ceil(totalEntries / entriesPerPage);
+  const totalPages = Math.ceil((searchTerm ? filteredData.length : totalEntries) / entriesPerPage);
+
+  const handleCopy = async () => {
+    if (filteredData.length === 0) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    const mRows = filteredData.map((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
+      if (visibleColumns.district) row.push(item.district || "-");
+      if (visibleColumns.project) row.push(item.project || "-");
+      if (visibleColumns.sector) row.push(item.sector || "-");
+      if (visibleColumns.awc_name) row.push(item.awc_name || "-");
+      if (visibleColumns.name) row.push(item.name || "-");
+      if (visibleColumns.dob) row.push(item.dob || "-");
+      if (visibleColumns.mobile) row.push(item.ben_mob || "-");
+      if (visibleColumns.adhar) row.push(item.adhar_num || "-");
+      if (visibleColumns.delivery_date) row.push(item.del_date || "-");
+      return row.join("\t");
+    });
+
+    const text = "Mahalaxmi Beneficiary Report\n" + [mHeaders.join("\t"), ...mRows].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleExcel = () => {
+    if (filteredData.length === 0) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    let csv = "Mahalaxmi Beneficiary Report\n" + mHeaders.join(",") + "\n";
+
+    filteredData.forEach((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
+      if (visibleColumns.district) row.push(`"${item.district || "-"}"`);
+      if (visibleColumns.project) row.push(`"${item.project || "-"}"`);
+      if (visibleColumns.sector) row.push(`"${item.sector || "-"}"`);
+      if (visibleColumns.awc_name) row.push(`"${item.awc_name || "-"}"`);
+      if (visibleColumns.name) row.push(`"${item.name || "-"}"`);
+      if (visibleColumns.dob) row.push(`"${item.dob || "-"}"`);
+      if (visibleColumns.mobile) row.push(`"${item.ben_mob || "-"}"`);
+      if (visibleColumns.adhar) row.push(`"${item.adhar_num || "-"}"`);
+      if (visibleColumns.delivery_date) row.push(`"${item.del_date || "-"}"`);
+      csv += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Mahalaxmi_Beneficiary_Report.csv";
+    link.click();
+  };
+
+  const handlePDF = () => {
+    if (!tableRef.current) return;
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head><title>Report</title><style>
+          table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f1f5f9; }
+          h2, h4 { text-align: center; font-family: sans-serif; }
+        </style></head>
+        <body>
+          <h2>Mahalaxmi Beneficiary Report</h2>
+          <h4>FY: ${financialYear} | Quarter: ${quarter_month_map[quarter]}</h4>
+          ${tableRef.current.outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
 
   const fetchBeneficiaryData = useCallback(async (page = 1) => {
     if (!api) return;
@@ -156,10 +276,10 @@ const Mahalaxmi = () => {
           {/* Datatable Toolbar */}
           <Row className="mb-2 align-items-center">
             <Col md={6} className="d-flex gap-2">
-              <Button variant="secondary" size="sm"><FaCopy className="me-1" /> Copy</Button>
-              <Button variant="secondary" size="sm"><FaFileExcel className="me-1" /> Excel</Button>
-              <Button variant="secondary" size="sm"><FaFilePdf className="me-1" /> PDF</Button>
-              <Button variant="secondary" size="sm"><FaColumns className="me-1" /> Column visibility</Button>
+              <Button variant="secondary" size="sm" onClick={handleCopy}>{copySuccess ? <Badge bg="success">Copied!</Badge> : <><FaCopy className="me-1" /> Copy</>}</Button>
+              <Button variant="secondary" size="sm" onClick={handleExcel}><FaFileExcel className="me-1" /> Excel</Button>
+              <Button variant="secondary" size="sm" onClick={handlePDF}><FaFilePdf className="me-1" /> PDF</Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowColumnModal(true)}><FaColumns className="me-1" /> Column visibility</Button>
             </Col>
             <Col md={6}>
               <InputGroup size="sm" className="justify-content-end">
@@ -180,19 +300,19 @@ const Mahalaxmi = () => {
           <div className="table-responsive shadow-sm rounded">
             {error && <Alert variant="danger" className="m-2">{error}</Alert>}
             
-            <Table striped bordered hover size="sm" className="mb-0 custom-table">
+            <Table striped bordered hover size="sm" className="mb-0 custom-table" ref={tableRef}>
               <thead style={{ backgroundColor: "#f1f4f9" }}>
                 <tr>
-                  <th className="text-center py-2">S.no</th>
-                  <th className="text-center py-2">District</th>
-                  <th className="text-center py-2">Project</th>
-                  <th className="text-center py-2">Sector</th>
-                  <th className="text-center py-2">AWC Name</th>
-                  <th className="text-center py-2">Name</th>
-                  <th className="text-center py-2">DOB</th>
-                  <th className="text-center py-2">Mobile</th>
-                  <th className="text-center py-2">Adhar Num</th>
-                  <th className="text-center py-2">Delivery Date</th>
+                  {visibleColumns.sno && <th className="text-center py-2">S.no</th>}
+                  {visibleColumns.district && <th className="text-center py-2">District</th>}
+                  {visibleColumns.project && <th className="text-center py-2">Project</th>}
+                  {visibleColumns.sector && <th className="text-center py-2">Sector</th>}
+                  {visibleColumns.awc_name && <th className="text-center py-2">AWC Name</th>}
+                  {visibleColumns.name && <th className="text-center py-2">Name</th>}
+                  {visibleColumns.dob && <th className="text-center py-2">DOB</th>}
+                  {visibleColumns.mobile && <th className="text-center py-2">Mobile</th>}
+                  {visibleColumns.adhar && <th className="text-center py-2">Adhar Num</th>}
+                  {visibleColumns.delivery_date && <th className="text-center py-2">Delivery Date</th>}
                 </tr>
               </thead>
               <tbody>
@@ -203,19 +323,19 @@ const Mahalaxmi = () => {
                       <p className="mt-2 mb-0">Loading beneficiary data...</p>
                     </td>
                   </tr>
-                ) : tableData.length > 0 ? (
-                  tableData.map((row, index) => (
+                ) : filteredData.length > 0 ? (
+                  filteredData.map((row, index) => (
                     <tr key={row.id || index}>
-                      <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>
-                      <td>{row.district}</td>
-                      <td>{row.project}</td>
-                      <td>{row.sector}</td>
-                      <td>{row.awc_name}</td>
-                      <td>{row.name}</td>
-                      <td className="text-center">{row.dob}</td>
-                      <td className="text-center">{row.ben_mob}</td>
-                      <td className="text-center">{row.adhar_num}</td>
-                      <td className="text-center">{row.del_date}</td>
+                      {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>}
+                      {visibleColumns.district && <td>{row.district}</td>}
+                      {visibleColumns.project && <td>{row.project}</td>}
+                      {visibleColumns.sector && <td>{row.sector}</td>}
+                      {visibleColumns.awc_name && <td>{row.awc_name}</td>}
+                      {visibleColumns.name && <td>{row.name}</td>}
+                      {visibleColumns.dob && <td className="text-center">{row.dob}</td>}
+                      {visibleColumns.mobile && <td className="text-center">{row.ben_mob}</td>}
+                      {visibleColumns.adhar && <td className="text-center">{row.adhar_num}</td>}
+                      {visibleColumns.delivery_date && <td className="text-center">{row.del_date}</td>}
                     </tr>
                   ))
                 ) : (
@@ -248,6 +368,21 @@ const Mahalaxmi = () => {
           </Row>
         </Container>
       </div>
+
+      <Modal show={showColumnModal} onHide={() => setShowColumnModal(false)} size="sm" centered>
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '16px' }}>Column Visibility</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {columns.map(col => (
+            <Form.Check 
+              key={col.key} type="checkbox" label={col.label}
+              checked={visibleColumns[col.key]}
+              onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
+            />
+          ))}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

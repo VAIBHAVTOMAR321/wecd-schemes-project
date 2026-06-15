@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Badge, Alert } from "react-bootstrap";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Badge, Alert, Modal } from "react-bootstrap";
 import { FaCopy, FaFileExcel, FaFilePdf, FaColumns, FaSearch, FaExpand, FaBell, FaBars } from "react-icons/fa";
 import { useAuth } from "../../../all_login/AuthContext";
 import "../../../../assets/css/supervisorleftnav.css";
@@ -23,6 +23,36 @@ const DirMahilaPoshanDemandSector = () => {
   const [loading, setLoading] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
   const [error, setError] = useState(null);
+
+  const tableRef = useRef(null);
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const [visibleColumns, setVisibleColumns] = useState({
+    sno: true,
+    district: true,
+    project: true,
+    sector: true,
+    fin_yr: true,
+    quarter: true,
+    total: true,
+    egg: true,
+    non_egg: true,
+    status: true,
+  });
+
+  const columns = [
+    { key: "sno", label: "S.no" },
+    { key: "district", label: "District" },
+    { key: "project", label: "Project" },
+    { key: "sector", label: "Sector" },
+    { key: "fin_yr", label: "Financial Year" },
+    { key: "quarter", label: "Quarter" },
+    { key: "total", label: "Total Beneficiary" },
+    { key: "egg", label: "Egg Beneficiary" },
+    { key: "non_egg", label: "Non Egg Eating Beneficiary" },
+    { key: "status", label: "Status" },
+  ];
 
   const entriesPerPage = 100;
 
@@ -97,6 +127,93 @@ const DirMahilaPoshanDemandSector = () => {
     fetchDemandData(1);
   };
 
+  const handleCopy = async () => {
+    const dataToExport = filteredData.length > entriesPerPage
+      ? filteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
+      : filteredData;
+
+    if (dataToExport.length === 0) return;
+
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    const mRows = dataToExport.map((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
+      if (visibleColumns.district) row.push(item.district || "-");
+      if (visibleColumns.project) row.push(item.project_name || "-");
+      if (visibleColumns.sector) row.push(item.sector || "-");
+      if (visibleColumns.fin_yr) row.push(item.fin_yr || "-");
+      if (visibleColumns.quarter) row.push(item.qtr_dmd || "-");
+      if (visibleColumns.total) row.push(item.khajur_bene || "0");
+      if (visibleColumns.egg) row.push(item.egg_bene || "0");
+      if (visibleColumns.non_egg) row.push(item.tot_noteat_egg_bene || "0");
+      if (visibleColumns.status) row.push(item.dir_status || "-");
+      return row.join("\t");
+    });
+
+    const text = "Mahila Poshan Demand Data | Sector wise\n" + [mHeaders.join("\t"), ...mRows].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleExcel = () => {
+    const dataToExport = filteredData.length > entriesPerPage
+      ? filteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
+      : filteredData;
+
+    if (dataToExport.length === 0) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    let csv = "Mahila Poshan Demand Data | Sector wise\n" + mHeaders.join(",") + "\n";
+
+    dataToExport.forEach((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
+      if (visibleColumns.district) row.push(`"${item.district || "-"}"`);
+      if (visibleColumns.project) row.push(`"${item.project_name || "-"}"`);
+      if (visibleColumns.sector) row.push(`"${item.sector || "-"}"`);
+      if (visibleColumns.fin_yr) row.push(`"${item.fin_yr || "-"}"`);
+      if (visibleColumns.quarter) row.push(`"${item.qtr_dmd || "-"}"`);
+      if (visibleColumns.total) row.push(item.khajur_bene || 0);
+      if (visibleColumns.egg) row.push(item.egg_bene || 0);
+      if (visibleColumns.non_egg) row.push(item.tot_noteat_egg_bene || 0);
+      if (visibleColumns.status) row.push(`"${item.dir_status || "-"}"`);
+      csv += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Mahila_Poshan_Sector_Report.csv";
+    link.click();
+  };
+
+  const handlePDF = () => {
+    if (!tableRef.current) return;
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head><title>Report</title><style>
+          table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f1f5f9; }
+          h2, h4 { text-align: center; font-family: sans-serif; }
+        </style></head>
+        <body>
+          <h2>Mahila Poshan Demand Data | Sector wise</h2>
+          <h4>Year: ${financialYear} | Quarter: ${quarter}</h4>
+          ${tableRef.current.outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   // Logic to insert subtotal rows when project_name changes
   const renderTableRows = (data) => {
     if (data.length === 0) return null;
@@ -121,18 +238,20 @@ const DirMahilaPoshanDemandSector = () => {
 
       rows.push(
         <tr key={row.id || index}>
-          <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>
-          <td>{row.district}</td>
-          <td>{row.project_name}</td>
-          <td>{row.sector}</td>
-          <td className="text-center">{row.fin_yr}</td>
-          <td className="text-center">{row.qtr_dmd}</td>
-          <td className="text-center">{row.khajur_bene}</td>
-          <td className="text-center">{row.egg_bene}</td>
-          <td className="text-center">{row.tot_noteat_egg_bene}</td>
-          <td className="text-center">
-            <Badge bg={row.dir_status === "Approve" ? "success" : "warning"}>{row.dir_status}</Badge>
-          </td>
+          {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>}
+          {visibleColumns.district && <td>{row.district}</td>}
+          {visibleColumns.project && <td>{row.project_name}</td>}
+          {visibleColumns.sector && <td>{row.sector}</td>}
+          {visibleColumns.fin_yr && <td className="text-center">{row.fin_yr}</td>}
+          {visibleColumns.quarter && <td className="text-center">{row.qtr_dmd}</td>}
+          {visibleColumns.total && <td className="text-center">{row.khajur_bene}</td>}
+          {visibleColumns.egg && <td className="text-center">{row.egg_bene}</td>}
+          {visibleColumns.non_egg && <td className="text-center">{row.tot_noteat_egg_bene}</td>}
+          {visibleColumns.status && (
+            <td className="text-center">
+              <Badge bg={row.dir_status === "Approve" ? "success" : "warning"}>{row.dir_status}</Badge>
+            </td>
+          )}
         </tr>
       );
 
@@ -142,11 +261,11 @@ const DirMahilaPoshanDemandSector = () => {
       if (isProjectChanged) {
         rows.push(
           <tr key={`proj-sub-${currentProject}-${index}`} style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-            <td colSpan="6" className="text-end">Total for Project: {currentProject}</td>
-            <td className="text-center">{projectTotal}</td>
-            <td className="text-center">{projectEgg}</td>
-            <td className="text-center">{projectNonEgg}</td>
-            <td></td>
+            <td colSpan={Object.keys(visibleColumns).slice(0, 6).filter(k => visibleColumns[k]).length} className="text-end">Total for Project: {currentProject}</td>
+            {visibleColumns.total && <td className="text-center">{projectTotal}</td>}
+            {visibleColumns.egg && <td className="text-center">{projectEgg}</td>}
+            {visibleColumns.non_egg && <td className="text-center">{projectNonEgg}</td>}
+            {visibleColumns.status && <td></td>}
           </tr>
         );
         projectTotal = 0; projectEgg = 0; projectNonEgg = 0;
@@ -156,11 +275,11 @@ const DirMahilaPoshanDemandSector = () => {
       if (isDistrictChanged) {
         rows.push(
           <tr key={`dist-sub-${currentDistrict}-${index}`} style={{ backgroundColor: "#e9ecef", fontWeight: "bold" }}>
-            <td colSpan="6" className="text-end">Total for District: {currentDistrict}</td>
-            <td className="text-center">{districtTotal}</td>
-            <td className="text-center">{districtEgg}</td>
-            <td className="text-center">{districtNonEgg}</td>
-            <td></td>
+            <td colSpan={Object.keys(visibleColumns).slice(0, 6).filter(k => visibleColumns[k]).length} className="text-end">Total for District: {currentDistrict}</td>
+            {visibleColumns.total && <td className="text-center">{districtTotal}</td>}
+            {visibleColumns.egg && <td className="text-center">{districtEgg}</td>}
+            {visibleColumns.non_egg && <td className="text-center">{districtNonEgg}</td>}
+            {visibleColumns.status && <td></td>}
           </tr>
         );
         districtTotal = 0; districtEgg = 0; districtNonEgg = 0;
@@ -283,10 +402,10 @@ const DirMahilaPoshanDemandSector = () => {
           <div className="bg-white p-3 rounded shadow-sm">
             <Row className="mb-3 align-items-center">
               <Col md={6} className="d-flex gap-2">
-                <Button variant="outline-secondary" size="sm" className="px-3"><FaCopy className="me-1" /> Copy</Button>
-                <Button variant="outline-secondary" size="sm" className="px-3"><FaFileExcel className="me-1" /> Excel</Button>
-                <Button variant="outline-secondary" size="sm" className="px-3"><FaFilePdf className="me-1" /> PDF</Button>
-                <Button variant="outline-secondary" size="sm" className="px-3"><FaColumns className="me-1" /> Column visibility</Button>
+                <Button variant="outline-secondary" size="sm" className="px-3" onClick={handleCopy}>{copySuccess ? <Badge bg="success">Copied!</Badge> : <><FaCopy className="me-1" /> Copy</>}</Button>
+                <Button variant="outline-secondary" size="sm" className="px-3" onClick={handleExcel}><FaFileExcel className="me-1" /> Excel</Button>
+                <Button variant="outline-secondary" size="sm" className="px-3" onClick={handlePDF}><FaFilePdf className="me-1" /> PDF</Button>
+                <Button variant="outline-secondary" size="sm" className="px-3" onClick={() => setShowColumnModal(true)}><FaColumns className="me-1" /> Column visibility</Button>
               </Col>
               <Col md={6}>
                 <InputGroup size="sm" className="justify-content-end">
@@ -297,19 +416,19 @@ const DirMahilaPoshanDemandSector = () => {
             </Row>
 
             <div className="table-responsive">
-              <Table striped bordered hover size="sm" className="mb-0">
+              <Table striped bordered hover size="sm" className="mb-0" ref={tableRef}>
                 <thead style={{ backgroundColor: "#004d4d", color: "#fff" }}>
                   <tr className="text-center">
-                    <th className="py-2">S.no</th>
-                    <th className="py-2">District</th>
-                    <th className="py-2">Project</th>
-                    <th className="py-2">Sector</th>
-                    <th className="py-2">Financial Year</th>
-                    <th className="py-2">Quarter</th>
-                    <th className="py-2">Total Beneficiary</th>
-                    <th className="py-2">Egg Beneficiary</th>
-                    <th className="py-2">Non Egg Eating Beneficiary</th>
-                    <th className="py-2">Status</th>
+                    {visibleColumns.sno && <th className="py-2">S.no</th>}
+                    {visibleColumns.district && <th className="py-2">District</th>}
+                    {visibleColumns.project && <th className="py-2">Project</th>}
+                    {visibleColumns.sector && <th className="py-2">Sector</th>}
+                    {visibleColumns.fin_yr && <th className="py-2">Financial Year</th>}
+                    {visibleColumns.quarter && <th className="py-2">Quarter</th>}
+                    {visibleColumns.total && <th className="py-2">Total Beneficiary</th>}
+                    {visibleColumns.egg && <th className="py-2">Egg Beneficiary</th>}
+                    {visibleColumns.non_egg && <th className="py-2">Non Egg Eating Beneficiary</th>}
+                    {visibleColumns.status && <th className="py-2">Status</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -343,6 +462,21 @@ const DirMahilaPoshanDemandSector = () => {
           </div>
         </Container>
       </div>
+
+      <Modal show={showColumnModal} onHide={() => setShowColumnModal(false)} size="sm" centered>
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '16px' }}>Column Visibility</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {columns.map(col => (
+            <Form.Check 
+              key={col.key} type="checkbox" label={col.label}
+              checked={visibleColumns[col.key]}
+              onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
+            />
+          ))}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
