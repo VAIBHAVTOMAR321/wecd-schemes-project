@@ -148,7 +148,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
                   path: "/DirMahilaPoshanDemandProj",
                 },
                 {
-                  label: "Sector",
+                  label: "Sector", 
                   path: "/DirMahilaPoshanDemandSector",
                 },
               ],
@@ -160,15 +160,15 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District",
-                  path: "#",
+                  path: "/DirBalPoshanDemandDist",
                 },
                 {
                   label: "Project",
-                  path: "#",
+                  path: "/DirBalPoshanDemandProj",
                 },
                 {
                   label: "Sector",
-                  path: "#",
+                  path: "/DirBalPoshanDemandSector",
                 },
               ],
             },
