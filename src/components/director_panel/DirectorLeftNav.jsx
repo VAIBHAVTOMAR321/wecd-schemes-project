@@ -148,7 +148,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
                   path: "/DirMahilaPoshanDemandProj",
                 },
                 {
-                  label: "Sector",
+                  label: "Sector", 
                   path: "/DirMahilaPoshanDemandSector",
                 },
               ],
@@ -160,15 +160,15 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District",
-                  path: "#",
+                  path: "/DirBalPoshanDemandDist",
                 },
                 {
                   label: "Project",
-                  path: "#",
+                  path: "/DirBalPoshanDemandProj",
                 },
                 {
                   label: "Sector",
-                  path: "#",
+                  path: "/DirBalPoshanDemandSector",
                 },
               ],
             },
@@ -179,11 +179,11 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District wise",
-                  path: "#",
+                  path: "/DirDemandAnchalDist",
                 },
                 {
                   label: "sector wise",
-                  path: "#",
+                  path: "/DirDemandAnchalSec",
                 },
               ],
             },
@@ -195,11 +195,11 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District wise",
-                  path: "#",
+                  path: "/DirDemandkitDistrict",
                 },
                 {
                   label: "Project wise",
-                  path: "#",
+                  path: "/DirDemandkitProject",
                 },
               ],
             },
