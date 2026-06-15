@@ -13,9 +13,6 @@ const DirMahilaPoshanDemandSector = () => {
   const [isTablet, setIsTablet] = useState(false);
   const { api } = useAuth();
 
-  // Initial financial years for dropdown
-  const initialFinancialYears = ["2024-25", "2025-26", "2026-27", "2027-28"];
-
   // State for filters and data
   const [financialYear, setFinancialYear] = useState("All");
   const [quarter, setQuarter] = useState("All");
@@ -31,12 +28,16 @@ const DirMahilaPoshanDemandSector = () => {
 
   const filteredData = tableData.filter((item) => {
     const search = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       item.district?.toLowerCase().includes(search) ||
       item.project_name?.toLowerCase().includes(search) ||
       item.sector?.toLowerCase().includes(search) ||
       item.fin_yr?.toLowerCase().includes(search)
     );
+    const matchesYear = financialYear === "All" || item.fin_yr === financialYear;
+    const matchesQuarter = quarter === "All" || item.qtr_dmd === quarter;
+
+    return matchesSearch && matchesYear && matchesQuarter;
   });
 
   const totalPages = Math.ceil(
@@ -49,8 +50,8 @@ const DirMahilaPoshanDemandSector = () => {
     setError(null);
     try {
       const params = { page: page, page_size: 5000 }; // Fetching a larger set to handle grouping correctly
-      if (financialYear !== "All") params.fin_year = financialYear;
-      if (quarter !== "All") params.quarter = quarter;
+      if (financialYear !== "All") params.fin_yr = financialYear;
+      if (quarter !== "All") params.qtr_dmd = quarter;
 
       const response = await api.get(`director/mp-sector-wise-demand/`, { params });
       
@@ -58,10 +59,12 @@ const DirMahilaPoshanDemandSector = () => {
       setTableData(fetchedData);
       setTotalEntries(response.data?.count || 0);
 
-      // Extract unique financial years for the dropdown if not already populated
-      if (fetchedData.length > 0) {
+      // Extract unique financial years for the dropdown from the API response
+      if (fetchedData.length > 0 && (financialYear === "All" || uniqueYears.length === 0)) {
         const years = [...new Set(fetchedData.map(item => item.fin_yr))].filter(Boolean);
-        setUniqueYears([...new Set([...initialFinancialYears, ...years])].sort());
+        if (years.length >= uniqueYears.length) {
+            setUniqueYears(years.sort());
+        }
       }
     } catch (err) {
       console.error("Error fetching demand data:", err);
@@ -251,7 +254,6 @@ const DirMahilaPoshanDemandSector = () => {
                   <Form.Select size="sm" value={financialYear} onChange={(e) => setFinancialYear(e.target.value)}>
                     <option value="All">All Financial Years</option>
                     {uniqueYears.map(year => <option key={year} value={year}>{year}</option>)}
-                    <option value="2026-27">2026-27</option>
                   </Form.Select>
                 </Col>
                 <Col md={3}>
