@@ -67,6 +67,10 @@ import DirectorOurSector from "./components/director_panel/our_staff/DirectorOur
 import AWCS from "./components/director_panel/our_staff/AWCS";
 import Mahalaxmi from "./components/director_panel/Mahalaxmi";
 import DirBalPoshanDemandDist from "./components/director_panel/demand_&_distribution_reports/bal_poshan/DirBalPoshanDemandDist";
+import DirDemandAnchalDist from "./components/director_panel/demand_&_distribution_reports/amrit_anchal/DirDemandAnchalDist";
+import DirDemandAnchalSec from "./components/director_panel/demand_&_distribution_reports/amrit_anchal/DirDemandAnchalSec";
+import DirDemandkitDistrict from "./components/director_panel/demand_&_distribution_reports/maha_laxmi_kit/DirDemandkitDistrict";
+import DirDemandkitProject from "./components/director_panel/demand_&_distribution_reports/maha_laxmi_kit/DirDemandkitProject";
 
 
 //  Protected Route component
@@ -90,25 +94,27 @@ const ProtectedRoute = ({ children }) => {
 function AppContent() {
   const location = useLocation();
 
-  const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
-     "/SectorProfile", "/StockBal", "/OurDpo", "/OURSector",
-      "/OurAwc", "/MahalakshmiKit", "/OurSector",
-      "/DemandMahilaPoshanProject",
-       "/MahalakshmiBen",
-       "/DemandanchalAamrit", "/DirBalPoshanDemandDist",
-       "/DemandPoshanFinal", "/DemandkitProject", "/DemandAnchalSec", "/DemandAnchalProj",
-       "/MahalaxmiYear",
-        "/DemandBalPoshan", "/OurAwcProject", "/OurCdpo", "/DirectorOurSector",
-         "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
+const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/StockAnchal", "/DemandAmritAnchalProject", "/MahalakshmiBen",
+      "/SectorProfile", "/StockBal", "/OurDpo", "/OURSector",
+       "/OurAwc", "/MahalakshmiKit", "/OurSector",
+       "/DemandMahilaPoshanProject",
+        "/MahalakshmiBen",
+        "/DemandanchalAamrit", "/DirBalPoshanDemandDist",
+        "/DemandPoshanFinal", "/DemandkitProject", "/DemandAnchalSec", "/DemandAnchalProj",
+        "/MahalaxmiYear",
+         "/DemandBalPoshan", "/OurAwcProject", "/OurCdpo", "/DirectorOurSector",
+          "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
            "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi", "/Mahalaxmi",
             "/Stockmahila", "/DistributionBalPoshan","/AWCS",
-             "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj"];
-  const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
-    "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
-       "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
-      "/DemandAmritAnchalProject", "/OurDpo", "/OURSector","/AWCS",
-       "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec", "/Mahalaxmi", "/DirBalPoshanDemandDist",
-       "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj"];
+             "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj",
+             "/DirDemandAnchalDist", "/DirDemandAnchalSec", "/DirDemandkitDistrict", "/DirDemandkitProject"];
+const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
+     "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
+        "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
+       "/DemandAmritAnchalProject", "/OurDpo", "/OURSector","/AWCS",
+        "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec", "/Mahalaxmi", "/DirBalPoshanDemandDist",
+        "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj",
+         "/DirDemandAnchalDist", "/DirDemandAnchalSec", "/DirDemandkitDistrict", "/DirDemandkitProject"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
 
@@ -319,12 +325,32 @@ function AppContent() {
             <DistributionBalPoshan />
           </ProtectedRoute>
         } />
-         <Route path="/DemandAmritAnchalDistrict" element={
-          <ProtectedRoute>
-            <DemandAmritAnchalDistrict />
-          </ProtectedRoute>
-        } />
-        
+<Route path="/DemandAmritAnchalDistrict" element={
+           <ProtectedRoute>
+             <DemandAmritAnchalDistrict />
+           </ProtectedRoute>
+         } />
+         <Route path="/DirDemandAnchalDist" element={
+           <ProtectedRoute>
+             <DirDemandAnchalDist />
+           </ProtectedRoute>
+         } />
+         <Route path="/DirDemandAnchalSec" element={
+           <ProtectedRoute>
+             <DirDemandAnchalSec />
+           </ProtectedRoute>
+         } />
+         <Route path="/DirDemandkitDistrict" element={
+           <ProtectedRoute>
+             <DirDemandkitDistrict />
+           </ProtectedRoute>
+         } />
+         <Route path="/DirDemandkitProject" element={
+           <ProtectedRoute>
+             <DirDemandkitProject />
+           </ProtectedRoute>
+         } />
+         
         <Route path="/DPODashboard" element={<DPODashboard />} />
         <Route path="/DemandMahalakshmi" element={<DemandMahalakshmi />} />
         <Route path="/DemandMahilaPoshanDistirct" element={<DemandMahilaPoshanDistirct />} />
@@ -332,8 +358,8 @@ function AppContent() {
         <Route path="/CDPODashboard" element={<CDPODashboard />} />
         <Route path="/DirectorDashboard" element={<DirectorDashboard />} />
         <Route path="/Login" element={<Login />} />
-      </Routes>
-      {!shouldHideFooter && <Footer />}
+        </Routes>
+       {!shouldHideFooter && <Footer />}
     </>
   );
 }

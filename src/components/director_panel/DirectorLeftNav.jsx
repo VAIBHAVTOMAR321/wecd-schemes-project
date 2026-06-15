@@ -179,11 +179,11 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District wise",
-                  path: "#",
+                  path: "/DirDemandAnchalDist",
                 },
                 {
                   label: "sector wise",
-                  path: "#",
+                  path: "/DirDemandAnchalSec",
                 },
               ],
             },
@@ -195,11 +195,11 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
               submenu: [
                 {
                   label: "District wise",
-                  path: "#",
+                  path: "/DirDemandkitDistrict",
                 },
                 {
                   label: "Project wise",
-                  path: "#",
+                  path: "/DirDemandkitProject",
                 },
               ],
             },
