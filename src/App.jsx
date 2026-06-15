@@ -56,6 +56,9 @@ import MahilaPoshanDemandSector from "./components/DPO_panel/demand_and_distribu
 import MahilaPoshanDemandProj from "./components/DPO_panel/demand_and_distribution/mahila_poshan/MahilaPoshanDemandProj";
 import BalPosDemandSector from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandSector";
 import BalPosDemandProj from "./components/DPO_panel/demand_and_distribution/bal_poshan/BalPosDemandProj";
+import DirMahilaPoshanDemandSector from "./components/director_panel/demand_&_distribution_reports/mahila_poshan/DirMahilaPoshanDemandSector";
+import DirMahilaPoshanDemandDist from "./components/director_panel/demand_&_distribution_reports/mahila_poshan/DirMahilaPoshanDemandDist";
+import DirMahilaPoshanDemandProj from "./components/director_panel/demand_&_distribution_reports/mahila_poshan/DirMahilaPoshanDemandProj";
 import OurSector from "./components/director_panel/our_staff/DirectorOurSector";
 import OurCdpo from "./components/director_panel/our_staff/OurCdpo";
 import DirectorOurSector from "./components/director_panel/our_staff/DirectorOurSector";
@@ -96,13 +99,13 @@ function AppContent() {
          "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
           "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi", "/Mahalaxmi",
            "/Stockmahila", "/DistributionBalPoshan","/AWCS",
-            "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
+            "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj"];
   const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
        "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
       "/DemandAmritAnchalProject", "/OurDpo", "/OURSector","/AWCS",
        "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec", "/Mahalaxmi",
-       "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
+       "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
 
@@ -211,6 +214,21 @@ function AppContent() {
              <MahilaPoshanDemandProj />
            </ProtectedRoute>
          } />
+          <Route path="/DirMahilaPoshanDemandSector" element={
+            <ProtectedRoute>
+              <DirMahilaPoshanDemandSector />
+            </ProtectedRoute>
+          } />
+          <Route path="/DirMahilaPoshanDemandDist" element={
+            <ProtectedRoute>
+              <DirMahilaPoshanDemandDist />
+            </ProtectedRoute>
+          } />
+          <Route path="/DirMahilaPoshanDemandProj" element={
+            <ProtectedRoute>
+              <DirMahilaPoshanDemandProj />
+            </ProtectedRoute>
+          } />
           <Route path="/DemandAmritAnchalProject" element={
           <ProtectedRoute>
             <DemandAmritAnchalProject />
