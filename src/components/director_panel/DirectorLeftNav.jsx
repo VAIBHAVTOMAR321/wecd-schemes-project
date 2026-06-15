@@ -124,7 +124,12 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
           ],
         },
 
-
+ {
+         icon: <FaTachometerAlt />,
+         label: "Mahalaxmi  Beneficiary ",
+         path: "/Mahalaxmi",
+         active: true,
+       },
        {
          icon: <FaUsers />,
          label: "Demand & Distribution Reports",

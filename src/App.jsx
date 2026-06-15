@@ -60,6 +60,7 @@ import OurSector from "./components/director_panel/our_staff/DirectorOurSector";
 import OurCdpo from "./components/director_panel/our_staff/OurCdpo";
 import DirectorOurSector from "./components/director_panel/our_staff/DirectorOurSector";
 import AWCS from "./components/director_panel/our_staff/AWCS";
+import Mahalaxmi from "./components/director_panel/Mahalaxmi";
 
 
 //  Protected Route component
@@ -93,14 +94,14 @@ function AppContent() {
        "/MahalaxmiYear",
         "/DemandBalPoshan", "/OurAwcProject", "/OurCdpo", "/DirectorOurSector",
          "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
-          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi",
+          "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi", "/Mahalaxmi",
            "/Stockmahila", "/DistributionBalPoshan","/AWCS",
             "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
   const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
     "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
        "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
       "/DemandAmritAnchalProject", "/OurDpo", "/OURSector","/AWCS",
-       "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec",
+       "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec", "/Mahalaxmi",
        "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj"];
   const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
@@ -136,6 +137,11 @@ function AppContent() {
          <Route path="/OURSector" element={
           <ProtectedRoute>
             <OURSector />
+          </ProtectedRoute>
+        } />
+          <Route path="/Mahalaxmi" element={
+          <ProtectedRoute>
+            <Mahalaxmi />
           </ProtectedRoute>
         } />
         <Route path="/OurSector" element={
