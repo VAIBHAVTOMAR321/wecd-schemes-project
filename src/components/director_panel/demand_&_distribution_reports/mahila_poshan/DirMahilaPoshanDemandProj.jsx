@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Alert, Modal } from "react-bootstrap";
 import { FaCopy, FaFileExcel, FaFilePdf, FaColumns, FaSearch, FaCheck, FaEye } from "react-icons/fa";
 import { useAuth } from "../../../all_login/AuthContext";
@@ -63,6 +63,18 @@ const DirMahilaPoshanDemandProj = () => {
 
     return matchesSearch && matchesYear && matchesQuarter;
   });
+
+  const overallTotals = useMemo(() => {
+    return filteredData.reduce(
+      (acc, item) => {
+        acc.khajur += Number(item.khajur_beneficiary || 0);
+        acc.egg += Number(item.egg_eating_beneficiary || 0);
+        acc.nonEgg += Number(item.non_egg_eating_beneficiary || 0);
+        return acc;
+      },
+      { khajur: 0, egg: 0, nonEgg: 0 }
+    );
+  }, [filteredData]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / entriesPerPage));
 
@@ -137,47 +149,28 @@ const DirMahilaPoshanDemandProj = () => {
   const renderTableRows = (data) => {
     if (data.length === 0) return null;
 
-    const rows = [];
-    let currentProject = data[0].project;
-    
-    let projectTotal = 0, projectEgg = 0, projectNonEgg = 0;
-    const colSpan = getColSpanCount();
+    const rows = data.map((row, index) => (
+      <tr key={row.id || index}>
+        {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>}
+        {visibleColumns.district && <td>{row.district}</td>}
+        {visibleColumns.project && <td>{row.project}</td>}
+        {visibleColumns.financial_year && <td className="text-center">{row.financial_year}</td>}
+        {visibleColumns.quarter && <td className="text-center">{row.quarter}</td>}
+        {visibleColumns.khajur_beneficiary && <td className="text-center">{row.khajur_beneficiary}</td>}
+        {visibleColumns.egg_eating_beneficiary && <td className="text-center">{row.egg_eating_beneficiary}</td>}
+        {visibleColumns.non_egg_eating_beneficiary && <td className="text-center">{row.non_egg_eating_beneficiary}</td>}
+      </tr>
+    ));
 
-    data.forEach((row, index) => {
-      const nextRow = data[index + 1];
+    rows.push(
+      <tr key="overall-total" style={{ backgroundColor: "#004d4d", color: "#fff", fontWeight: "bold" }}>
+        <td colSpan={getColSpanCount()} className="text-end py-3">Overall Total</td>
+        {visibleColumns.khajur_beneficiary && <td className="text-center">{overallTotals.khajur}</td>}
+        {visibleColumns.egg_eating_beneficiary && <td className="text-center">{overallTotals.egg}</td>}
+        {visibleColumns.non_egg_eating_beneficiary && <td className="text-center">{overallTotals.nonEgg}</td>}
+      </tr>
+    );
 
-      projectTotal += parseInt(row.khajur_beneficiary || 0);
-      projectEgg += parseInt(row.egg_eating_beneficiary || 0);
-      projectNonEgg += parseInt(row.non_egg_eating_beneficiary || 0);
-
-      rows.push(
-        <tr key={row.id || index}>
-          {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>}
-          {visibleColumns.district && <td>{row.district}</td>}
-          {visibleColumns.project && <td>{row.project}</td>}
-          {visibleColumns.financial_year && <td className="text-center">{row.financial_year}</td>}
-          {visibleColumns.quarter && <td className="text-center">{row.quarter}</td>}
-          {visibleColumns.khajur_beneficiary && <td className="text-center">{row.khajur_beneficiary}</td>}
-          {visibleColumns.egg_eating_beneficiary && <td className="text-center">{row.egg_eating_beneficiary}</td>}
-          {visibleColumns.non_egg_eating_beneficiary && <td className="text-center">{row.non_egg_eating_beneficiary}</td>}
-        </tr>
-      );
-
-      const isProjectChanged = !nextRow || nextRow.project !== currentProject;
-
-      if (isProjectChanged) {
-        rows.push(
-          <tr key={`proj-sub-${currentProject}-${index}`} style={{ backgroundColor: "#f8f9fa", fontWeight: "bold" }}>
-            <td colSpan={colSpan} className="text-end">Total for Project: {currentProject}</td>
-            {visibleColumns.khajur_beneficiary && <td className="text-center">{projectTotal}</td>}
-            {visibleColumns.egg_eating_beneficiary && <td className="text-center">{projectEgg}</td>}
-            {visibleColumns.non_egg_eating_beneficiary && <td className="text-center">{projectNonEgg}</td>}
-          </tr>
-        );
-        projectTotal = 0; projectEgg = 0; projectNonEgg = 0;
-        if (nextRow) currentProject = nextRow.project;
-      }
-    });
     return rows;
   };
 
@@ -256,12 +249,24 @@ const DirMahilaPoshanDemandProj = () => {
       non_egg_eating_beneficiary: row.non_egg_eating_beneficiary ?? "",
     }));
 
+    const totalRow = {
+      sno: "",
+      district: "",
+      project: "",
+      financial_year: "",
+      quarter: "",
+      khajur_beneficiary: overallTotals.khajur,
+      egg_eating_beneficiary: overallTotals.egg,
+      non_egg_eating_beneficiary: overallTotals.nonEgg,
+    };
+
     const text = [
       "MAHILA POSHAN DEMAND DATA (PROJECT WISE)",
       `For the year: ${financialYear} and Quarter: ${quarter}`,
       "",
       visibleCols.map((col) => col.label).join("\t"),
       ...rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join("\t")),
+      visibleCols.map((col) => escapeCsv(totalRow[col.key])).join("\t"),
     ].join("\n");
 
     try {
@@ -288,10 +293,22 @@ const DirMahilaPoshanDemandProj = () => {
       non_egg_eating_beneficiary: row.non_egg_eating_beneficiary ?? "",
     }));
 
+    const totalRow = {
+      sno: "",
+      district: "",
+      project: "",
+      financial_year: "",
+      quarter: "",
+      khajur_beneficiary: overallTotals.khajur,
+      egg_eating_beneficiary: overallTotals.egg,
+      non_egg_eating_beneficiary: overallTotals.nonEgg,
+    };
+
     let csv = "MAHILA POSHAN DEMAND DATA (PROJECT WISE)\n";
     csv += `For the year: ${financialYear}, Quarter: ${quarter}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
     csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
+    csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
