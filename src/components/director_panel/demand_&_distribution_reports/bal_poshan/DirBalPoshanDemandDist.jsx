@@ -17,9 +17,10 @@ const DirBalPoshanDemandDist = () => {
   const [viewMode, setViewMode] = useState("demand"); // "demand" or "distribution"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uniqueYears, setUniqueYears] = useState([]);
 
   // Filter & Pagination State
-  const [financialYear, setFinancialYear] = useState("2024-25"); // Default to a valid year from API
+  const [financialYear, setFinancialYear] = useState("All");
   const [quarter, setQuarter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,25 +35,34 @@ const DirBalPoshanDemandDist = () => {
     sno: true,
     district: true,
     quarter: true,
-    kela: true,
-    egg: true,
-    non_egg: true,
+    demand_kela_chips_beneficiary: true,
+    demand_egg_beneficiary: true,
+    demand_non_egg_beneficiary: true,
     total_demand: true,
+    distributed_kela_chips_beneficiary: true,
+    distributed_egg_beneficiary: true,
+    distributed_non_egg_beneficiary: true,
     total_distribution: true,
   });
 
   const columns = useMemo(() => viewMode === "demand" ? [
     { key: "sno", label: "S.no" },
     { key: "district", label: "District" },
-    { key: "quarter", label: "Quarter" },
-    { key: "kela", label: "Kela chips Beneficiary" },
-    { key: "egg", label: "Egg Eating Beneficiary" },
-    { key: "non_egg", label: "Non Egg Eating Beneficiary" },
+    { key: "quarter", label: "Quarter" }, // This label is for demand view
+    { key: "demand_kela_chips_beneficiary", label: "Kela chips Beneficiary" },
+    { key: "demand_egg_beneficiary", label: "Egg Eating Beneficiary" },
+    { key: "demand_non_egg_beneficiary", label: "Non Egg Eating Beneficiary" },
   ] : [
     { key: "sno", label: "S.no" },
     { key: "district", label: "District" },
     { key: "quarter", label: "Month" },
+    { key: "demand_kela_chips_beneficiary", label: "Kela Chips (Demand)" },
+    { key: "demand_egg_beneficiary", label: "Egg Eating (Demand)" },
+    { key: "demand_non_egg_beneficiary", label: "Non Egg Eating (Demand)" },
     { key: "total_demand", label: "Total Demand" },
+    { key: "distributed_kela_chips_beneficiary", label: "Kela Chips (Distributed)" },
+    { key: "distributed_egg_beneficiary", label: "Egg Eating (Distributed)" },
+    { key: "distributed_non_egg_beneficiary", label: "Non Egg Eating (Distributed)" },
     { key: "total_distribution", label: "Total Distribution" },
   ], [viewMode]);
 
@@ -63,7 +73,11 @@ const DirBalPoshanDemandDist = () => {
     try {
       const response = await api.get("director/bp-demand-distribution-district-wise/");
       if (response.data && response.data.success) {
-        setTableData(response.data.data || []);
+        const data = response.data.data || [];
+        setTableData(data);
+        // Extract unique years for the dropdown dynamically
+        const years = [...new Set(data.map(item => (item.financial_year || "").trim()).filter(Boolean))];
+        setUniqueYears(years.sort().reverse());
       }
     } catch (err) {
       setError("Failed to fetch data from the server.");
@@ -97,7 +111,7 @@ const DirBalPoshanDemandDist = () => {
     const currentPeriodFilter = viewMode === "demand" ? quarter : (monthToQuarterMap[quarter] || quarter);
 
     let filtered = tableData.filter(item => {
-      const matchesYear = financialYear === "All" || item.financial_year === financialYear;
+      const matchesYear = financialYear === "All" || (item.financial_year || "").trim() === financialYear;
       const matchesSearch = !searchTerm || 
         item.district?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.quarter?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -130,7 +144,6 @@ const DirBalPoshanDemandDist = () => {
         acc[dist].distributed_kela_chips_beneficiary += Number(curr.distributed_kela_chips_beneficiary || 0);
         acc[dist].distributed_egg_beneficiary += Number(curr.distributed_egg_beneficiary || 0);
         acc[dist].distributed_non_egg_beneficiary += Number(curr.distributed_non_egg_beneficiary || 0);
-        acc[dist].distributed_non_egg_beneficiary += Number(curr.distributed_non_egg_beneficiary || 0);
         return acc;
       }, {});
       result = Object.values(grouped);
@@ -140,24 +153,44 @@ const DirBalPoshanDemandDist = () => {
       // Map to add displayPeriod for specific month selection in distribution view
       result = result.map(item => ({
         ...item,
-        displayPeriod: viewMode === "demand" ? item.quarter : quarter // Show selected month if distribution, else actual quarter
+        displayPeriod: viewMode === "demand"
+          ? item.quarter
+          : (quarter === "All" || quarter === "Select Any One")
+            ? item.quarter // If "All Months" selected, show actual quarter
+            : `${quarter} (Data for ${item.quarter})` // If specific month, show month + quarter
       }));
     }
     return result.sort((a, b) => (a.district || "").localeCompare(b.district || ""));
-  }, [tableData, financialYear, quarter, searchTerm]);
+  }, [tableData, financialYear, quarter, searchTerm, viewMode]);
 
   const totals = useMemo(() => {
     return processedData.reduce((acc, curr) => {
-      if (viewMode === "demand") {
-        acc.kela += Number(curr.demand_kela_chips_beneficiary || 0);
-        acc.egg += Number(curr.demand_egg_beneficiary || 0);
-        acc.non_egg += Number(curr.demand_non_egg_beneficiary || 0);
-      } else {
-        acc.total_demand += Number(curr.demand_kela_chips_beneficiary || 0);
-        acc.total_distribution += Number(curr.distributed_kela_chips_beneficiary || 0);
-      }
+      const dk = Number(curr.demand_kela_chips_beneficiary || 0);
+      const de = Number(curr.demand_egg_beneficiary || 0);
+      const dn = Number(curr.demand_non_egg_beneficiary || 0);
+      const distk = Number(curr.distributed_kela_chips_beneficiary || 0);
+      const diste = Number(curr.distributed_egg_beneficiary || 0);
+      const distn = Number(curr.distributed_non_egg_beneficiary || 0);
+
+      acc.demand_kela_chips_beneficiary += dk;
+      acc.demand_egg_beneficiary += de;
+      acc.demand_non_egg_beneficiary += dn;
+      acc.total_demand += (dk + de + dn);
+      acc.distributed_kela_chips_beneficiary += distk;
+      acc.distributed_egg_beneficiary += diste;
+      acc.distributed_non_egg_beneficiary += distn;
+      acc.total_distribution += (distk + diste + distn);
       return acc;
-    }, { kela: 0, egg: 0, non_egg: 0, total_demand: 0, total_distribution: 0 });
+    }, { 
+      demand_kela_chips_beneficiary: 0, 
+      demand_egg_beneficiary: 0, 
+      demand_non_egg_beneficiary: 0, 
+      total_demand: 0, 
+      distributed_kela_chips_beneficiary: 0, 
+      distributed_egg_beneficiary: 0, 
+      distributed_non_egg_beneficiary: 0, 
+      total_distribution: 0 
+    });
   }, [processedData, viewMode]);
 
   const totalPages = Math.ceil(processedData.length / itemsPerPage);
@@ -175,13 +208,17 @@ const DirBalPoshanDemandDist = () => {
       if (visibleColumns.sno) row.push(idx + 1);
       if (visibleColumns.district) row.push(item.district || "-");
       if (visibleColumns.quarter) row.push(item.displayPeriod || item.quarter || "-"); // Use displayPeriod
-      if (viewMode === "demand") {
-        if (visibleColumns.kela) row.push(item.demand_kela_chips_beneficiary || 0);
-        if (visibleColumns.egg) row.push(item.demand_egg_beneficiary || 0);
-        if (visibleColumns.non_egg) row.push(item.demand_non_egg_beneficiary || 0);
-      } else {
-        if (visibleColumns.total_demand) row.push(item.demand_kela_chips_beneficiary || 0);
-        if (visibleColumns.total_distribution) row.push(item.distributed_kela_chips_beneficiary || 0);
+
+      if (visibleColumns.demand_kela_chips_beneficiary) row.push(item.demand_kela_chips_beneficiary || 0);
+      if (visibleColumns.demand_egg_beneficiary) row.push(item.demand_egg_beneficiary || 0);
+      if (visibleColumns.demand_non_egg_beneficiary) row.push(item.demand_non_egg_beneficiary || 0);
+      
+      if (viewMode === "distribution") {
+        if (visibleColumns.total_demand) row.push(Number(item.demand_kela_chips_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0));
+        if (visibleColumns.distributed_kela_chips_beneficiary) row.push(item.distributed_kela_chips_beneficiary || 0);
+        if (visibleColumns.distributed_egg_beneficiary) row.push(item.distributed_egg_beneficiary || 0);
+        if (visibleColumns.distributed_non_egg_beneficiary) row.push(item.distributed_non_egg_beneficiary || 0);
+        if (visibleColumns.total_distribution) row.push(Number(item.distributed_kela_chips_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0));
       }
       return row.join("\t");
     }).join("\n");
@@ -198,13 +235,17 @@ const DirBalPoshanDemandDist = () => {
       if (visibleColumns.sno) row.push(idx + 1);
       if (visibleColumns.district) row.push(`"${item.district}"`);
       if (visibleColumns.quarter) row.push(`"${item.displayPeriod || item.quarter}"`); // Use displayPeriod
-      if (viewMode === "demand") {
-        if (visibleColumns.kela) row.push(item.demand_kela_chips_beneficiary);
-        if (visibleColumns.egg) row.push(item.demand_egg_beneficiary);
-        if (visibleColumns.non_egg) row.push(item.demand_non_egg_beneficiary);
-      } else {
-        if (visibleColumns.total_demand) row.push(item.demand_kela_chips_beneficiary);
-        if (visibleColumns.total_distribution) row.push(item.distributed_kela_chips_beneficiary);
+      
+      if (visibleColumns.demand_kela_chips_beneficiary) row.push(item.demand_kela_chips_beneficiary);
+      if (visibleColumns.demand_egg_beneficiary) row.push(item.demand_egg_beneficiary);
+      if (visibleColumns.demand_non_egg_beneficiary) row.push(item.demand_non_egg_beneficiary);
+      
+      if (viewMode === "distribution") {
+        if (visibleColumns.total_demand) row.push(Number(item.demand_kela_chips_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0));
+        if (visibleColumns.distributed_kela_chips_beneficiary) row.push(item.distributed_kela_chips_beneficiary);
+        if (visibleColumns.distributed_egg_beneficiary) row.push(item.distributed_egg_beneficiary);
+        if (visibleColumns.distributed_non_egg_beneficiary) row.push(item.distributed_non_egg_beneficiary);
+        if (visibleColumns.total_distribution) row.push(Number(item.distributed_kela_chips_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0));
       }
       csv += row.join(",") + "\n";
     });
@@ -222,19 +263,35 @@ const DirBalPoshanDemandDist = () => {
       if (visibleColumns.sno) rowHtml += `<td>${index + 1}</td>`;
       if (visibleColumns.district) rowHtml += `<td>${item.district || "-"}</td>`;
       if (visibleColumns.quarter) rowHtml += `<td>${item.displayPeriod || item.quarter || "-"}</td>`; // Use displayPeriod
-      if (viewMode === "demand") {
-        if (visibleColumns.kela) rowHtml += `<td>${item.demand_kela_chips_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.egg) rowHtml += `<td>${item.demand_egg_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.non_egg) rowHtml += `<td>${item.demand_non_egg_beneficiary?.toLocaleString() || 0}</td>`;
-      } else {
-        if (visibleColumns.total_demand) rowHtml += `<td>${item.demand_kela_chips_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.total_distribution) rowHtml += `<td>${item.distributed_kela_chips_beneficiary?.toLocaleString() || 0}</td>`;
+
+      if (visibleColumns.demand_kela_chips_beneficiary) rowHtml += `<td>${item.demand_kela_chips_beneficiary?.toLocaleString() || 0}</td>`;
+      if (visibleColumns.demand_egg_beneficiary) rowHtml += `<td>${item.demand_egg_beneficiary?.toLocaleString() || 0}</td>`;
+      if (visibleColumns.demand_non_egg_beneficiary) rowHtml += `<td>${item.demand_non_egg_beneficiary?.toLocaleString() || 0}</td>`;
+
+      if (viewMode === "distribution") {
+        if (visibleColumns.total_demand) rowHtml += `<td>${(Number(item.demand_kela_chips_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0)).toLocaleString()}</td>`;
+        if (visibleColumns.distributed_kela_chips_beneficiary) rowHtml += `<td>${item.distributed_kela_chips_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.distributed_egg_beneficiary) rowHtml += `<td>${item.distributed_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.distributed_non_egg_beneficiary) rowHtml += `<td>${item.distributed_non_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.total_distribution) rowHtml += `<td>${(Number(item.distributed_kela_chips_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0)).toLocaleString()}</td>`;
       }
       rowHtml += "</tr>";
       return rowHtml;
     }).join("");
 
-    const totalRow = `<tr class="total-row"><td colspan="${(visibleColumns.sno?1:0)+(visibleColumns.district?1:0)+(visibleColumns.quarter?1:0)}">Total -></td>${viewMode === "demand" ? `${visibleColumns.kela ? `<td>${totals.kela.toLocaleString()}</td>` : ""}${visibleColumns.egg ? `<td>${totals.egg.toLocaleString()}</td>` : ""}${visibleColumns.non_egg ? `<td>${totals.non_egg.toLocaleString()}</td>` : ""}` : `${visibleColumns.total_demand ? `<td>${totals.total_demand.toLocaleString()}</td>` : ""}${visibleColumns.total_distribution ? `<td>${totals.total_distribution.toLocaleString()}</td>` : ""}`}</tr>`;
+    const totalRow = `<tr class="total-row">
+      <td colspan="${(visibleColumns.sno ? 1 : 0) + (visibleColumns.district ? 1 : 0) + (visibleColumns.quarter ? 1 : 0)}">Total -></td>
+      ${visibleColumns.demand_kela_chips_beneficiary ? `<td>${totals.demand_kela_chips_beneficiary.toLocaleString()}</td>` : ""}
+      ${visibleColumns.demand_egg_beneficiary ? `<td>${totals.demand_egg_beneficiary.toLocaleString()}</td>` : ""}
+      ${visibleColumns.demand_non_egg_beneficiary ? `<td>${totals.demand_non_egg_beneficiary.toLocaleString()}</td>` : ""}
+      ${viewMode === "distribution" ? `
+        ${visibleColumns.total_demand ? `<td>${totals.total_demand.toLocaleString()}</td>` : ""}
+        ${visibleColumns.distributed_kela_chips_beneficiary ? `<td>${totals.distributed_kela_chips_beneficiary.toLocaleString()}</td>` : ""}
+        ${visibleColumns.distributed_egg_beneficiary ? `<td>${totals.distributed_egg_beneficiary.toLocaleString()}</td>` : ""}
+        ${visibleColumns.distributed_non_egg_beneficiary ? `<td>${totals.distributed_non_egg_beneficiary.toLocaleString()}</td>` : ""}
+        ${visibleColumns.total_distribution ? `<td>${totals.total_distribution.toLocaleString()}</td>` : ""}
+      ` : ""}
+    </tr>`;
 
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     printWindow.document.write(`<html><head><title>Report</title><style>table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f4f4f4; } .total-row { font-weight: bold; background-color: #fff3cd; }</style></head><body><h2 style="text-align:center">Bal Poshan ${viewMode === "demand" ? "Demand" : "Distribution"} Data | District wise</h2><p style="text-align:center">Year: ${financialYear} | Quarter: ${quarter}</p><table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}${totalRow}</tbody></table></body></html>`);
@@ -260,9 +317,9 @@ const DirBalPoshanDemandDist = () => {
                   <Form.Label className="small fw-bold text-muted">Choose Financial Year</Form.Label>
                   <Form.Select size="sm" value={financialYear} onChange={(e) => { setFinancialYear(e.target.value); setCurrentPage(1); }}>
                     <option value="All">All Years</option>
-                    <option value="2024-25">2024-25</option>
-                    <option value="2025-26">2025-26</option>
-                    <option value="2026-27">2026-27</option>
+                    {uniqueYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
                   </Form.Select>
                 </Col>
                 <Col md={3}>
@@ -339,31 +396,41 @@ const DirBalPoshanDemandDist = () => {
                         {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>}
                         {visibleColumns.district && <td>{item.district}</td>}
                         {visibleColumns.quarter && <td className="text-center">{item.displayPeriod || item.quarter}</td>}
-                        {viewMode === "demand" ? (
+                        
+                        {visibleColumns.demand_kela_chips_beneficiary && <td className="text-end">{item.demand_kela_chips_beneficiary?.toLocaleString()}</td>}
+                        {visibleColumns.demand_egg_beneficiary && <td className="text-end">{item.demand_egg_beneficiary?.toLocaleString()}</td>}
+                        {visibleColumns.demand_non_egg_beneficiary && <td className="text-end">{item.demand_non_egg_beneficiary?.toLocaleString()}</td>}
+                        
+                        {viewMode === "distribution" && (
                           <>
-                            {visibleColumns.kela && <td className="text-end">{item.demand_kela_chips_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.egg && <td className="text-end">{item.demand_egg_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.non_egg && <td className="text-end">{item.demand_non_egg_beneficiary?.toLocaleString()}</td>}
-                          </>
-                        ) : (
-                          <>
-                            {visibleColumns.total_demand && <td className="text-end">{item.demand_kela_chips_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.total_distribution && <td className="text-end">{item.distributed_kela_chips_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.total_demand && (
+                              <td className="text-end fw-bold">
+                                {(Number(item.demand_kela_chips_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0)).toLocaleString()}
+                              </td>
+                            )}
+                            {visibleColumns.distributed_kela_chips_beneficiary && <td className="text-end">{item.distributed_kela_chips_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.distributed_egg_beneficiary && <td className="text-end">{item.distributed_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.distributed_non_egg_beneficiary && <td className="text-end">{item.distributed_non_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.total_distribution && (
+                              <td className="text-end fw-bold">
+                                {(Number(item.distributed_kela_chips_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0)).toLocaleString()}
+                              </td>
+                            )}
                           </>
                         )}
                       </tr>
                     ))}
                     <tr className="fw-bold" style={{ backgroundColor: "#fff3cd" }}>
                       <td colSpan={(visibleColumns.sno?1:0)+(visibleColumns.district?1:0)+(visibleColumns.quarter?1:0)} className="text-end">Total -&gt;</td>
-                      {viewMode === "demand" ? (
-                        <>
-                          {visibleColumns.kela && <td className="text-end">{totals.kela.toLocaleString()}</td>}
-                          {visibleColumns.egg && <td className="text-end">{totals.egg.toLocaleString()}</td>}
-                          {visibleColumns.non_egg && <td className="text-end">{totals.non_egg.toLocaleString()}</td>}
-                        </>
-                      ) : (
+                      {visibleColumns.demand_kela_chips_beneficiary && <td className="text-end">{totals.demand_kela_chips_beneficiary.toLocaleString()}</td>}
+                      {visibleColumns.demand_egg_beneficiary && <td className="text-end">{totals.demand_egg_beneficiary.toLocaleString()}</td>}
+                      {visibleColumns.demand_non_egg_beneficiary && <td className="text-end">{totals.demand_non_egg_beneficiary.toLocaleString()}</td>}
+                      {viewMode === "distribution" && (
                         <>
                           {visibleColumns.total_demand && <td className="text-end">{totals.total_demand.toLocaleString()}</td>}
+                          {visibleColumns.distributed_kela_chips_beneficiary && <td className="text-end">{totals.distributed_kela_chips_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.distributed_egg_beneficiary && <td className="text-end">{totals.distributed_egg_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.distributed_non_egg_beneficiary && <td className="text-end">{totals.distributed_non_egg_beneficiary.toLocaleString()}</td>}
                           {visibleColumns.total_distribution && <td className="text-end">{totals.total_distribution.toLocaleString()}</td>}
                         </>
                       )}
