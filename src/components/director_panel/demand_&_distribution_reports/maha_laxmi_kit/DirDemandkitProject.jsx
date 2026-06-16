@@ -1028,7 +1028,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
               {distVisibleColumns.demand_kits && <th className="py-2">Demand Kits</th>}
               {distVisibleColumns.received_kits && <th className="py-2">Received Kits</th>}
               {distVisibleColumns.distributed_kits && <th className="py-2">Distributed Kits</th>}
-              {distVisibleColumns.available_balance && <th className="py-2">Available Balance</th>}
+              {distVisibleColumns.available_balance && <th className="py-2"> Balance (पिछला वित्तीय वर्ष)</th>}
             </tr>
           </thead>
           <tbody>
