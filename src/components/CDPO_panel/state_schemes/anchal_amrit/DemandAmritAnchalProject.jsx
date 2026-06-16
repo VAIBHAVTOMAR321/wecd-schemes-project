@@ -265,7 +265,7 @@ const DemandAmritAnchalProject = () => {
                   <h6 className="mb-0 fw-semibold">Almora/Bhaisiyachana</h6>
                 </Col>
                 <Col md={4} sm={6} xs={12}>
-                  <span className="badge bg-warning text-dark fs-6 px-3 py-2">Demandfrom Supervisor(Pending)</span>
+                  <span className="badge bg-warning text-dark fs-6 px-3 py-2">Demand from Supervisor(Pending)</span>
                 </Col>
                 <Col md={4} sm={12} xs={12}>
                   <InputGroup size="sm">
