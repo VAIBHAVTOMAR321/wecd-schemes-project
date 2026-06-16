@@ -339,30 +339,110 @@ const DirBalPoshanDemandSector = () => {
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
 
-  const handleCopy = async () => {
-    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
-    const escapeCsv = (value) => String(value ?? "");
+  const getExportData = () => {
+    const sortedData = [...filteredData].sort((a, b) => {
+      const distA = a.district || "";
+      const distB = b.district || "";
+      if (distA !== distB) return distA.localeCompare(distB);
+      return (a.project_name || "").localeCompare(b.project_name || "");
+    });
+    const rows = [];
+    let currentDistrict = null;
+    let currentProject = null;
+    let projectSubtotal = { oldBalance: 0, bananaChips: 0, egg: 0, nonEgg: 0 };
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
-      district: row.district ?? "",
-      project_name: row.project_name ?? "",
-      sector: row.sector ?? "",
-      financial_year: row.financial_year ?? "",
-      quarter: row.quarter ?? "",
-      old_balance: row.old_balance ?? "",
-      banana_chips_beneficiary: row.banana_chips_beneficiary ?? "",
-      egg_beneficiary: row.egg_beneficiary ?? "",
-      non_egg_beneficiary: row.non_egg_beneficiary ?? "",
-      sector_status: row.sector_status ?? "",
-      cdpo_status: row.cdpo_status ?? "",
-      director_status: row.director_status ?? "",
-    }));
+    sortedData.forEach((row, index) => {
+      if (row.district !== currentDistrict) {
+        if (currentDistrict !== null && currentProject !== null) {
+          rows.push({
+            sno: "",
+            district: "",
+            project_name: `Total for Project: ${currentProject}`,
+            sector: "",
+            financial_year: "",
+            quarter: "",
+            old_balance: projectSubtotal.oldBalance,
+            banana_chips_beneficiary: projectSubtotal.bananaChips,
+            egg_beneficiary: projectSubtotal.egg,
+            non_egg_beneficiary: projectSubtotal.nonEgg,
+            sector_status: "",
+            cdpo_status: "",
+            director_status: "",
+            _isSubtotal: true,
+          });
+          projectSubtotal = { oldBalance: 0, bananaChips: 0, egg: 0, nonEgg: 0 };
+        }
+        currentDistrict = row.district;
+        currentProject = row.project_name;
+      } else if (row.project_name !== currentProject) {
+        if (currentProject !== null) {
+          rows.push({
+            sno: "",
+            district: "",
+            project_name: `Total for Project: ${currentProject}`,
+            sector: "",
+            financial_year: "",
+            quarter: "",
+            old_balance: projectSubtotal.oldBalance,
+            banana_chips_beneficiary: projectSubtotal.bananaChips,
+            egg_beneficiary: projectSubtotal.egg,
+            non_egg_beneficiary: projectSubtotal.nonEgg,
+            sector_status: "",
+            cdpo_status: "",
+            director_status: "",
+            _isSubtotal: true,
+          });
+          projectSubtotal = { oldBalance: 0, bananaChips: 0, egg: 0, nonEgg: 0 };
+        }
+        currentProject = row.project_name;
+      }
 
-    const totalRow = {
+      rows.push({
+        sno: index + 1,
+        district: row.district ?? "",
+        project_name: row.project_name ?? "",
+        sector: row.sector ?? "",
+        financial_year: row.financial_year ?? "",
+        quarter: row.quarter ?? "",
+        old_balance: row.old_balance ?? "",
+        banana_chips_beneficiary: row.banana_chips_beneficiary ?? "",
+        egg_beneficiary: row.egg_beneficiary ?? "",
+        non_egg_beneficiary: row.non_egg_beneficiary ?? "",
+        sector_status: row.sector_status ?? "",
+        cdpo_status: row.cdpo_status ?? "",
+        director_status: row.director_status ?? "",
+        _isSubtotal: false,
+      });
+
+      projectSubtotal.oldBalance += Number(row.old_balance || 0);
+      projectSubtotal.bananaChips += Number(row.banana_chips_beneficiary || 0);
+      projectSubtotal.egg += Number(row.egg_beneficiary || 0);
+      projectSubtotal.nonEgg += Number(row.non_egg_beneficiary || 0);
+    });
+
+    if (currentProject !== null) {
+      rows.push({
+        sno: "",
+        district: "",
+        project_name: `Total for Project: ${currentProject}`,
+        sector: "",
+        financial_year: "",
+        quarter: "",
+        old_balance: projectSubtotal.oldBalance,
+        banana_chips_beneficiary: projectSubtotal.bananaChips,
+        egg_beneficiary: projectSubtotal.egg,
+        non_egg_beneficiary: projectSubtotal.nonEgg,
+        sector_status: "",
+        cdpo_status: "",
+        director_status: "",
+        _isSubtotal: true,
+      });
+    }
+
+    rows.push({
       sno: "",
       district: "",
-      project_name: "",
+      project_name: "Overall Total",
       sector: "",
       financial_year: "",
       quarter: "",
@@ -373,7 +453,17 @@ const DirBalPoshanDemandSector = () => {
       sector_status: "",
       cdpo_status: "",
       director_status: "",
-    };
+      _isSubtotal: true,
+    });
+
+    return rows;
+  };
+
+  const handleCopy = async () => {
+    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
+    const escapeCsv = (value) => String(value ?? "");
+
+    const rows = getExportData();
 
     const text = [
       "BAL POSHAN DEMAND DATA (SECTOR WISE)",
@@ -381,7 +471,6 @@ const DirBalPoshanDemandSector = () => {
       "",
       visibleCols.map((col) => col.label).join("\t"),
       ...rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join("\t")),
-      visibleCols.map((col) => escapeCsv(totalRow[col.key])).join("\t"),
     ].join("\n");
 
     try {
@@ -397,43 +486,12 @@ const DirBalPoshanDemandSector = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
-      district: row.district ?? "",
-      project_name: row.project_name ?? "",
-      sector: row.sector ?? "",
-      financial_year: row.financial_year ?? "",
-      quarter: row.quarter ?? "",
-      old_balance: row.old_balance ?? "",
-      banana_chips_beneficiary: row.banana_chips_beneficiary ?? "",
-      egg_beneficiary: row.egg_beneficiary ?? "",
-      non_egg_beneficiary: row.non_egg_beneficiary ?? "",
-      sector_status: row.sector_status ?? "",
-      cdpo_status: row.cdpo_status ?? "",
-      director_status: row.director_status ?? "",
-    }));
-
-    const totalRow = {
-      sno: "",
-      district: "",
-      project_name: "",
-      sector: "",
-      financial_year: "",
-      quarter: "",
-      old_balance: overallTotals.oldBalance,
-      banana_chips_beneficiary: overallTotals.bananaChips,
-      egg_beneficiary: overallTotals.egg,
-      non_egg_beneficiary: overallTotals.nonEgg,
-      sector_status: "",
-      cdpo_status: "",
-      director_status: "",
-    };
+    const rows = getExportData();
 
     let csv = "BAL POSHAN DEMAND DATA (SECTOR WISE)\n";
     csv += `For the year: ${financialYear}, Quarter: ${quarter}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
     csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
-    csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -445,9 +503,45 @@ const DirBalPoshanDemandSector = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
+
+    const rows = getExportData();
+
+    const tbodyRows = rows.map((row) => {
+      if (row._isSubtotal) {
+        return `<tr style="background-color:#e8f4f8;font-weight:bold;">
+          <td></td><td></td><td class="text-start">${row.project_name}</td><td></td><td></td><td></td>
+          <td class="text-center">${row.old_balance}</td>
+          <td class="text-center">${row.banana_chips_beneficiary}</td>
+          <td class="text-center">${row.egg_beneficiary}</td>
+          <td class="text-center">${row.non_egg_beneficiary}</td>
+          <td></td><td></td><td></td></tr>`;
+      }
+      return `<tr>
+        <td class="text-center">${row.sno}</td>
+        <td>${row.district}</td>
+        <td>${row.project_name}</td>
+        <td>${row.sector}</td>
+        <td class="text-center">${row.financial_year}</td>
+        <td class="text-center">${row.quarter}</td>
+        <td class="text-center">${row.old_balance}</td>
+        <td class="text-center">${row.banana_chips_beneficiary}</td>
+        <td class="text-center">${row.egg_beneficiary}</td>
+        <td class="text-center">${row.non_egg_beneficiary}</td>
+        <td class="text-center">${row.sector_status}</td>
+        <td class="text-center">${row.cdpo_status}</td>
+        <td class="text-center">${row.director_status}</td>
+      </tr>`;
+    }).join("");
+
+    const overallRow = `<tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
+      <td></td><td></td><td class="text-start" style="padding:8px;">Overall Total</td><td></td><td></td><td></td>
+      <td class="text-center">${overallTotals.oldBalance}</td>
+      <td class="text-center">${overallTotals.bananaChips}</td>
+      <td class="text-center">${overallTotals.egg}</td>
+      <td class="text-center">${overallTotals.nonEgg}</td>
+      <td></td><td></td><td></td></tr>`;
 
     printWindow.document.write(`
       <html>
@@ -464,7 +558,26 @@ const DirBalPoshanDemandSector = () => {
         <body>
           <h2>Bal Poshan Demand Data | Sector Wise</h2>
           <h4 style="text-align:center;color:#dc2626;">For the year: ${financialYear} and Quarter: ${quarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table>
+            <thead>
+              <tr style="background-color:#004d4d;color:#fff;">
+                <th style="padding:6px;">S.No</th>
+                <th style="padding:6px;">District</th>
+                <th style="padding:6px;">Project</th>
+                <th style="padding:6px;">Sector</th>
+                <th style="padding:6px;">Financial Year</th>
+                <th style="padding:6px;">Quarter</th>
+                <th style="padding:6px;">Old Balance</th>
+                <th style="padding:6px;">Banana Chips Beneficiary</th>
+                <th style="padding:6px;">Egg Beneficiary</th>
+                <th style="padding:6px;">Non Egg Beneficiary</th>
+                <th style="padding:6px;">Sector Status</th>
+                <th style="padding:6px;">CDPO Status</th>
+                <th style="padding:6px;">Director Status</th>
+              </tr>
+            </thead>
+            <tbody>${tbodyRows}${overallRow}</tbody>
+          </table>
         </body>
       </html>
     `);
