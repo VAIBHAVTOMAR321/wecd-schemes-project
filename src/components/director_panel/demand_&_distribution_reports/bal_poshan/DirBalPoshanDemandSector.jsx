@@ -114,6 +114,7 @@ const DirBalPoshanDemandSector = () => {
         sector_status: item.sec_status || item.sector_status || "Pending",
         cdpo_status: item.cdpo_status || "Pending",
         director_status: item.dir_status || item.director_status || "Pending",
+        _display_quarter: quarter === "All" ? "All" : (item.qtr_dmd || item.quarter || ""),
       }));
 
       setTableData(mappedData);
@@ -223,7 +224,7 @@ const DirBalPoshanDemandSector = () => {
           {visibleColumns.project_name && <td>{row.project_name}</td>}
           {visibleColumns.sector && <td>{row.sector}</td>}
           {visibleColumns.financial_year && <td className="text-center">{row.financial_year}</td>}
-          {visibleColumns.quarter && <td className="text-center">{row.quarter}</td>}
+          {visibleColumns.quarter && <td className="text-center">{row._display_quarter || row.quarter}</td>}
           {visibleColumns.old_balance && <td className="text-center">{row.old_balance}</td>}
           {visibleColumns.banana_chips_beneficiary && <td className="text-center">{row.banana_chips_beneficiary}</td>}
           {visibleColumns.egg_beneficiary && <td className="text-center">{row.egg_beneficiary}</td>}
