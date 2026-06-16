@@ -220,8 +220,8 @@ const DirDemandAnchalDist = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
     const escapeCsv = (value) => String(value ?? "");
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
+    const rows = filteredData.map((row, idx) => ({
+      sno: idx + 1,
       district: row.district ?? "",
       financial_year: row.financial_year ?? "",
       quarter: row.quarter ?? "",
@@ -258,8 +258,8 @@ const DirDemandAnchalDist = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
+    const rows = filteredData.map((row, idx) => ({
+      sno: idx + 1,
       district: row.district ?? "",
       financial_year: row.financial_year ?? "",
       quarter: row.quarter ?? "",
@@ -294,6 +294,26 @@ const DirDemandAnchalDist = () => {
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
+    const sortedData = [...filteredData].sort((a, b) => (a.district || "").localeCompare(b.district || ""));
+    const rows = sortedData.map((row, index) => `
+      <tr>
+        <td class="text-center">${index + 1}</td>
+        <td>${row.district}</td>
+        <td class="text-center">${row.financial_year}</td>
+        <td class="text-center">${row.quarter}</td>
+        <td class="text-center">${row.milk_beneficiary}</td>
+      </tr>
+    `).join("");
+
+    const overallRow = `
+      <tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
+        <td></td>
+        <td class="text-start" style="padding:8px;">Overall Total</td>
+        <td></td><td></td>
+        <td class="text-center">${overallTotals.milkBeneficiary}</td>
+      </tr>
+    `;
+
     printWindow.document.write(`
       <html>
         <head>
@@ -309,7 +329,18 @@ const DirDemandAnchalDist = () => {
         <body>
           <h2>Amrit Anchal Demand Data | District Wise</h2>
           <h4 style="text-align:center;color:#dc2626;">For the year: ${financialYear} and Quarter: ${quarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table>
+            <thead>
+              <tr style="background-color:#004d4d;color:#fff;">
+                <th style="padding:6px;">S.No</th>
+                <th style="padding:6px;">District</th>
+                <th style="padding:6px;">Financial Year</th>
+                <th style="padding:6px;">Quarter</th>
+                <th style="padding:6px;">Milk Beneficiary</th>
+              </tr>
+            </thead>
+            <tbody>${rows}${overallRow}</tbody>
+          </table>
         </body>
       </html>
     `);
