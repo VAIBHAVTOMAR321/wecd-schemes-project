@@ -529,7 +529,7 @@ const DirDemandkitDistrict = () => {
             <DistributionReportView 
               api={api} 
               quarter={quarter} 
-              financialYear={financialYear}
+              financialYear={distFinancialYear}
             />
           )}
         </Container>
@@ -559,13 +559,44 @@ const DirDemandkitDistrict = () => {
 };
 
 const DistributionReportView = ({ api, quarter, financialYear }) => {
+  const [distFinancialYear, setDistFinancialYear] = useState(financialYear);
+  const [distQuarter, setDistQuarter] = useState(quarter);
   const [distTableData, setDistTableData] = useState([]);
   const [distUniqueYears, setDistUniqueYears] = useState([]);
   const [distLoading, setDistLoading] = useState(false);
+  const [distCopySuccess, setDistCopySuccess] = useState(false);
   const [distCurrentPage, setDistCurrentPage] = useState(1);
+  const [showDistColumnModal, setShowDistColumnModal] = useState(false);
   const distEntriesPerPage = 50;
 
-  const distVisibleColumns = {
+  useEffect(() => {
+    setDistFinancialYear(financialYear);
+    setDistQuarter(quarter);
+  }, [financialYear, quarter]);
+
+  const handleDistYearChange = (value) => {
+    setDistFinancialYear(value);
+    setFinancialYear(value);
+  };
+
+  const handleDistQuarterChange = (value) => {
+    setDistQuarter(value);
+    setQuarter(value);
+  };
+
+  const distTableColumns = [
+    { key: "sno", label: "S.No" },
+    { key: "district", label: "District" },
+    { key: "financial_year", label: "Financial Year" },
+    { key: "quarter", label: "Quarter" },
+    { key: "beneficiary", label: "Beneficiary" },
+    { key: "demand_kits", label: "Demand Kits" },
+    { key: "received_kits", label: "Received Kits" },
+    { key: "distributed_kits", label: "Distributed Kits" },
+    { key: "available_balance", label: "Available Balance" },
+  ];
+
+  const [distVisibleColumns, setDistVisibleColumns] = useState({
     sno: true,
     district: true,
     financial_year: true,
@@ -575,7 +606,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     received_kits: true,
     distributed_kits: true,
     available_balance: true,
-  };
+  });
 
   const distOverallTotals = useMemo(() => {
     return distTableData.reduce(
@@ -598,16 +629,16 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     setDistLoading(true);
     try {
       const params = { page_size: 5000 };
-      if (financialYear !== "All") params.fin_yr = financialYear;
+      if (distFinancialYear !== "All") params.fin_yr = distFinancialYear;
 
       const response = await api.get(`director/mahalaxmi-district/stock-report/`, { params });
       const fetchedData = response.data?.data || [];
-      const quarterMonths = quarter === "All" ? null : getQuarterMonths(quarter);
+      const quarterMonths = distQuarter === "All" ? null : getQuarterMonths(distQuarter);
 
       const filteredData = fetchedData.filter((item) => {
         const itemYear = item.financial_year || item.fin_yr || "";
-        const matchesYear = financialYear === "All" || itemYear === financialYear;
-        const matchesQuarter = quarter === "All" || (quarterMonths && quarterMonths.includes(item.quarter));
+        const matchesYear = distFinancialYear === "All" || itemYear === distFinancialYear;
+        const matchesQuarter = distQuarter === "All" || (quarterMonths && quarterMonths.includes(item.quarter));
         return matchesYear && matchesQuarter;
       });
 
@@ -620,7 +651,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
         received_kits: item.received_kits || 0,
         distributed_kits: item.distributed_kits || 0,
         available_balance: item.available_balance || 0,
-        _display_quarter: quarter === "All" ? "All" : (item.quarter || ""),
+        _display_quarter: distQuarter === "All" ? "All" : (item.quarter || ""),
       }));
       setDistTableData(mappedData);
       setDistUniqueYears([...new Set(fetchedData.map(item => item.financial_year || item.fin_yr))].filter(Boolean).sort());
@@ -630,7 +661,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     } finally {
       setDistLoading(false);
     }
-  }, [api, financialYear, quarter]);
+  }, [api, distFinancialYear, distQuarter]);
 
   useEffect(() => {
     setDistCurrentPage(1);
@@ -640,6 +671,155 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
   const handleDistFilter = () => {
     setDistCurrentPage(1);
     fetchData();
+  };
+
+  const getDistExportData = () => {
+    return distTableData.map((row, index) => ({
+      sno: index + 1,
+      district: row.district ?? "",
+      financial_year: row.financial_year ?? "",
+      quarter: (row._display_quarter || row.quarter) ?? "",
+      beneficiary: row.beneficiary ?? "",
+      demand_kits: row.demand_kits ?? "",
+      received_kits: row.received_kits ?? "",
+      distributed_kits: row.distributed_kits ?? "",
+      available_balance: row.available_balance ?? "",
+    }));
+  };
+
+  const handleDistCopy = async () => {
+    const visibleCols = distTableColumns.filter((col) => distVisibleColumns[col.key]);
+    const escapeCsv = (value) => String(value ?? "");
+    const rows = getDistExportData();
+    const totalRow = {
+      sno: "",
+      district: "",
+      financial_year: "",
+      quarter: "",
+      beneficiary: distOverallTotals.beneficiary,
+      demand_kits: distOverallTotals.demandKits,
+      received_kits: distOverallTotals.receivedKits,
+      distributed_kits: distOverallTotals.distributedKits,
+      available_balance: distOverallTotals.availableBalance,
+    };
+
+    const text = [
+      "MAHALAXMI KIT DISTRIBUTION DATA (DISTRICT WISE)",
+      `For the year: ${distFinancialYear} and Quarter: ${quarter}`,
+      "",
+      visibleCols.map((col) => col.label).join("\t"),
+      ...rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join("\t")),
+      visibleCols.map((col) => escapeCsv(totalRow[col.key])).join("\t"),
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setDistCopySuccess(true);
+      setTimeout(() => setDistCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  };
+
+  const handleDistExcel = () => {
+    const visibleCols = distTableColumns.filter((col) => distVisibleColumns[col.key]);
+    const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const rows = getDistExportData();
+    const totalRow = {
+      sno: "",
+      district: "",
+      financial_year: "",
+      quarter: "",
+      beneficiary: distOverallTotals.beneficiary,
+      demand_kits: distOverallTotals.demandKits,
+      received_kits: distOverallTotals.receivedKits,
+      distributed_kits: distOverallTotals.distributedKits,
+      available_balance: distOverallTotals.availableBalance,
+    };
+
+    let csv = "MAHALAXMI KIT DISTRIBUTION DATA (DISTRICT WISE)\n";
+    csv += `For the year: ${distFinancialYear}, Quarter: ${quarter}\n\n`;
+    csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
+    csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
+    csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Mahalaxmi_Kit_Distribution_Report_${financialYear || "All"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDistPDF = () => {
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    const rows = getDistExportData();
+    const tbodyRows = rows.map((row) => `
+      <tr>
+        <td class="text-center">${row.sno}</td>
+        <td>${row.district}</td>
+        <td class="text-center">${row.financial_year}</td>
+        <td class="text-center">${row.quarter}</td>
+        <td class="text-center">${row.beneficiary}</td>
+        <td class="text-center">${row.demand_kits}</td>
+        <td class="text-center">${row.received_kits}</td>
+        <td class="text-center">${row.distributed_kits}</td>
+        <td class="text-center">${row.available_balance}</td>
+      </tr>
+    `).join("");
+
+    const overallRow = `
+      <tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
+        <td></td>
+        <td class="text-start" style="padding:8px;">Overall Total</td>
+        <td></td><td></td>
+        <td class="text-center">${distOverallTotals.beneficiary}</td>
+        <td class="text-center">${distOverallTotals.demandKits}</td>
+        <td class="text-center">${distOverallTotals.receivedKits}</td>
+        <td class="text-center">${distOverallTotals.distributedKits}</td>
+        <td class="text-center">${distOverallTotals.availableBalance}</td>
+      </tr>
+    `;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Mahalaxmi Kit Distribution Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+            th { background-color: #f1f5f9; }
+            h2 { text-align: center; color: #004d4d; }
+          </style>
+        </head>
+        <body>
+          <h2>Mahalaxmi Kit Distribution Data | District Wise</h2>
+          <h4 style="text-align:center;color:#dc2626;">For the year: ${distFinancialYear} and Quarter: ${quarter}</h4>
+          <table>
+            <thead>
+              <tr style="background-color:#004d4d;color:#fff;">
+                <th style="padding:6px;">S.No</th>
+                <th style="padding:6px;">District</th>
+                <th style="padding:6px;">Financial Year</th>
+                <th style="padding:6px;">Quarter</th>
+                <th style="padding:6px;">Beneficiary</th>
+                <th style="padding:6px;">Demand Kits</th>
+                <th style="padding:6px;">Received Kits</th>
+                <th style="padding:6px;">Distributed Kits</th>
+                <th style="padding:6px;">Available Balance</th>
+              </tr>
+            </thead>
+            <tbody>${tbodyRows}${overallRow}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const renderDistTableRows = (data) => {
@@ -735,7 +915,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           <Row className="g-3 align-items-end justify-content-center">
             <Col md={3}>
               <Form.Label className="fw-bold small">Choose Financial Year</Form.Label>
-              <Form.Select size="sm" value={financialYear} onChange={(e) => setFinancialYear(e.target.value)}>
+              <Form.Select size="sm" value={distFinancialYear} onChange={(e) => setFinancialYear(e.target.value)}>
                 <option value="All">All Financial Years</option>
                 {distUniqueYears.map(year => <option key={year} value={year}>{year}</option>)}
               </Form.Select>
@@ -758,7 +938,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           </Row>
           <div className="text-center mt-3">
             <h6 className="mb-0">
-              For the year : <span className="text-danger fw-bold">{financialYear}</span> and Quarter : <span className="text-danger fw-bold">{quarter}</span>
+              For the year : <span className="text-danger fw-bold">{distFinancialYear}</span> and Quarter : <span className="text-danger fw-bold">{quarter}</span>
             </h6>
           </div>
         </Card.Body>
@@ -766,17 +946,21 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
 
       <Row className="mb-3 align-items-center">
         <Col md={6} className="d-flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => {}}>
-            <FaCopy className="me-1" />
-            Copy
+          <Button variant="secondary" size="sm" onClick={handleDistCopy}>
+            {distCopySuccess ? <FaCheck className="me-1" /> : <FaCopy className="me-1" />}
+            {distCopySuccess ? "Copied" : "Copy"}
           </Button>
-          <Button variant="success" size="sm" onClick={() => {}}>
+          <Button variant="success" size="sm" onClick={handleDistExcel}>
             <FaFileExcel className="me-1" />
             Excel
           </Button>
-          <Button variant="danger" size="sm" onClick={() => {}}>
+          <Button variant="danger" size="sm" onClick={handleDistPDF}>
             <FaFilePdf className="me-1" />
             PDF
+          </Button>
+          <Button variant="info" size="sm" onClick={() => setShowDistColumnModal(true)}>
+            <FaEye className="me-1" />
+            Column visibility
           </Button>
         </Col>
       </Row>
@@ -785,24 +969,24 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
         <Table striped bordered hover size="sm" className="mb-0">
           <thead style={{ backgroundColor: "#004d4d", color: "#fff" }}>
             <tr className="text-center">
-              <th className="py-2">S.No</th>
-              <th className="py-2">District</th>
-              <th className="py-2">Financial Year</th>
-              <th className="py-2">Quarter</th>
-              <th className="py-2">Beneficiary</th>
-              <th className="py-2">Demand Kits</th>
-              <th className="py-2">Received Kits</th>
-              <th className="py-2">Distributed Kits</th>
-              <th className="py-2">Available Balance</th>
+              {distVisibleColumns.sno && <th className="py-2">S.No</th>}
+              {distVisibleColumns.district && <th className="py-2">District</th>}
+              {distVisibleColumns.financial_year && <th className="py-2">Financial Year</th>}
+              {distVisibleColumns.quarter && <th className="py-2">Quarter</th>}
+              {distVisibleColumns.beneficiary && <th className="py-2">Beneficiary</th>}
+              {distVisibleColumns.demand_kits && <th className="py-2">Demand Kits</th>}
+              {distVisibleColumns.received_kits && <th className="py-2">Received Kits</th>}
+              {distVisibleColumns.distributed_kits && <th className="py-2">Distributed Kits</th>}
+              {distVisibleColumns.available_balance && <th className="py-2">Available Balance</th>}
             </tr>
           </thead>
           <tbody>
             {distLoading ? (
-              <tr><td colSpan="9" className="text-center py-5"><Spinner animation="border" /></td></tr>
+              <tr><td colSpan={distTableColumns.filter((col) => distVisibleColumns[col.key]).length} className="text-center py-5"><Spinner animation="border" /></td></tr>
             ) : distTableData.length > 0 ? (
               renderDistTableRows(distTableData.slice((distCurrentPage - 1) * distEntriesPerPage, distCurrentPage * distEntriesPerPage))
             ) : (
-              <tr><td colSpan="9" className="text-center py-4 text-muted">No records found.</td></tr>
+              <tr><td colSpan={distTableColumns.filter((col) => distVisibleColumns[col.key]).length} className="text-center py-4 text-muted">No records found.</td></tr>
             )}
           </tbody>
         </Table>
@@ -820,6 +1004,26 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           <Pagination.Last onClick={() => setDistCurrentPage(distTotalPages)} disabled={distCurrentPage === distTotalPages} />
         </Pagination>
       </div>
+
+      <Modal show={showDistColumnModal} onHide={() => setShowDistColumnModal(false)} size="sm" centered>
+        <Modal.Header closeButton className="border-0 pb-2">
+          <Modal.Title style={{ fontSize: "14px", fontWeight: "bold" }}>Column Visibility</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-0">
+          {distTableColumns.map((col) => (
+            <Form.Check
+              key={col.key}
+              type="checkbox"
+              id={`dist-col-${col.key}`}
+              label={col.label}
+              checked={distVisibleColumns[col.key]}
+              onChange={() => setDistVisibleColumns((prev) => ({ ...prev, [col.key]: !prev[col.key] }))}
+              className="mb-2"
+              style={{ fontSize: "13px" }}
+            />
+          ))}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
