@@ -291,9 +291,9 @@ const DemandBalPoshanProject = () => {
                       <th>Financial Year</th>
                       <th>Qtr Demand</th>
                       <th>Old Bal</th>
-                      <th>Kela Chips Bene</th>
+                      <th>Banana Bene</th>
                       <th>Egg Bene</th>
-                      <th>Not Eat Egg Bene</th>
+                      <th>Not Cosume Egg Bene</th>
                       <th>Current Status</th>
                       <th>Action</th>
                     </tr>
@@ -321,9 +321,9 @@ const DemandBalPoshanProject = () => {
                       <th>Financial Year</th>
                       <th>Qtr Demand</th>
                       <th>Old Bal</th>
-                      <th>Kela Chips Bene</th>
+                      <th>Banana Bene</th>
                       <th>Egg Bene</th>
-                      <th>Not Eat Egg Bene</th>
+                      <th>Not Cosume Egg Bene</th>
                       <th>CDPO Status</th>
                       <th>DPO Status</th>
                       <th>Action</th>
