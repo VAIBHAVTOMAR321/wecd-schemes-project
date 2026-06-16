@@ -164,7 +164,7 @@ const OURSector = () => {
                       <thead className="bg-light text-uppercase">
                         <tr>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>क्रमांक</th>
-                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>आईडी</th>
+                       
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>जिला</th>
                           <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>प्रोजेक्ट</th>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>सेक्टर</th>
@@ -185,7 +185,7 @@ const OURSector = () => {
                           paginatedData.map((row, index) => (
                             <tr key={row.id || index}>
                               <td className="py-2">{startIndex + index + 1}</td>
-                              <td>{row.id}</td>
+                          
                               <td>{row.district}</td>
                               <td>{row.project_name}</td>
                               <td>{row.sector}</td>
