@@ -128,9 +128,7 @@ const DirMahilaPoshanDemandSector = () => {
   };
 
   const handleCopy = async () => {
-    const dataToExport = filteredData.length > entriesPerPage
-      ? filteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
-      : filteredData;
+    const dataToExport = filteredData;
 
     if (dataToExport.length === 0) return;
 
@@ -160,9 +158,7 @@ const DirMahilaPoshanDemandSector = () => {
   };
 
   const handleExcel = () => {
-    const dataToExport = filteredData.length > entriesPerPage
-      ? filteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
-      : filteredData;
+    const dataToExport = filteredData;
 
     if (dataToExport.length === 0) return;
     const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
@@ -191,9 +187,52 @@ const DirMahilaPoshanDemandSector = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
+
+    const activeCols = columns.filter(c => visibleColumns[c.key]);
+    const mHeaders = activeCols.map(c => `<th>${c.label}</th>`).join("");
+    
+    let currentProject = filteredData[0]?.project_name;
+    let currentDistrict = filteredData[0]?.district;
+    let pTotal = 0, pEgg = 0, pNonEgg = 0;
+    let dTotal = 0, dEgg = 0, dNonEgg = 0;
+
+    let mRowsHtml = "";
+    filteredData.forEach((row, index) => {
+      const nextRow = filteredData[index + 1];
+      pTotal += parseInt(row.khajur_bene || 0); pEgg += parseInt(row.egg_bene || 0); pNonEgg += parseInt(row.tot_noteat_egg_bene || 0);
+      dTotal += parseInt(row.khajur_bene || 0); dEgg += parseInt(row.egg_bene || 0); dNonEgg += parseInt(row.tot_noteat_egg_bene || 0);
+
+      mRowsHtml += "<tr>";
+      if (visibleColumns.sno) mRowsHtml += `<td>${index + 1}</td>`;
+      if (visibleColumns.district) mRowsHtml += `<td>${row.district || "-"}</td>`;
+      if (visibleColumns.project) mRowsHtml += `<td>${row.project_name || "-"}</td>`;
+      if (visibleColumns.sector) mRowsHtml += `<td>${row.sector || "-"}</td>`;
+      if (visibleColumns.fin_yr) mRowsHtml += `<td>${row.fin_yr || "-"}</td>`;
+      if (visibleColumns.quarter) mRowsHtml += `<td>${row.qtr_dmd || "-"}</td>`;
+      if (visibleColumns.total) mRowsHtml += `<td>${row.khajur_bene || 0}</td>`;
+      if (visibleColumns.egg) mRowsHtml += `<td>${row.egg_bene || 0}</td>`;
+      if (visibleColumns.non_egg) mRowsHtml += `<td>${row.tot_noteat_egg_bene || 0}</td>`;
+      if (visibleColumns.status) mRowsHtml += `<td>${row.dir_status || "-"}</td>`;
+      mRowsHtml += "</tr>";
+
+      const isProjectChanged = !nextRow || nextRow.project_name !== currentProject;
+      if (isProjectChanged) {
+        const colSpan = Object.keys(visibleColumns).slice(0, 6).filter(k => visibleColumns[k]).length;
+        mRowsHtml += `<tr style="background:#f8f9fa;font-weight:bold"><td colspan="${colSpan}">Total Project: ${currentProject}</td>` +
+          (visibleColumns.total ? `<td>${pTotal}</td>` : "") + (visibleColumns.egg ? `<td>${pEgg}</td>` : "") +
+          (visibleColumns.non_egg ? `<td>${pNonEgg}</td>` : "") + (visibleColumns.status ? "<td></td>" : "") + "</tr>";
+        pTotal = 0; pEgg = 0; pNonEgg = 0; if (nextRow) currentProject = nextRow.project_name;
+      }
+      if (!nextRow || nextRow.district !== currentDistrict) {
+        const colSpan = Object.keys(visibleColumns).slice(0, 6).filter(k => visibleColumns[k]).length;
+        mRowsHtml += `<tr style="background:#e9ecef;font-weight:bold"><td colspan="${colSpan}">Total District: ${currentDistrict}</td>` +
+          (visibleColumns.total ? `<td>${dTotal}</td>` : "") + (visibleColumns.egg ? `<td>${dEgg}</td>` : "") +
+          (visibleColumns.non_egg ? `<td>${dNonEgg}</td>` : "") + (visibleColumns.status ? "<td></td>" : "") + "</tr>";
+        dTotal = 0; dEgg = 0; dNonEgg = 0; if (nextRow) currentDistrict = nextRow.district;
+      }
+    });
 
     printWindow.document.write(`
       <html>
@@ -206,7 +245,7 @@ const DirMahilaPoshanDemandSector = () => {
         <body>
           <h2>Mahila Poshan Demand Data | Sector wise</h2>
           <h4>Year: ${financialYear} | Quarter: ${quarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRowsHtml}</tbody></table>
         </body>
       </html>
     `);

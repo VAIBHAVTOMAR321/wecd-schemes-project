@@ -130,9 +130,25 @@ const Mahalaxmi = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
+
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => `<th>${c.label}</th>`).join("");
+    const mRows = filteredData.map((item, idx) => {
+      let row = "<tr>";
+      if (visibleColumns.sno) row += `<td>${idx + 1}</td>`;
+      if (visibleColumns.district) row += `<td>${item.district || "-"}</td>`;
+      if (visibleColumns.project) row += `<td>${item.project || "-"}</td>`;
+      if (visibleColumns.sector) row += `<td>${item.sector || "-"}</td>`;
+      if (visibleColumns.awc_name) row += `<td>${item.awc_name || "-"}</td>`;
+      if (visibleColumns.name) row += `<td>${item.name || "-"}</td>`;
+      if (visibleColumns.dob) row += `<td>${item.dob || "-"}</td>`;
+      if (visibleColumns.mobile) row += `<td>${item.ben_mob || "-"}</td>`;
+      if (visibleColumns.adhar) row += `<td>${item.adhar_num || "-"}</td>`;
+      if (visibleColumns.delivery_date) row += `<td>${item.del_date || "-"}</td>`;
+      row += "</tr>";
+      return row;
+    }).join("");
 
     printWindow.document.write(`
       <html>
@@ -145,7 +161,7 @@ const Mahalaxmi = () => {
         <body>
           <h2>Mahalaxmi Beneficiary Report</h2>
           <h4>FY: ${financialYear} | Quarter: ${quarter_month_map[quarter]}</h4>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
         </body>
       </html>
     `);

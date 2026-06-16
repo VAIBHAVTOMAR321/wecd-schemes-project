@@ -188,7 +188,41 @@ const DirMahilaPoshanDemandDist = () => {
   };
 
   const handlePDF = () => {
-    const printWindow = window.open("", "_blank");
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => `<th>${c.label}</th>`).join("");
+    
+    const mRows = processedData.map((item, index) => {
+      let rowHtml = "<tr>";
+      if (visibleColumns.sno) rowHtml += `<td>${index + 1}</td>`;
+      if (visibleColumns.district) rowHtml += `<td>${item.district || "-"}</td>`;
+      if (visibleColumns.quarter) rowHtml += `<td>${item.quarter || "-"}</td>`;
+      
+      if (viewMode === "demand") {
+        if (visibleColumns.khajur) rowHtml += `<td>${item.khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.egg) rowHtml += `<td>${item.egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.non_egg) rowHtml += `<td>${item.non_egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
+      } else {
+        if (visibleColumns.total_demand) rowHtml += `<td>${item.demand_khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.total_distribution) rowHtml += `<td>${item.distributed_khajur_beneficiary?.toLocaleString() || 0}</td>`;
+      }
+      rowHtml += "</tr>";
+      return rowHtml;
+    }).join("");
+
+    const totalRow = `
+      <tr class="total-row">
+        <td colspan="${(visibleColumns.sno ? 1 : 0) + (visibleColumns.district ? 1 : 0) + (visibleColumns.quarter ? 1 : 0)}">Total -></td>
+        ${viewMode === "demand" ? `
+          ${visibleColumns.khajur ? `<td>${totals.khajur.toLocaleString()}</td>` : ""}
+          ${visibleColumns.egg ? `<td>${totals.egg.toLocaleString()}</td>` : ""}
+          ${visibleColumns.non_egg ? `<td>${totals.non_egg.toLocaleString()}</td>` : ""}
+        ` : `
+          ${visibleColumns.total_demand ? `<td>${totals.total_demand.toLocaleString()}</td>` : ""}
+          ${visibleColumns.total_distribution ? `<td>${totals.total_distribution.toLocaleString()}</td>` : ""}
+        `}
+      </tr>
+    `;
+
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
     printWindow.document.write(`
       <html>
         <head><title>Report</title><style>
@@ -200,7 +234,7 @@ const DirMahilaPoshanDemandDist = () => {
         <body>
           <h2 style="text-align:center">Mahila Poshan ${viewMode === "demand" ? "Demand" : "Distribution"} Data | District wise</h2>
           <p style="text-align:center">Year: ${financialYear} | Quarter: ${quarter}</p>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}${totalRow}</tbody></table>
         </body>
       </html>
     `);

@@ -208,10 +208,10 @@ const DemandkitProject = () => {
   };
 
   const handleCopy = async () => {
-    if (paginatedData.length === 0) return;
+    if (sortedData.length === 0) return;
     const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
     const headers = activeCols.map(c => c.label);
-    const rows = paginatedData.map((item, index) => {
+    const rows = sortedData.map((item, index) => {
       return activeCols.map(col => {
         if (col.key === "sno") return startIndex + index + 1;
         if (col.key === "district") return item.district || "-";
@@ -238,10 +238,10 @@ const DemandkitProject = () => {
   };
 
   const handleExcel = () => {
-    if (paginatedData.length === 0) return;
+    if (sortedData.length === 0) return;
     const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
     const headers = activeCols.map(c => c.label);
-    const rows = paginatedData.map((item, index) => {
+    const rows = sortedData.map((item, index) => {
       return activeCols.map(col => {
         if (col.key === "sno") return startIndex + index + 1;
         if (col.key === "district") return item.district || "-";
@@ -272,10 +272,30 @@ const DemandkitProject = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
     const doc = printWindow.document;
+    const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
+    const mHeaders = activeCols.map(c => `<th>${c.label}</th>`).join("");
+    const mRows = sortedData.map((item, idx) => {
+      let r = "<tr>";
+      activeCols.forEach(col => {
+        let val = "-";
+        if (col.key === "sno") val = idx + 1;
+        else if (col.key === "district") val = item.district;
+        else if (col.key === "project") val = item.project;
+        else if (col.key === "quarter") val = item.quarter;
+        else if (col.key === "beneficiary") val = item.req_kit_count || item.beneficiary || "0";
+        else if (col.key === "demandKits") val = item.req_kit || item.demand_kits || "0";
+        else if (col.key === "receivedKits") val = item.received_kits || "0";
+        else if (col.key === "prevBalance") val = "0";
+        else if (col.key === "distributedKits") val = item.distributed_kits || "0";
+        else if (col.key === "availableBalance") val = item.available_balance || "0";
+        r += `<td>${val}</td>`;
+      });
+      return r + "</tr>";
+    }).join("");
+
     doc.open();
     doc.write(`
       <!DOCTYPE html>
@@ -297,7 +317,7 @@ const DemandkitProject = () => {
       <body>
         <h3>${viewMode === 'demand' ? 'Mahalaxmi Kit Demand Data' : 'Mahalaxmi Kit Distribution Data'}</h3>
         <h5>Demand for the year : ${selectedYear || "All"} and Quarter : ${selectedQuarter === "All" ? "All" : getDisplayQuarter(selectedQuarter)}</h5>
-        ${tableRef.current.outerHTML}
+        <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
       </body>
       </html>
     `);
