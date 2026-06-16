@@ -224,7 +224,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
           {sidebarOpen ? (
             <div className="logo-container">
               <div className="logo">
-                  director Panel
+                  Logo
               </div>
             </div>
           ) : (

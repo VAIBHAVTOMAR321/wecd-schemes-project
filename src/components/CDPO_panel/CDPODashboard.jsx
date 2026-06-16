@@ -76,6 +76,10 @@ const CDPODashboard = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  const handleSectorClick = () => {
+    navigate("/OURSector");
+  };
+
   const handleAwcClick = () => {
     navigate("/OurAwcProject");
   };
@@ -96,7 +100,7 @@ const CDPODashboard = () => {
         <Container fluid className="dashboard-box mt-3">
           <Row className="g-4 mb-4">
             <Col lg={6} md={6} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
+              <Card className="h-100 shadow-sm border-0 stats-card" style={{ cursor: "pointer" }} onClick={handleSectorClick}>
                 <Card.Body className="text-center">
                   <Card.Title className="stats-title">Total Sector</Card.Title>
                   <Card.Text className="stats-count">2</Card.Text>
