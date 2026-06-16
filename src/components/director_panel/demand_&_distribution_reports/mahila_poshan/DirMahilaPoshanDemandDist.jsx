@@ -19,9 +19,10 @@ const DirMahilaPoshanDemandDist = () => {
   const [viewMode, setViewMode] = useState("demand"); // "demand" or "distribution"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uniqueYears, setUniqueYears] = useState([]);
   
   // Filter & Search State
-  const [financialYear, setFinancialYear] = useState("2025-26");
+  const [financialYear, setFinancialYear] = useState("All");
   const [quarter, setQuarter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,27 +37,39 @@ const DirMahilaPoshanDemandDist = () => {
     sno: true,
     district: true,
     quarter: true,
-    khajur: true,
-    egg: true,
-    non_egg: true,
+    khajur_beneficiary: true,
+    egg_eating_beneficiary: true,
+    non_egg_eating_beneficiary: true,
+    demand_khajur_beneficiary: true,
+    demand_egg_beneficiary: true,
+    demand_non_egg_beneficiary: true,
     total_demand: true,
+    distributed_khajur_beneficiary: true,
+    distributed_egg_beneficiary: true,
+    distributed_non_egg_beneficiary: true,
     total_distribution: true,
   });
 
-  const columns = viewMode === "demand" ? [
+  const columns = useMemo(() => viewMode === "demand" ? [
     { key: "sno", label: "S.no" },
     { key: "district", label: "District" },
     { key: "quarter", label: "Quarter" },
-    { key: "khajur", label: "Khajur Beneficiary" },
-    { key: "egg", label: "Egg Eating Beneficiary" },
-    { key: "non_egg", label: "Non Egg Eating Beneficiary" },
+    { key: "khajur_beneficiary", label: "Khajur Beneficiary" },
+    { key: "egg_eating_beneficiary", label: "Egg Eating Beneficiary" },
+    { key: "non_egg_eating_beneficiary", label: "Non Egg Eating Beneficiary" },
   ] : [
     { key: "sno", label: "S.no" },
     { key: "district", label: "District" },
     { key: "quarter", label: "Month" },
+    { key: "demand_khajur_beneficiary", label: "Khajur (Demand)" },
+    { key: "demand_egg_beneficiary", label: "Egg Eating (Demand)" },
+    { key: "demand_non_egg_beneficiary", label: "Non Egg Eating (Demand)" },
     { key: "total_demand", label: "Total Demand" },
+    { key: "distributed_khajur_beneficiary", label: "Khajur (Distributed)" },
+    { key: "distributed_egg_beneficiary", label: "Egg Eating (Distributed)" },
+    { key: "distributed_non_egg_beneficiary", label: "Non Egg Eating (Distributed)" },
     { key: "total_distribution", label: "Total Distribution" },
-  ];
+  ], [viewMode]);
 
   const fetchData = useCallback(async () => {
     if (!api || !isReady) return;
@@ -69,7 +82,11 @@ const DirMahilaPoshanDemandDist = () => {
       
       const response = await api.get(endpoint);
       if (response.data && response.data.success) {
-        setTableData(response.data.data || []);
+        const data = response.data.data || [];
+        setTableData(data);
+        // Extract unique years for the dropdown dynamically
+        const years = [...new Set(data.map(item => (item.financial_year || "").trim()).filter(Boolean))];
+        setUniqueYears(years.sort().reverse());
       }
     } catch (err) {
       setError("Failed to fetch data from the server.");
@@ -87,15 +104,25 @@ const DirMahilaPoshanDemandDist = () => {
   };
 
   const processedData = useMemo(() => {
+    const monthToQuarterMap = {
+      "January": "Jan-Feb-March", "February": "Jan-Feb-March", "March": "Jan-Feb-March",
+      "April": "Apr-May-June", "May": "Apr-May-June", "June": "Apr-May-June",
+      "July": "July-Aug-Sept", "August": "July-Aug-Sept", "September": "July-Aug-Sept",
+      "October": "Oct-Nov-Dec", "November": "Oct-Nov-Dec", "December": "Oct-Nov-Dec",
+    };
+
+    const currentPeriodFilter = viewMode === "demand" ? quarter : (monthToQuarterMap[quarter] || quarter);
+
     let filtered = tableData.filter(item => {
-      const matchesYear = financialYear === "All" || item.financial_year === financialYear;
+      const matchesYear = financialYear === "All" || (item.financial_year || "").trim() === financialYear;
       const matchesSearch = !searchTerm || 
         item.district?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.quarter?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesYear && matchesSearch;
     });
 
-    if (quarter === "All") {
+    let result = [];
+    if (quarter === "All" || quarter === "Select Any One") {
       const grouped = filtered.reduce((acc, curr) => {
         const dist = curr.district || "Unknown";
         if (!acc[dist]) {
@@ -106,77 +133,123 @@ const DirMahilaPoshanDemandDist = () => {
             egg_eating_beneficiary: 0, 
             non_egg_eating_beneficiary: 0,
             demand_khajur_beneficiary: 0,
-            distributed_khajur_beneficiary: 0
+            demand_egg_beneficiary: 0,
+            demand_non_egg_beneficiary: 0,
+            distributed_khajur_beneficiary: 0,
+            distributed_egg_beneficiary: 0,
+            distributed_non_egg_beneficiary: 0
           };
         }
         acc[dist].khajur_beneficiary += Number(curr.khajur_beneficiary || 0);
         acc[dist].egg_eating_beneficiary += Number(curr.egg_eating_beneficiary || 0);
         acc[dist].non_egg_eating_beneficiary += Number(curr.non_egg_eating_beneficiary || 0);
         acc[dist].demand_khajur_beneficiary += Number(curr.demand_khajur_beneficiary || 0);
+        acc[dist].demand_egg_beneficiary += Number(curr.demand_egg_beneficiary || 0);
+        acc[dist].demand_non_egg_beneficiary += Number(curr.demand_non_egg_beneficiary || 0);
         acc[dist].distributed_khajur_beneficiary += Number(curr.distributed_khajur_beneficiary || 0);
+        acc[dist].distributed_egg_beneficiary += Number(curr.distributed_egg_beneficiary || 0);
+        acc[dist].distributed_non_egg_beneficiary += Number(curr.distributed_non_egg_beneficiary || 0);
         return acc;
       }, {});
-      return Object.values(grouped);
+      result = Object.values(grouped);
+    } else {
+      result = filtered.filter(item => item.quarter === currentPeriodFilter);
+      result = result.map(item => ({
+        ...item,
+        displayPeriod: viewMode === "demand" 
+          ? item.quarter 
+          : (quarter === "All" || quarter === "Select Any One")
+            ? item.quarter 
+            : `${quarter} (Data for ${item.quarter})`
+      }));
     }
-
-    return filtered.filter(item => item.quarter === quarter);
-  }, [tableData, financialYear, quarter, searchTerm]);
+    return result.sort((a, b) => (a.district || "").localeCompare(b.district || ""));
+  }, [tableData, financialYear, quarter, searchTerm, viewMode]);
 
   const totals = useMemo(() => {
     return processedData.reduce((acc, curr) => {
       if (viewMode === "demand") {
-        acc.khajur += Number(curr.khajur_beneficiary || 0);
-        acc.egg += Number(curr.egg_eating_beneficiary || 0);
-        acc.non_egg += Number(curr.non_egg_eating_beneficiary || 0);
+        acc.khajur_beneficiary += Number(curr.khajur_beneficiary || 0);
+        acc.egg_eating_beneficiary += Number(curr.egg_eating_beneficiary || 0);
+        acc.non_egg_eating_beneficiary += Number(curr.non_egg_eating_beneficiary || 0);
       } else {
-        acc.total_demand += Number(curr.demand_khajur_beneficiary || 0);
-        acc.total_distribution += Number(curr.distributed_khajur_beneficiary || 0);
+        const dk = Number(curr.demand_khajur_beneficiary || 0);
+        const de = Number(curr.demand_egg_beneficiary || 0);
+        const dn = Number(curr.demand_non_egg_beneficiary || 0);
+        const distk = Number(curr.distributed_khajur_beneficiary || 0);
+        const diste = Number(curr.distributed_egg_beneficiary || 0);
+        const distn = Number(curr.distributed_non_egg_beneficiary || 0);
+
+        acc.demand_khajur_beneficiary += dk;
+        acc.demand_egg_beneficiary += de;
+        acc.demand_non_egg_beneficiary += dn;
+        acc.total_demand += (dk + de + dn);
+        acc.distributed_khajur_beneficiary += distk;
+        acc.distributed_egg_beneficiary += diste;
+        acc.distributed_non_egg_beneficiary += distn;
+        acc.total_distribution += (distk + diste + distn);
       }
       return acc;
-    }, { khajur: 0, egg: 0, non_egg: 0, total_demand: 0, total_distribution: 0 });
+    }, { 
+      khajur_beneficiary: 0, egg_eating_beneficiary: 0, non_egg_eating_beneficiary: 0, 
+      demand_khajur_beneficiary: 0, demand_egg_beneficiary: 0, demand_non_egg_beneficiary: 0, total_demand: 0, 
+      distributed_khajur_beneficiary: 0, distributed_egg_beneficiary: 0, distributed_non_egg_beneficiary: 0, total_distribution: 0 
+    });
   }, [processedData, viewMode]);
 
   const totalPages = Math.ceil(processedData.length / itemsPerPage);
   const paginatedData = processedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleCopy = async () => {
-    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    const activeCols = columns.filter(c => visibleColumns[c.key]);
+    const headers = activeCols.map(c => c.label).join("\t");
     const mRows = processedData.map((item, idx) => {
       const row = [];
       if (visibleColumns.sno) row.push(idx + 1);
       if (visibleColumns.district) row.push(item.district || "-");
-      if (visibleColumns.quarter) row.push(item.quarter || "-");
+      if (visibleColumns.quarter) row.push(item.displayPeriod || item.quarter || "-");
       if (viewMode === "demand") {
-        if (visibleColumns.khajur) row.push(item.khajur_beneficiary || 0);
-        if (visibleColumns.egg) row.push(item.egg_eating_beneficiary || 0);
-        if (visibleColumns.non_egg) row.push(item.non_egg_eating_beneficiary || 0);
+        if (visibleColumns.khajur_beneficiary) row.push(item.khajur_beneficiary || 0);
+        if (visibleColumns.egg_eating_beneficiary) row.push(item.egg_eating_beneficiary || 0);
+        if (visibleColumns.non_egg_eating_beneficiary) row.push(item.non_egg_eating_beneficiary || 0);
       } else {
-        if (visibleColumns.total_demand) row.push(item.demand_khajur_beneficiary || 0);
-        if (visibleColumns.total_distribution) row.push(item.distributed_khajur_beneficiary || 0);
+        if (visibleColumns.demand_khajur_beneficiary) row.push(item.demand_khajur_beneficiary || 0);
+        if (visibleColumns.demand_egg_beneficiary) row.push(item.demand_egg_beneficiary || 0);
+        if (visibleColumns.demand_non_egg_beneficiary) row.push(item.demand_non_egg_beneficiary || 0);
+        if (visibleColumns.total_demand) row.push(Number(item.demand_khajur_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0));
+        if (visibleColumns.distributed_khajur_beneficiary) row.push(item.distributed_khajur_beneficiary || 0);
+        if (visibleColumns.distributed_egg_beneficiary) row.push(item.distributed_egg_beneficiary || 0);
+        if (visibleColumns.distributed_non_egg_beneficiary) row.push(item.distributed_non_egg_beneficiary || 0);
+        if (visibleColumns.total_distribution) row.push(Number(item.distributed_khajur_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0));
       }
       return row.join("\t");
-    });
-    const text = [`Mahila Poshan ${viewMode === "demand" ? "Demand" : "Distribution"} Data | District wise`, mHeaders.join("\t"), ...mRows].join("\n");
-    await navigator.clipboard.writeText(text);
+    }).join("\n");
+    await navigator.clipboard.writeText(headers + "\n" + mRows);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
   const handleExcel = () => {
-    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
-    let csv = `Mahila Poshan ${viewMode === "demand" ? "Demand" : "Distribution"} Data | District wise\n` + mHeaders.join(",") + "\n";
+    const activeCols = columns.filter(c => visibleColumns[c.key]);
+    let csv = `Mahila Poshan ${viewMode === "demand" ? "Demand" : "Distribution"} Data | District wise\n` + activeCols.map(c => c.label).join(",") + "\n";
     processedData.forEach((item, idx) => {
       const row = [];
       if (visibleColumns.sno) row.push(idx + 1);
       if (visibleColumns.district) row.push(`"${item.district}"`);
-      if (visibleColumns.quarter) row.push(`"${item.quarter}"`);
+      if (visibleColumns.quarter) row.push(`"${item.displayPeriod || item.quarter}"`);
       if (viewMode === "demand") {
-        if (visibleColumns.khajur) row.push(item.khajur_beneficiary);
-        if (visibleColumns.egg) row.push(item.egg_eating_beneficiary);
-        if (visibleColumns.non_egg) row.push(item.non_egg_eating_beneficiary);
+        if (visibleColumns.khajur_beneficiary) row.push(item.khajur_beneficiary || 0);
+        if (visibleColumns.egg_eating_beneficiary) row.push(item.egg_eating_beneficiary || 0);
+        if (visibleColumns.non_egg_eating_beneficiary) row.push(item.non_egg_eating_beneficiary || 0);
       } else {
-        if (visibleColumns.total_demand) row.push(item.demand_khajur_beneficiary);
-        if (visibleColumns.total_distribution) row.push(item.distributed_khajur_beneficiary);
+        if (visibleColumns.demand_khajur_beneficiary) row.push(item.demand_khajur_beneficiary || 0);
+        if (visibleColumns.demand_egg_beneficiary) row.push(item.demand_egg_beneficiary || 0);
+        if (visibleColumns.demand_non_egg_beneficiary) row.push(item.demand_non_egg_beneficiary || 0);
+        if (visibleColumns.total_demand) row.push(Number(item.demand_khajur_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0));
+        if (visibleColumns.distributed_khajur_beneficiary) row.push(item.distributed_khajur_beneficiary || 0);
+        if (visibleColumns.distributed_egg_beneficiary) row.push(item.distributed_egg_beneficiary || 0);
+        if (visibleColumns.distributed_non_egg_beneficiary) row.push(item.distributed_non_egg_beneficiary || 0);
+        if (visibleColumns.total_distribution) row.push(Number(item.distributed_khajur_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0));
       }
       csv += row.join(",") + "\n";
     });
@@ -194,15 +267,21 @@ const DirMahilaPoshanDemandDist = () => {
       let rowHtml = "<tr>";
       if (visibleColumns.sno) rowHtml += `<td>${index + 1}</td>`;
       if (visibleColumns.district) rowHtml += `<td>${item.district || "-"}</td>`;
-      if (visibleColumns.quarter) rowHtml += `<td>${item.quarter || "-"}</td>`;
+      if (visibleColumns.quarter) rowHtml += `<td>${item.displayPeriod || item.quarter || "-"}</td>`;
       
       if (viewMode === "demand") {
-        if (visibleColumns.khajur) rowHtml += `<td>${item.khajur_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.egg) rowHtml += `<td>${item.egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.non_egg) rowHtml += `<td>${item.non_egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.khajur_beneficiary) rowHtml += `<td>${item.khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.egg_eating_beneficiary) rowHtml += `<td>${item.egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.non_egg_eating_beneficiary) rowHtml += `<td>${item.non_egg_eating_beneficiary?.toLocaleString() || 0}</td>`;
       } else {
-        if (visibleColumns.total_demand) rowHtml += `<td>${item.demand_khajur_beneficiary?.toLocaleString() || 0}</td>`;
-        if (visibleColumns.total_distribution) rowHtml += `<td>${item.distributed_khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.demand_khajur_beneficiary) rowHtml += `<td>${item.demand_khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.demand_egg_beneficiary) rowHtml += `<td>${item.demand_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.demand_non_egg_beneficiary) rowHtml += `<td>${item.demand_non_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.total_demand) rowHtml += `<td>${(Number(item.demand_khajur_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0)).toLocaleString()}</td>`;
+        if (visibleColumns.distributed_khajur_beneficiary) rowHtml += `<td>${item.distributed_khajur_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.distributed_egg_beneficiary) rowHtml += `<td>${item.distributed_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.distributed_non_egg_beneficiary) rowHtml += `<td>${item.distributed_non_egg_beneficiary?.toLocaleString() || 0}</td>`;
+        if (visibleColumns.total_distribution) rowHtml += `<td>${(Number(item.distributed_khajur_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0)).toLocaleString()}</td>`;
       }
       rowHtml += "</tr>";
       return rowHtml;
@@ -212,11 +291,17 @@ const DirMahilaPoshanDemandDist = () => {
       <tr class="total-row">
         <td colspan="${(visibleColumns.sno ? 1 : 0) + (visibleColumns.district ? 1 : 0) + (visibleColumns.quarter ? 1 : 0)}">Total -></td>
         ${viewMode === "demand" ? `
-          ${visibleColumns.khajur ? `<td>${totals.khajur.toLocaleString()}</td>` : ""}
-          ${visibleColumns.egg ? `<td>${totals.egg.toLocaleString()}</td>` : ""}
-          ${visibleColumns.non_egg ? `<td>${totals.non_egg.toLocaleString()}</td>` : ""}
+          ${visibleColumns.khajur_beneficiary ? `<td>${totals.khajur_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.egg_eating_beneficiary ? `<td>${totals.egg_eating_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.non_egg_eating_beneficiary ? `<td>${totals.non_egg_eating_beneficiary.toLocaleString()}</td>` : ""}
         ` : `
+          ${visibleColumns.demand_khajur_beneficiary ? `<td>${totals.demand_khajur_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.demand_egg_beneficiary ? `<td>${totals.demand_egg_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.demand_non_egg_beneficiary ? `<td>${totals.demand_non_egg_beneficiary.toLocaleString()}</td>` : ""}
           ${visibleColumns.total_demand ? `<td>${totals.total_demand.toLocaleString()}</td>` : ""}
+          ${visibleColumns.distributed_khajur_beneficiary ? `<td>${totals.distributed_khajur_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.distributed_egg_beneficiary ? `<td>${totals.distributed_egg_beneficiary.toLocaleString()}</td>` : ""}
+          ${visibleColumns.distributed_non_egg_beneficiary ? `<td>${totals.distributed_non_egg_beneficiary.toLocaleString()}</td>` : ""}
           ${visibleColumns.total_distribution ? `<td>${totals.total_distribution.toLocaleString()}</td>` : ""}
         `}
       </tr>
@@ -267,21 +352,42 @@ const DirMahilaPoshanDemandDist = () => {
               <Row className="g-3 align-items-end justify-content-center">
                 <Col md={3}>
                   <Form.Label className="small fw-bold text-muted">Choose Financial Year</Form.Label>
-                  <Form.Select size="sm" value={financialYear} onChange={(e) => setFinancialYear(e.target.value)}>
+                  <Form.Select size="sm" value={financialYear} onChange={(e) => { setFinancialYear(e.target.value); setCurrentPage(1); }}>
                     <option value="All">All Years</option>
-                    <option value="2024-25">2024-25</option>
-                    <option value="2025-26">2025-26</option>
-                    <option value="2026-27">2026-27</option>
+                    {uniqueYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
                   </Form.Select>
                 </Col>
                 <Col md={3}>
-                  <Form.Label className="small fw-bold text-muted">Choose Month</Form.Label>
-                  <Form.Select size="sm" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
-                    <option value="All">All Months</option>
-                    <option value="Apr-May-June">Apr-May-June (Q1)</option>
-                    <option value="July-Aug-Sept">July-Aug-Sept (Q2)</option>
-                    <option value="Oct-Nov-Dec">Oct-Nov-Dec (Q3)</option>
-                    <option value="Jan-Feb-March">Jan-Feb-March (Q4)</option>
+                  <Form.Label className="small fw-bold text-muted">Choose {viewMode === "demand" ? "Quarter" : "Month"}</Form.Label>
+                  <Form.Select size="sm" value={quarter} onChange={(e) => { setQuarter(e.target.value); setCurrentPage(1); }}>
+                    {viewMode === "demand" ? (
+                      <>
+                        <option value="All">All Quarters</option>
+                        <option value="Apr-May-June">Apr-May-June</option>
+                        <option value="July-Aug-Sept">July-Aug-Sept</option>
+                        <option value="Oct-Nov-Dec">Oct-Nov-Dec</option>
+                        <option value="Jan-Feb-March">Jan-Feb-March</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Select Any One">Select Any One</option>
+                        <option value="All">All Months</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                      </>
+                    )}
                   </Form.Select>
                 </Col>
                 <Col md="auto">
@@ -291,11 +397,11 @@ const DirMahilaPoshanDemandDist = () => {
                 </Col>
                 <Col md="auto">
                   <Button 
-                    variant={viewMode === "demand" ? "info" : "success"}
+                    variant="info"
                     size="sm" 
                     className="px-3 fw-bold text-white" 
-                    style={{ backgroundColor: viewMode === "demand" ? "#008080" : "#20c997", border: "none" }}
-                    onClick={() => setViewMode(viewMode === "demand" ? "distribution" : "demand")}
+                    style={{ backgroundColor: "#008080", border: "none" }}
+                    onClick={() => { setViewMode(viewMode === "demand" ? "distribution" : "demand"); setCurrentPage(1); }}
                   >
                     {viewMode === "demand" ? "Distribution Report" : "Demand Report"}
                   </Button>
@@ -303,7 +409,7 @@ const DirMahilaPoshanDemandDist = () => {
               </Row>
               <div className="text-center mt-3">
                 <h6 className="mb-0">
-                  For the year : <span className="text-danger fw-bold">{financialYear}</span> and Quarter : <span className="text-danger fw-bold">{quarter}</span>
+                  For the year : <span className="text-danger fw-bold">{financialYear}</span> and {viewMode === "demand" ? "Quarter" : "Month"} : <span className="text-danger fw-bold">{quarter === "Select Any One" ? "All" : quarter}</span>
                 </h6>
               </div>
             </Card.Body>
@@ -350,32 +456,52 @@ const DirMahilaPoshanDemandDist = () => {
                       <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f8f9fa" }}>
                         {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>}
                         {visibleColumns.district && <td>{item.district}</td>}
-                        {visibleColumns.quarter && <td className="text-center">{item.quarter}</td>}
+                        {visibleColumns.quarter && <td className="text-center">{item.displayPeriod || item.quarter}</td>}
                         {viewMode === "demand" ? (
                           <>
-                            {visibleColumns.khajur && <td className="text-end">{item.khajur_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.egg && <td className="text-end">{item.egg_eating_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.non_egg && <td className="text-end">{item.non_egg_eating_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.khajur_beneficiary && <td className="text-end">{item.khajur_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.egg_eating_beneficiary && <td className="text-end">{item.egg_eating_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.non_egg_eating_beneficiary && <td className="text-end">{item.non_egg_eating_beneficiary?.toLocaleString()}</td>}
                           </>
                         ) : (
                           <>
-                            {visibleColumns.total_demand && <td className="text-end">{item.demand_khajur_beneficiary?.toLocaleString()}</td>}
-                            {visibleColumns.total_distribution && <td className="text-end">{item.distributed_khajur_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.demand_khajur_beneficiary && <td className="text-end">{item.demand_khajur_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.demand_egg_beneficiary && <td className="text-end">{item.demand_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.demand_non_egg_beneficiary && <td className="text-end">{item.demand_non_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.total_demand && (
+                              <td className="text-end fw-bold">
+                                {(Number(item.demand_khajur_beneficiary || 0) + Number(item.demand_egg_beneficiary || 0) + Number(item.demand_non_egg_beneficiary || 0)).toLocaleString()}
+                              </td>
+                            )}
+                            {visibleColumns.distributed_khajur_beneficiary && <td className="text-end">{item.distributed_khajur_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.distributed_egg_beneficiary && <td className="text-end">{item.distributed_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.distributed_non_egg_beneficiary && <td className="text-end">{item.distributed_non_egg_beneficiary?.toLocaleString()}</td>}
+                            {visibleColumns.total_distribution && (
+                              <td className="text-end fw-bold">
+                                {(Number(item.distributed_khajur_beneficiary || 0) + Number(item.distributed_egg_beneficiary || 0) + Number(item.distributed_non_egg_beneficiary || 0)).toLocaleString()}
+                              </td>
+                            )}
                           </>
                         )}
                       </tr>
                     ))}
                     <tr className="fw-bold" style={{ backgroundColor: "#fff3cd" }}>
-                      <td colSpan={visibleColumns.sno + visibleColumns.district + visibleColumns.quarter} className="text-end">Total -&gt;</td>
+                      <td colSpan={(visibleColumns.sno?1:0)+(visibleColumns.district?1:0)+(visibleColumns.quarter?1:0)} className="text-end">Total -&gt;</td>
                       {viewMode === "demand" ? (
                         <>
-                          {visibleColumns.khajur && <td className="text-end">{totals.khajur.toLocaleString()}</td>}
-                          {visibleColumns.egg && <td className="text-end">{totals.egg.toLocaleString()}</td>}
-                          {visibleColumns.non_egg && <td className="text-end">{totals.non_egg.toLocaleString()}</td>}
+                          {visibleColumns.khajur_beneficiary && <td className="text-end">{totals.khajur_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.egg_eating_beneficiary && <td className="text-end">{totals.egg_eating_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.non_egg_eating_beneficiary && <td className="text-end">{totals.non_egg_eating_beneficiary.toLocaleString()}</td>}
                         </>
                       ) : (
                         <>
+                          {visibleColumns.demand_khajur_beneficiary && <td className="text-end">{totals.demand_khajur_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.demand_egg_beneficiary && <td className="text-end">{totals.demand_egg_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.demand_non_egg_beneficiary && <td className="text-end">{totals.demand_non_egg_beneficiary.toLocaleString()}</td>}
                           {visibleColumns.total_demand && <td className="text-end">{totals.total_demand.toLocaleString()}</td>}
+                          {visibleColumns.distributed_khajur_beneficiary && <td className="text-end">{totals.distributed_khajur_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.distributed_egg_beneficiary && <td className="text-end">{totals.distributed_egg_beneficiary.toLocaleString()}</td>}
+                          {visibleColumns.distributed_non_egg_beneficiary && <td className="text-end">{totals.distributed_non_egg_beneficiary.toLocaleString()}</td>}
                           {visibleColumns.total_distribution && <td className="text-end">{totals.total_distribution.toLocaleString()}</td>}
                         </>
                       )}
