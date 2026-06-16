@@ -185,10 +185,7 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
             label: "Demand",
             path: "/DemandAmritAnchalProject",
           },
-          {
-            label: "Distribution",
-            path: "/StockAnchal",
-          },
+         
         ],
       },
     ],
