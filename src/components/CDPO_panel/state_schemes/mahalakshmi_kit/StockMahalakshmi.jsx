@@ -98,6 +98,15 @@ useEffect(() => {
     return Object.values(aggregated);
   }, [distributionData, selectedYear, selectedQuarter]);
 
+  // Data Analyst Summary Logic
+  const analysis = useMemo(() => {
+    if (processedData.length === 0) return { total: 0, topSector: "N/A" };
+    const total = processedData.reduce((sum, item) => sum + (Number(item.distributed_kits) || 0), 0);
+    // Finding the sector with the highest volume
+    const sorted = [...processedData].sort((a, b) => (Number(b.distributed_kits) || 0) - (Number(a.distributed_kits) || 0));
+    return { total, topSector: sorted[0]?.sector || "N/A" };
+  }, [processedData]);
+
   return (
     <div className="dashboard-container">
       <CDPOLeftNav
@@ -109,12 +118,15 @@ useEffect(() => {
       <div className="main-content-dash">
         <CDPOHeader toggleSidebar={toggleSidebar} />
 
-        <Container fluid className="dashboard-box mt-3">
-          <div className="main-heading">
-            <h3 className="mb-4 fw-bold">
-              Mahalakshmi Kit Distribution
+        <Container fluid className="dashboard-box mt-3 p-4">
+          <header className="mb-4">
+            <h3 className="fw-bold text-primary mb-1">
+              Sector Wise Distribution - Mahalakshmi Kit Yojana
             </h3>
-          </div>
+            <p className="text-muted mb-0 fs-6">
+              <strong>Active Filter Criteria:</strong> Financial Year {selectedYear === "All" ? "All Financial Years" : selectedYear}, Quarter {selectedQuarter === "All" ? "All Quarters" : selectedQuarter}
+            </p>
+          </header>
 
           <Row className="mb-4">
             <Col md={4} lg={3}>
@@ -190,6 +202,14 @@ useEffect(() => {
                   )}
                 </tbody>
               </Table>
+            </div>
+          )}
+
+          {!loading && processedData.length > 0 && (
+            <div className="mt-4 p-3 rounded shadow-sm border" style={{ backgroundColor: "#f8f9fa", borderLeft: "5px solid #0d6efd" }}>
+              <h5 className="fw-bold text-dark border-bottom pb-2 mb-3">Distribution Summary</h5>
+              <p className="mb-2 fs-6">The total kit distribution for this period is <strong className="text-primary">{analysis.total}</strong>.</p>
+              <p className="mb-0 fs-6">The specific sector that received the highest volume is <strong className="text-success">{analysis.topSector}</strong>.</p>
             </div>
           )}
         </Container>
