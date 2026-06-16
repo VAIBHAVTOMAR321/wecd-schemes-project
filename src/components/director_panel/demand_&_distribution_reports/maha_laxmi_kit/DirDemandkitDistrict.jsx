@@ -14,6 +14,9 @@ const normalizeFinancialYear = (year) => {
     case "2024-2025": return "24-25";
     case "2025-2026": return "25-26";
     case "2026-2027": return "26-27";
+    case "2024-25": return "24-25";
+    case "2025-26": return "25-26";
+    case "2026-27": return "26-27";
     default: return year;
   }
 };
@@ -23,12 +26,31 @@ const displayFinancialYear = (year) => {
     case "24-25": return "2024-2025";
     case "25-26": return "2025-2026";
     case "26-27": return "2026-2027";
+    case "2024-25": return "2024-2025";
+    case "2025-26": return "2025-2026";
+    case "2026-27": return "2026-2027";
     default: return year;
   }
 };
 
 const getFinancialYearOptions = (years) => {
   return [...new Set([...defaultFinancialYearOptions, ...(years || []).map(displayFinancialYear)].filter(Boolean))];
+};
+
+const getResponseData = (response) => Array.isArray(response.data) ? response.data : response.data?.data || [];
+
+const getFinancialYearValue = (item) => item.financial_year || item.fin_year || item.fin_yr || "";
+
+const getQuarterValue = (item) => item.quarter || item.qtr_dmd || item.qtr || "";
+
+const getQuarterMonths = (quarter) => {
+  switch (quarter) {
+    case "Apr-May-June": return ["Apr-May-Jun", "Apr-May-June", "April-May-June", "April-May-Jun", "First"];
+    case "July-Aug-Sept": return ["Jul-Aug-Sep", "July-Aug-Sept", "July-Aug-Sep", "Jul-Aug-Sept", "Second"];
+    case "Oct-Nov-Dec": return ["Oct-Nov-Dec", "October-November-December", "Oct-Nov-December", "Third"];
+    case "Jan-Feb-March": return ["Jan-Feb-Mar", "Jan-Feb-March", "January-February-March", "Jan-February-March", "Fourth"];
+    default: return [];
+  }
 };
 
 const DirDemandkitDistrict = () => {
@@ -73,16 +95,6 @@ const DirDemandkitDistrict = () => {
 
   const financialYearOptions = useMemo(() => getFinancialYearOptions(uniqueYears), [uniqueYears]);
 
-  const getQuarterMonths = (quarter) => {
-    switch (quarter) {
-      case "Apr-May-June": return ["Apr-May-Jun"];
-      case "July-Aug-Sept": return ["Jul-Aug-Sep"];
-      case "Oct-Nov-Dec": return ["Oct-Nov-Dec"];
-      case "Jan-Feb-March": return ["Jan-Feb-Mar"];
-      default: return [];
-    }
-  };
-
   const filteredData = tableData.filter((item) => {
     const search = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -120,22 +132,22 @@ const DirDemandkitDistrict = () => {
 
       const response = await api.get(`director/mahalaxmi-demand/district-wise/`, { params });
 
-      const fetchedData = response.data?.data || [];
+      const fetchedData = getResponseData(response);
 
       const mappedData = fetchedData.map(item => ({
         ...item,
-        financial_year: displayFinancialYear(item.financial_year || item.fin_yr || ""),
-        quarter: item.quarter || "",
+        financial_year: displayFinancialYear(getFinancialYearValue(item)),
+        quarter: getQuarterValue(item),
         no_of_beneficiaries: item.no_of_beneficiaries || 0,
         required_kits: item.required_kits || 0,
-        _display_quarter: quarter === "All" ? "All" : (item.quarter || ""),
+        _display_quarter: quarter === "All" ? "All" : getQuarterValue(item),
       }));
 
       setTableData(mappedData);
       setTotalEntries(fetchedData.length || 0);
 
       if (fetchedData.length > 0 && (financialYear === "All" || uniqueYears.length === 0)) {
-        const years = [...new Set(fetchedData.map(item => item.financial_year))].filter(Boolean);
+        const years = [...new Set(fetchedData.map(getFinancialYearValue))].filter(Boolean).map(displayFinancialYear);
         setUniqueYears(years.sort());
       }
     } catch (err) {
@@ -585,7 +597,7 @@ const DirDemandkitDistrict = () => {
 };
 
 const DistributionReportView = ({ api, quarter, financialYear }) => {
-  const [distFinancialYear, setDistFinancialYear] = useState(financialYear);
+  const [distFinancialYear, setDistFinancialYear] = useState("All");
   const [distQuarter, setDistQuarter] = useState(quarter);
   const [distTableData, setDistTableData] = useState([]);
   const [distUniqueYears, setDistUniqueYears] = useState([]);
@@ -596,8 +608,8 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
   const distEntriesPerPage = 50;
 
   useEffect(() => {
-    setDistFinancialYear(displayFinancialYear(financialYear));
-    setDistQuarter(quarter);
+    setDistFinancialYear(displayFinancialYear(financialYear) || "All");
+    setDistQuarter(quarter || "All");
   }, [financialYear, quarter]);
 
   const distTableColumns = [
@@ -649,30 +661,37 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
       const params = { page_size: 5000 };
       if (distFinancialYear !== "All") params.fin_yr = normalizeFinancialYear(distFinancialYear);
 
-      const response = await api.get(`director/mahalaxmi-district/stock-report/`, { params });
-      const fetchedData = response.data?.data || [];
+      let response = await api.get(`director/mahalaxmi-district/stock-report/`, { params });
+      let fetchedData = getResponseData(response);
+
+      if (distFinancialYear !== "All" && fetchedData.length === 0) {
+        response = await api.get(`director/mahalaxmi-district/stock-report/`, { params: { page_size: 5000 } });
+        fetchedData = getResponseData(response);
+      }
+
       const quarterMonths = distQuarter === "All" ? null : getQuarterMonths(distQuarter);
 
       const filteredData = fetchedData.filter((item) => {
-        const itemYear = displayFinancialYear(item.financial_year || item.fin_yr || "");
+        const itemYear = displayFinancialYear(getFinancialYearValue(item));
+        const itemQuarter = getQuarterValue(item);
         const matchesYear = distFinancialYear === "All" || itemYear === distFinancialYear;
-        const matchesQuarter = distQuarter === "All" || (quarterMonths && quarterMonths.includes(item.quarter));
+        const matchesQuarter = distQuarter === "All" || (quarterMonths && quarterMonths.includes(itemQuarter));
         return matchesYear && matchesQuarter;
       });
 
       const mappedData = filteredData.map(item => ({
         ...item,
-        financial_year: displayFinancialYear(item.financial_year || item.fin_yr || ""),
-        quarter: item.quarter || "",
+        financial_year: displayFinancialYear(getFinancialYearValue(item)),
+        quarter: getQuarterValue(item),
         beneficiary: item.beneficiary || 0,
         demand_kits: item.demand_kits || 0,
         received_kits: item.received_kits || 0,
         distributed_kits: item.distributed_kits || 0,
         available_balance: item.available_balance || 0,
-        _display_quarter: distQuarter === "All" ? "All" : (item.quarter || ""),
+        _display_quarter: distQuarter === "All" ? "All" : getQuarterValue(item),
       }));
       setDistTableData(mappedData);
-      setDistUniqueYears([...new Set(fetchedData.map(item => displayFinancialYear(item.financial_year || item.fin_yr || "")))].filter(Boolean).sort());
+      setDistUniqueYears([...new Set(fetchedData.map(getFinancialYearValue))].filter(Boolean).map(displayFinancialYear).sort());
     } catch (err) {
       console.error("Error fetching distribution report:", err);
       setDistTableData([]);
