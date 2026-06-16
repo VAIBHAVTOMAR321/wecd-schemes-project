@@ -7,6 +7,30 @@ import "../../../../assets/css/dashboard.css";
 import DirectorHeader from "../../DirectorHeader";
 import DirectorLeftNav from "../../DirectorLeftNav";
 
+const defaultFinancialYearOptions = ["2024-2025", "2025-2026", "2026-2027"];
+
+const normalizeFinancialYear = (year) => {
+  switch (year) {
+    case "2024-2025": return "24-25";
+    case "2025-2026": return "25-26";
+    case "2026-2027": return "26-27";
+    default: return year;
+  }
+};
+
+const displayFinancialYear = (year) => {
+  switch (year) {
+    case "24-25": return "2024-2025";
+    case "25-26": return "2025-2026";
+    case "26-27": return "2026-2027";
+    default: return year;
+  }
+};
+
+const getFinancialYearOptions = (years) => {
+  return [...new Set([...defaultFinancialYearOptions, ...(years || []).map(displayFinancialYear)].filter(Boolean))];
+};
+
 const DirDemandkitDistrict = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -46,6 +70,8 @@ const DirDemandkitDistrict = () => {
     no_of_beneficiaries: true,
     required_kits: true,
   });
+
+  const financialYearOptions = useMemo(() => getFinancialYearOptions(uniqueYears), [uniqueYears]);
 
   const getQuarterMonths = (quarter) => {
     switch (quarter) {
@@ -90,7 +116,7 @@ const DirDemandkitDistrict = () => {
     setError(null);
     try {
       const params = { page_size: 5000 };
-      if (financialYear !== "All") params.fin_yr = financialYear;
+      if (financialYear !== "All") params.fin_yr = normalizeFinancialYear(financialYear);
 
       const response = await api.get(`director/mahalaxmi-demand/district-wise/`, { params });
 
@@ -98,7 +124,7 @@ const DirDemandkitDistrict = () => {
 
       const mappedData = fetchedData.map(item => ({
         ...item,
-        financial_year: item.financial_year || "",
+        financial_year: displayFinancialYear(item.financial_year || item.fin_yr || ""),
         quarter: item.quarter || "",
         no_of_beneficiaries: item.no_of_beneficiaries || 0,
         required_kits: item.required_kits || 0,
@@ -428,7 +454,7 @@ const DirDemandkitDistrict = () => {
                       <Form.Label className="fw-bold small">Choose Financial Year</Form.Label>
                       <Form.Select size="sm" value={financialYear} onChange={(e) => setFinancialYear(e.target.value)}>
                         <option value="All">All Financial Years</option>
-                        {uniqueYears.map(year => <option key={year} value={year}>{year}</option>)}
+                        {financialYearOptions.map(year => <option key={year} value={year}>{year}</option>)}
                       </Form.Select>
                     </Col>
                     <Col md={3}>
@@ -529,7 +555,7 @@ const DirDemandkitDistrict = () => {
             <DistributionReportView 
               api={api} 
               quarter={quarter} 
-              financialYear={distFinancialYear}
+              financialYear={financialYear}
             />
           )}
         </Container>
@@ -570,19 +596,9 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
   const distEntriesPerPage = 50;
 
   useEffect(() => {
-    setDistFinancialYear(financialYear);
+    setDistFinancialYear(displayFinancialYear(financialYear));
     setDistQuarter(quarter);
   }, [financialYear, quarter]);
-
-  const handleDistYearChange = (value) => {
-    setDistFinancialYear(value);
-    setFinancialYear(value);
-  };
-
-  const handleDistQuarterChange = (value) => {
-    setDistQuarter(value);
-    setQuarter(value);
-  };
 
   const distTableColumns = [
     { key: "sno", label: "S.No" },
@@ -608,6 +624,8 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     available_balance: true,
   });
 
+  const distFinancialYearOptions = useMemo(() => getFinancialYearOptions(distUniqueYears), [distUniqueYears]);
+
   const distOverallTotals = useMemo(() => {
     return distTableData.reduce(
       (acc, item) => {
@@ -629,14 +647,14 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     setDistLoading(true);
     try {
       const params = { page_size: 5000 };
-      if (distFinancialYear !== "All") params.fin_yr = distFinancialYear;
+      if (distFinancialYear !== "All") params.fin_yr = normalizeFinancialYear(distFinancialYear);
 
       const response = await api.get(`director/mahalaxmi-district/stock-report/`, { params });
       const fetchedData = response.data?.data || [];
       const quarterMonths = distQuarter === "All" ? null : getQuarterMonths(distQuarter);
 
       const filteredData = fetchedData.filter((item) => {
-        const itemYear = item.financial_year || item.fin_yr || "";
+        const itemYear = displayFinancialYear(item.financial_year || item.fin_yr || "");
         const matchesYear = distFinancialYear === "All" || itemYear === distFinancialYear;
         const matchesQuarter = distQuarter === "All" || (quarterMonths && quarterMonths.includes(item.quarter));
         return matchesYear && matchesQuarter;
@@ -644,7 +662,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
 
       const mappedData = filteredData.map(item => ({
         ...item,
-        financial_year: item.financial_year || item.fin_yr || "",
+        financial_year: displayFinancialYear(item.financial_year || item.fin_yr || ""),
         quarter: item.quarter || "",
         beneficiary: item.beneficiary || 0,
         demand_kits: item.demand_kits || 0,
@@ -654,7 +672,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
         _display_quarter: distQuarter === "All" ? "All" : (item.quarter || ""),
       }));
       setDistTableData(mappedData);
-      setDistUniqueYears([...new Set(fetchedData.map(item => item.financial_year || item.fin_yr))].filter(Boolean).sort());
+      setDistUniqueYears([...new Set(fetchedData.map(item => displayFinancialYear(item.financial_year || item.fin_yr || "")))].filter(Boolean).sort());
     } catch (err) {
       console.error("Error fetching distribution report:", err);
       setDistTableData([]);
@@ -705,7 +723,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
 
     const text = [
       "MAHALAXMI KIT DISTRIBUTION DATA (DISTRICT WISE)",
-      `For the year: ${distFinancialYear} and Quarter: ${quarter}`,
+      `For the year: ${distFinancialYear} and Quarter: ${distQuarter}`,
       "",
       visibleCols.map((col) => col.label).join("\t"),
       ...rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join("\t")),
@@ -738,7 +756,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     };
 
     let csv = "MAHALAXMI KIT DISTRIBUTION DATA (DISTRICT WISE)\n";
-    csv += `For the year: ${distFinancialYear}, Quarter: ${quarter}\n\n`;
+    csv += `For the year: ${distFinancialYear}, Quarter: ${distQuarter}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
     csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
     csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
@@ -798,7 +816,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
         </head>
         <body>
           <h2>Mahalaxmi Kit Distribution Data | District Wise</h2>
-          <h4 style="text-align:center;color:#dc2626;">For the year: ${distFinancialYear} and Quarter: ${quarter}</h4>
+          <h4 style="text-align:center;color:#dc2626;">For the year: ${distFinancialYear} and Quarter: ${distQuarter}</h4>
           <table>
             <thead>
               <tr style="background-color:#004d4d;color:#fff;">
@@ -915,14 +933,14 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           <Row className="g-3 align-items-end justify-content-center">
             <Col md={3}>
               <Form.Label className="fw-bold small">Choose Financial Year</Form.Label>
-              <Form.Select size="sm" value={distFinancialYear} onChange={(e) => setFinancialYear(e.target.value)}>
+              <Form.Select size="sm" value={distFinancialYear} onChange={(e) => setDistFinancialYear(e.target.value)}>
                 <option value="All">All Financial Years</option>
-                {distUniqueYears.map(year => <option key={year} value={year}>{year}</option>)}
+                {distFinancialYearOptions.map(year => <option key={year} value={year}>{year}</option>)}
               </Form.Select>
             </Col>
             <Col md={3}>
               <Form.Label className="fw-bold small">Choose Quarter</Form.Label>
-              <Form.Select size="sm" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
+              <Form.Select size="sm" value={distQuarter} onChange={(e) => setDistQuarter(e.target.value)}>
                 <option value="All">All Quarters</option>
                 <option value="Apr-May-June">Apr-May-June</option>
                 <option value="July-Aug-Sept">July-Aug-Sept</option>
@@ -938,7 +956,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           </Row>
           <div className="text-center mt-3">
             <h6 className="mb-0">
-              For the year : <span className="text-danger fw-bold">{distFinancialYear}</span> and Quarter : <span className="text-danger fw-bold">{quarter}</span>
+              For the year : <span className="text-danger fw-bold">{distFinancialYear}</span> and Quarter : <span className="text-danger fw-bold">{distQuarter}</span>
             </h6>
           </div>
         </Card.Body>
