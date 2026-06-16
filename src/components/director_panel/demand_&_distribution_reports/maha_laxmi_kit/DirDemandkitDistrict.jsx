@@ -39,6 +39,20 @@ const getFinancialYearOptions = (years) => {
 
 const getResponseData = (response) => Array.isArray(response.data) ? response.data : response.data?.data || [];
 
+const getFinancialYearValue = (item) => item.financial_year || item.fin_year || item.fin_yr || "";
+
+const getQuarterValue = (item) => item.quarter || item.qtr_dmd || item.qtr || "";
+
+const getQuarterMonths = (quarter) => {
+  switch (quarter) {
+    case "Apr-May-June": return ["Apr-May-Jun", "Apr-May-June", "April-May-June", "April-May-Jun", "First"];
+    case "July-Aug-Sept": return ["Jul-Aug-Sep", "July-Aug-Sept", "July-Aug-Sep", "Jul-Aug-Sept", "Second"];
+    case "Oct-Nov-Dec": return ["Oct-Nov-Dec", "October-November-December", "Oct-Nov-December", "Third"];
+    case "Jan-Feb-March": return ["Jan-Feb-Mar", "Jan-Feb-March", "January-February-March", "Jan-February-March", "Fourth"];
+    default: return [];
+  }
+};
+
 const DirDemandkitDistrict = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -80,20 +94,6 @@ const DirDemandkitDistrict = () => {
   });
 
   const financialYearOptions = useMemo(() => getFinancialYearOptions(uniqueYears), [uniqueYears]);
-
-const getFinancialYearValue = (item) => item.financial_year || item.fin_year || item.fin_yr || "";
-
-const getQuarterValue = (item) => item.quarter || item.qtr_dmd || item.qtr || "";
-
-const getQuarterMonths = (quarter) => {
-  switch (quarter) {
-    case "Apr-May-June": return ["Apr-May-Jun", "Apr-May-June", "April-May-June", "April-May-Jun", "First"];
-    case "July-Aug-Sept": return ["Jul-Aug-Sep", "July-Aug-Sept", "July-Aug-Sep", "Jul-Aug-Sept", "Second"];
-    case "Oct-Nov-Dec": return ["Oct-Nov-Dec", "October-November-December", "Oct-Nov-December", "Third"];
-    case "Jan-Feb-March": return ["Jan-Feb-Mar", "Jan-Feb-March", "January-February-March", "Jan-February-March", "Fourth"];
-    default: return [];
-  }
-};
 
   const filteredData = tableData.filter((item) => {
     const search = searchTerm.toLowerCase();
@@ -597,7 +597,7 @@ const getQuarterMonths = (quarter) => {
 };
 
 const DistributionReportView = ({ api, quarter, financialYear }) => {
-  const [distFinancialYear, setDistFinancialYear] = useState(financialYear);
+  const [distFinancialYear, setDistFinancialYear] = useState("All");
   const [distQuarter, setDistQuarter] = useState(quarter);
   const [distTableData, setDistTableData] = useState([]);
   const [distUniqueYears, setDistUniqueYears] = useState([]);
@@ -608,8 +608,8 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
   const distEntriesPerPage = 50;
 
   useEffect(() => {
-    setDistFinancialYear(displayFinancialYear(financialYear));
-    setDistQuarter(quarter);
+    setDistFinancialYear(displayFinancialYear(financialYear) || "All");
+    setDistQuarter(quarter || "All");
   }, [financialYear, quarter]);
 
   const distTableColumns = [
