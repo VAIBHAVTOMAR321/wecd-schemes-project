@@ -59,8 +59,8 @@ const [formData, setFormData] = useState({
     welcomeTitle: "Welcome",
     welcomeSubtitle: "Sign in to continue to your dashboard",
     
-    needAccess: "Need access? ",
-    contactAdmin: "Contact Admin",
+    needAccess: " ",
+    contactAdmin: "",
     errors: {
       userIdRequired: "User ID / Phone is required",
       passwordRequired: "Password is required",
