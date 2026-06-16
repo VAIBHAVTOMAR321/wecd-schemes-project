@@ -36,7 +36,7 @@ function DirectorHeader({ toggleSidebar }) {
   const [imageError, setImageError] = useState(false);
 
   const getDisplayName = () => {
-    return userDetails.full_name || "Director User";
+    return userDetails.full_name || "Director Panel";
   };
 
   const getUserPhotoUrl = () => {
