@@ -327,6 +327,7 @@
 .logo-container {
     display: flex;
     align-items: center;
+    width: 70px !important;
 }
 .dashboard-box {
   background-color: #ffffff;

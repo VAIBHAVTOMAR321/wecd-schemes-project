@@ -301,6 +301,8 @@
 .logo-container {
     display: flex;
     align-items: center;
+  width: 35px !important;
+    gap: 22px;
 }
 .dashboard-box {
   background-color: #ffffff;

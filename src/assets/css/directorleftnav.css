@@ -301,6 +301,36 @@
 .logo-container {
     display: flex;
     align-items: center;
+  width: 35px !important;
+    gap: 22px;
+  
+}
+.logo-container .sidebar-uk-logo {
+    height: 28px;
+    width: auto;
+  
+}
+.logo-container .sidebar-women-logo {
+    height: 22px;
+    width: auto;
+}
+.sidebar-brand-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sidebar-brand-subtitle {
+    font-size: 10px;
+    color: #fff;
+    line-height: 1.2;
+}
+.logo-container.logo-collapsed {
+    justify-content: center;
+    padding: 10px 0;
+}
+.logo-container .sidebar-uk-logo-collapsed {
+    height: 26px;
+    width: auto;
 }
 .dashboard-box {
   background-color: #ffffff;

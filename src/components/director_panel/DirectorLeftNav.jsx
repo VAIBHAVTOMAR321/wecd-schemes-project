@@ -47,6 +47,8 @@ import {
 } from "react-icons/fa";
 
 import { useAuth } from "../all_login/AuthContext";
+import UkLogo from "../../assets/images/uk_logo_2.jpeg"
+import Womenlogo from "../../assets/images/women_logo.jpeg";
 
 
 const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClick }) => {
@@ -220,26 +222,40 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
       <div
         className={`user-left-nav ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
       >
-        <div className="sidebar-header">
-          {sidebarOpen ? (
-            <div className="logo-container">
-              <div className="logo">
-                  Logo
-              </div>
-            </div>
-          ) : (
-            <div className="logo-container logo-collapsed">
-            </div>
-          )}
-        </div>
+      <div className="sidebar-header">
+  {sidebarOpen ? (
+    <div className="logo-container">
+      <img
+        src={UkLogo}
+        alt="UK Logo"
+        className="sidebar-uk-logo"
+      />
+
+      <img
+        src={Womenlogo}
+        alt="Women Logo"
+        className="sidebar-women-logo"
+      />
+    </div>
+  ) : (
+    <div className="logo-container logo-collapsed">
+      <img
+        src={UkLogo}
+        alt="UK Logo"
+        className="sidebar-uk-logo"
+      />
+    </div>
+   
+  )}
+   
+</div>
 
         <Nav className="sidebar-nav flex-column">
-          
-         {menuItems
-  .filter(item =>
-    item.allowedRoles ? item.allowedRoles.includes(userRole) : true
-  )
-  .map((item, index) => (
+          {menuItems
+          .filter(item =>
+            item.allowedRoles ? item.allowedRoles.includes(userRole) : true
+          )
+          .map((item, index) => (
     <div key={index} className={`nav-item-wrapper ${isItemActive(item) ? "active-parent" : ""}`}>
       {/* If submenu exists */}
       {item.submenu ? (

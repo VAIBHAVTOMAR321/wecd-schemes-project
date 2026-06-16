@@ -44,7 +44,8 @@ import {
   FaBullseye,
   
 } from "react-icons/fa";
-
+import UkLogo from "../../assets/images/uk_logo_2.jpeg"
+import Womenlogo from "../../assets/images/women_logo.jpeg";
 import { useAuth } from "../all_login/AuthContext";
 
 
@@ -205,18 +206,33 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
       <div
         className={`user-left-nav ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
       >
-        <div className="sidebar-header">
-          {sidebarOpen ? (
-            <div className="logo-container">
-              <div className="logo">
-                  Project Panel
-              </div>
-            </div>
-          ) : (
-            <div className="logo-container logo-collapsed">
-            </div>
-          )}
-        </div>
+            <div className="sidebar-header">
+             {sidebarOpen ? (
+               <div className="logo-container">
+                 <img
+                   src={UkLogo}
+                   alt="UK Logo"
+                   className="sidebar-uk-logo"
+                 />
+           
+                 <img
+                   src={Womenlogo}
+                   alt="Women Logo"
+                   className="sidebar-women-logo"
+                 />
+               </div>
+             ) : (
+               <div className="logo-container logo-collapsed">
+                 <img
+                   src={UkLogo}
+                   alt="UK Logo"
+                   className="sidebar-uk-logo"
+                 />
+               </div>
+              
+             )}
+              
+           </div>
 
         <Nav className="sidebar-nav flex-column">
           
