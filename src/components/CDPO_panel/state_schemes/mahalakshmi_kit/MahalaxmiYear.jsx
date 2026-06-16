@@ -503,7 +503,7 @@ useEffect(() => {
               <Row className="justify-content-center mb-4">
             <Col xs={12} md={6} lg={4} className="text-center">
               <h6 className="fw-bold text-primary mb-2">उपलब्ध किट</h6>
-              <Badge pill bg="warning" className="p-3 fs-3 fw-bold shadow-sm" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '15px', backgroundColor: '#ffc107 !important', color: '#343a40' }}>
+              <Badge pill bg="warning" className="p-3 fs-3 fw-bold shadow-sm mx-auto" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: '#ffc107', color: '#343a40' }}>
                 {kitSummaryData.reduce((sum, item) => sum + (parseInt(item.total_available_kits) || 0), 0)}
               </Badge>
             </Col>
