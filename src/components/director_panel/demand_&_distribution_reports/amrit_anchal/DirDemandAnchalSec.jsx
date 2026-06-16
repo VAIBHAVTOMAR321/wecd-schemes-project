@@ -48,6 +48,16 @@ const DirDemandAnchalSec = () => {
     milk_beneficiary: true,
   });
 
+  const getQuarterMonths = (quarter) => {
+    switch (quarter) {
+      case "Apr-May-June": return ["April", "May", "June"];
+      case "July-Aug-Sept": return ["July", "August", "September"];
+      case "Oct-Nov-Dec": return ["October", "November", "December"];
+      case "Jan-Feb-March": return ["January", "February", "March"];
+      default: return [];
+    }
+  };
+
   const filteredData = tableData.filter((item) => {
     const search = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -57,7 +67,8 @@ const DirDemandAnchalSec = () => {
       item.financial_year?.toLowerCase().includes(search)
     );
     const matchesYear = financialYear === "All" || item.financial_year === financialYear;
-    const matchesQuarter = quarter === "All" || item.available_month === quarter;
+    const quarterMonths = quarter === "All" ? null : getQuarterMonths(quarter);
+    const matchesQuarter = quarter === "All" || (quarterMonths && quarterMonths.includes(item.available_month));
 
     return matchesSearch && matchesYear && matchesQuarter;
   });
@@ -81,9 +92,8 @@ const DirDemandAnchalSec = () => {
     try {
       const params = { page_size: 5000 };
       if (financialYear !== "All") params.fin_yr = financialYear;
-      if (quarter !== "All") params.available_month = quarter;
 
-      const response = await api.get(`director/am-demand/sector-wise/`);
+      const response = await api.get(`director/am-demand/sector-wise/`, { params });
 
       const fetchedData = response.data?.data || [];
 
@@ -110,7 +120,7 @@ const DirDemandAnchalSec = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, financialYear, quarter, uniqueYears.length]);
+  }, [api, financialYear, uniqueYears.length]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -286,29 +296,98 @@ const DirDemandAnchalSec = () => {
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
 
-  const handleCopy = async () => {
-    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
-    const escapeCsv = (value) => String(value ?? "");
+  const getExportData = () => {
+    const sortedData = [...filteredData].sort((a, b) => {
+      const distA = a.district || "";
+      const distB = b.district || "";
+      if (distA !== distB) return distA.localeCompare(distB);
+      return (a.project_name || "").localeCompare(b.project_name || "");
+    });
+    const rows = [];
+    let currentDistrict = null;
+    let currentProject = null;
+    let projectSubtotal = { milkBeneficiary: 0 };
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
-      district: row.district ?? "",
-      project_name: row.project_name ?? "",
-      sector: row.sector ?? "",
-      financial_year: row.financial_year ?? "",
-      available_month: row.available_month ?? "",
-      milk_beneficiary: row.milk_beneficiary ?? "",
-    }));
+    sortedData.forEach((row, index) => {
+      if (row.district !== currentDistrict) {
+        if (currentDistrict !== null && currentProject !== null) {
+          rows.push({
+            sno: "",
+            district: "",
+            project_name: `Total for Project: ${currentProject}`,
+            sector: "",
+            financial_year: "",
+            available_month: "",
+            milk_beneficiary: projectSubtotal.milkBeneficiary,
+            _isSubtotal: true,
+          });
+          projectSubtotal = { milkBeneficiary: 0 };
+        }
+        currentDistrict = row.district;
+        currentProject = row.project_name;
+      } else if (row.project_name !== currentProject) {
+        if (currentProject !== null) {
+          rows.push({
+            sno: "",
+            district: "",
+            project_name: `Total for Project: ${currentProject}`,
+            sector: "",
+            financial_year: "",
+            available_month: "",
+            milk_beneficiary: projectSubtotal.milkBeneficiary,
+            _isSubtotal: true,
+          });
+          projectSubtotal = { milkBeneficiary: 0 };
+        }
+        currentProject = row.project_name;
+      }
 
-    const totalRow = {
+      rows.push({
+        sno: index + 1,
+        district: row.district ?? "",
+        project_name: row.project_name ?? "",
+        sector: row.sector ?? "",
+        financial_year: row.financial_year ?? "",
+        available_month: row.available_month ?? "",
+        milk_beneficiary: row.milk_beneficiary ?? "",
+        _isSubtotal: false,
+      });
+
+      projectSubtotal.milkBeneficiary += Number(row.milk_beneficiary || 0);
+    });
+
+    if (currentProject !== null) {
+      rows.push({
+        sno: "",
+        district: "",
+        project_name: `Total for Project: ${currentProject}`,
+        sector: "",
+        financial_year: "",
+        available_month: "",
+        milk_beneficiary: projectSubtotal.milkBeneficiary,
+        _isSubtotal: true,
+      });
+    }
+
+    rows.push({
       sno: "",
       district: "",
-      project_name: "",
+      project_name: "Overall Total",
       sector: "",
       financial_year: "",
       available_month: "",
       milk_beneficiary: overallTotals.milkBeneficiary,
-    };
+      _isSubtotal: true,
+    });
+
+    return rows;
+  };
+
+  const handleCopy = async () => {
+    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
+    const escapeCsv = (value) => String(value ?? "");
+
+    const rows = getExportData();
 
     const text = [
       "AMRIT ANCHAL DEMAND DATA (SECTOR WISE)",
@@ -316,7 +395,6 @@ const DirDemandAnchalSec = () => {
       "",
       visibleCols.map((col) => col.label).join("\t"),
       ...rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join("\t")),
-      visibleCols.map((col) => escapeCsv(totalRow[col.key])).join("\t"),
     ].join("\n");
 
     try {
@@ -332,31 +410,12 @@ const DirDemandAnchalSec = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
-      district: row.district ?? "",
-      project_name: row.project_name ?? "",
-      sector: row.sector ?? "",
-      financial_year: row.financial_year ?? "",
-      available_month: row.available_month ?? "",
-      milk_beneficiary: row.milk_beneficiary ?? "",
-    }));
-
-    const totalRow = {
-      sno: "",
-      district: "",
-      project_name: "",
-      sector: "",
-      financial_year: "",
-      available_month: "",
-      milk_beneficiary: overallTotals.milkBeneficiary,
-    };
+    const rows = getExportData();
 
     let csv = "AMRIT ANCHAL DEMAND DATA (SECTOR WISE)\n";
     csv += `For the year: ${financialYear}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
     csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
-    csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -371,6 +430,25 @@ const DirDemandAnchalSec = () => {
     if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
+
+    const rows = getExportData();
+
+    const tbodyRows = rows.map((row) => {
+      if (row._isSubtotal) {
+        return `<tr style="background-color:#e8f4f8;font-weight:bold;">
+          <td></td><td></td><td class="text-start">${row.project_name}</td><td></td><td></td><td></td>
+          <td class="text-center">${row.milk_beneficiary}</td></tr>`;
+      }
+      return `<tr>
+        <td class="text-center">${row.sno}</td>
+        <td>${row.district}</td>
+        <td>${row.project_name}</td>
+        <td>${row.sector}</td>
+        <td class="text-center">${row.financial_year}</td>
+        <td class="text-center">${row.available_month}</td>
+        <td class="text-center">${row.milk_beneficiary}</td>
+      </tr>`;
+    }).join("");
 
     printWindow.document.write(`
       <html>
@@ -387,7 +465,20 @@ const DirDemandAnchalSec = () => {
         <body>
           <h2>Amrit Anchal Demand Data | Sector Wise</h2>
           <h4 style="text-align:center;color:#dc2626;">For the year: ${financialYear}</h4>
-          ${tableRef.current.outerHTML}
+          <table>
+            <thead>
+              <tr style="background-color:#004d4d;color:#fff;">
+                <th style="padding:6px;">S.No</th>
+                <th style="padding:6px;">District</th>
+                <th style="padding:6px;">Project</th>
+                <th style="padding:6px;">Sector</th>
+                <th style="padding:6px;">Financial Year</th>
+                <th style="padding:6px;">Available Month</th>
+                <th style="padding:6px;">Milk Beneficiary</th>
+              </tr>
+            </thead>
+            <tbody>${tbodyRows}</tbody>
+          </table>
         </body>
       </html>
     `);
@@ -421,21 +512,13 @@ const DirDemandAnchalSec = () => {
                   </Form.Select>
                 </Col>
                 <Col md={3}>
-                  <Form.Label className="fw-bold small">Choose Available Month</Form.Label>
+                  <Form.Label className="fw-bold small">Choose Quarter</Form.Label>
                   <Form.Select size="sm" value={quarter} onChange={(e) => setQuarter(e.target.value)}>
-                    <option value="All">All Months</option>
-                    <option value="January">January</option>
-                    <option value="February">February</option>
-                    <option value="March">March</option>
-                    <option value="April">April</option>
-                    <option value="May">May</option>
-                    <option value="June">June</option>
-                    <option value="July">July</option>
-                    <option value="August">August</option>
-                    <option value="September">September</option>
-                    <option value="October">October</option>
-                    <option value="November">November</option>
-                    <option value="December">December</option>
+                    <option value="All">All Quarters</option>
+                    <option value="Apr-May-June">Apr-May-June</option>
+                    <option value="July-Aug-Sept">July-Aug-Sept</option>
+                    <option value="Oct-Nov-Dec">Oct-Nov-Dec</option>
+                    <option value="Jan-Feb-March">Jan-Feb-March</option>
                   </Form.Select>
                 </Col>
                 <Col md="auto">
@@ -446,7 +529,7 @@ const DirDemandAnchalSec = () => {
               </Row>
               <div className="text-center mt-3">
                 <h6 className="mb-0">
-                  For the year : <span className="text-danger fw-bold">{financialYear}</span> and Month : <span className="text-danger fw-bold">{quarter}</span>
+                  For the year : <span className="text-danger fw-bold">{financialYear}</span> and Quarter : <span className="text-danger fw-bold">{quarter}</span>
                 </h6>
               </div>
             </Card.Body>
