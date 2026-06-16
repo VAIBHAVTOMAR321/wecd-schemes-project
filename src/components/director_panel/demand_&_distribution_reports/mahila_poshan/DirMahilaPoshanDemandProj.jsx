@@ -232,14 +232,10 @@ const DirMahilaPoshanDemandProj = () => {
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
 
-  const getVisibleRows = (rows, columns) => rows.map((row) => columns.map((col) => row[col.key] ?? ""));
-
-  const handleCopy = async () => {
-    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
-    const escapeCsv = (value) => String(value ?? "");
-    
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
+  const getExportData = () => {
+    const sortedData = [...filteredData].sort((a, b) => (a.district || "").localeCompare(b.district || ""));
+    return sortedData.map((row, index) => ({
+      sno: index + 1,
       district: row.district ?? "",
       project: row.project ?? "",
       financial_year: row.financial_year ?? "",
@@ -248,6 +244,13 @@ const DirMahilaPoshanDemandProj = () => {
       egg_eating_beneficiary: row.egg_eating_beneficiary ?? "",
       non_egg_eating_beneficiary: row.non_egg_eating_beneficiary ?? "",
     }));
+  };
+
+  const handleCopy = async () => {
+    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
+    const escapeCsv = (value) => String(value ?? "");
+
+    const rows = getExportData();
 
     const totalRow = {
       sno: "",
@@ -281,17 +284,8 @@ const DirMahilaPoshanDemandProj = () => {
   const handleExcel = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-    
-    const rows = filteredData.slice(startIndex, endIndex).map((row, idx) => ({
-      sno: startIndex + idx + 1,
-      district: row.district ?? "",
-      project: row.project ?? "",
-      financial_year: row.financial_year ?? "",
-      quarter: row.quarter ?? "",
-      khajur_beneficiary: row.khajur_beneficiary ?? "",
-      egg_eating_beneficiary: row.egg_eating_beneficiary ?? "",
-      non_egg_eating_beneficiary: row.non_egg_eating_beneficiary ?? "",
-    }));
+
+    const rows = getExportData();
 
     const totalRow = {
       sno: "",
@@ -320,9 +314,34 @@ const DirMahilaPoshanDemandProj = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
+
+    const rows = getExportData();
+
+    const tbodyRows = rows.map((row) => `
+      <tr>
+        <td class="text-center">${row.sno}</td>
+        <td>${row.district}</td>
+        <td>${row.project}</td>
+        <td class="text-center">${row.financial_year}</td>
+        <td class="text-center">${row.quarter}</td>
+        <td class="text-center">${row.khajur_beneficiary}</td>
+        <td class="text-center">${row.egg_eating_beneficiary}</td>
+        <td class="text-center">${row.non_egg_eating_beneficiary}</td>
+      </tr>
+    `).join("");
+
+    const overallRow = `
+      <tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
+        <td></td>
+        <td class="text-start" style="padding:8px;">Overall Total</td>
+        <td></td><td></td><td></td>
+        <td class="text-center">${overallTotals.khajur}</td>
+        <td class="text-center">${overallTotals.egg}</td>
+        <td class="text-center">${overallTotals.nonEgg}</td>
+      </tr>
+    `;
 
     printWindow.document.write(`
       <html>
@@ -339,7 +358,21 @@ const DirMahilaPoshanDemandProj = () => {
         <body>
           <h2>Mahila Poshan Demand Data | Project Wise</h2>
           <h4 style="text-align:center;color:#dc2626;">For the year: ${financialYear} and Quarter: ${quarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table>
+            <thead>
+              <tr style="background-color:#004d4d;color:#fff;">
+                <th style="padding:6px;">S.No</th>
+                <th style="padding:6px;">District</th>
+                <th style="padding:6px;">Project</th>
+                <th style="padding:6px;">Financial Year</th>
+                <th style="padding:6px;">Quarter</th>
+                <th style="padding:6px;">Total Beneficiary</th>
+                <th style="padding:6px;">Egg Beneficiary</th>
+                <th style="padding:6px;">Non Egg Eating Beneficiary</th>
+              </tr>
+            </thead>
+            <tbody>${tbodyRows}${overallRow}</tbody>
+          </table>
         </body>
       </html>
     `);
