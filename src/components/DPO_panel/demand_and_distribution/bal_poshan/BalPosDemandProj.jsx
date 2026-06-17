@@ -254,16 +254,48 @@ const BalPosDemandProj = () => {
   const handleCopy = async () => {
     const visibleMainColumns = mainTableColumns.filter((col) => visibleColumns[col.key]);
     const visibleDistColumns = distTableColumns.filter((col) => visibleColumns[col.key]);
+
+    const allMainRows = filteredData.map((item, idx) => ({
+      sno: idx + 1,
+      demandId: item.demand_id ?? "",
+      projectName: item.project_name ?? "",
+      sector: item.sector ?? "",
+      financialYear: item.financial_year ?? "",
+      quarter: item.quarter ?? "",
+      oldBalance: item.old_balance ?? "",
+      kelaBeneficiary: item.kela_chips_beneficiary ?? "",
+      eggBeneficiary: item.egg_beneficiary ?? "",
+      nonEggBeneficiary: item.not_eat_egg_beneficiary ?? "",
+    }));
+
+    const allDistRows = filteredData.flatMap((item) => {
+      if (!Array.isArray(item.distribution)) return [];
+      return item.distribution.map((dist) => ({
+        distProjectName: item.project_name || "",
+        distSector: item.sector || "",
+        distMonth: dist.month || "",
+        allottedKela: dist.allotted_kela ?? "",
+        allottedEgg: dist.allotted_egg ?? "",
+        allottedKhajur: dist.allotted_khajur ?? "",
+        kelaBene: dist.kela_beneficiary ?? "",
+        eggBene: dist.egg_beneficiary ?? "",
+        khajurBene: dist.khajur_beneficiary ?? "",
+        kelaDist: dist.kela_distribution ?? "",
+        eggDist: dist.egg_distribution ?? "",
+        khajurDist: dist.khajur_distribution ?? "",
+      }));
+    });
+
     const text = [
       "BAL POSHAN DEMAND DATA (PROJECT WISE)",
       `For the year : ${displayFinancialYear(selectedFinYear)} and Quarter : ${selectedQuarter || "All"}`,
       "",
       visibleMainColumns.map((col) => col.label).join("\t"),
-      ...getVisibleRows(mainRows, visibleMainColumns).map((row) => row.join("\t")),
+      ...getVisibleRows(allMainRows, visibleMainColumns).map((row) => row.join("\t")),
       "",
       "DISTRIBUTION DETAILS",
       visibleDistColumns.map((col) => col.label).join("\t"),
-      ...getVisibleRows(distributionRows, visibleDistColumns).map((row) => row.join("\t")),
+      ...getVisibleRows(allDistRows, visibleDistColumns).map((row) => row.join("\t")),
     ].join("\n");
 
     try {
@@ -278,14 +310,46 @@ const BalPosDemandProj = () => {
   const handleExcel = () => {
     const visibleMainColumns = mainTableColumns.filter((col) => visibleColumns[col.key]);
     const visibleDistColumns = distTableColumns.filter((col) => visibleColumns[col.key]);
+
+    const allMainRows = filteredData.map((item, idx) => ({
+      sno: idx + 1,
+      demandId: item.demand_id ?? "",
+      projectName: item.project_name ?? "",
+      sector: item.sector ?? "",
+      financialYear: item.financial_year ?? "",
+      quarter: item.quarter ?? "",
+      oldBalance: item.old_balance ?? "",
+      kelaBeneficiary: item.kela_chips_beneficiary ?? "",
+      eggBeneficiary: item.egg_beneficiary ?? "",
+      nonEggBeneficiary: item.not_eat_egg_beneficiary ?? "",
+    }));
+
+    const allDistRows = filteredData.flatMap((item) => {
+      if (!Array.isArray(item.distribution)) return [];
+      return item.distribution.map((dist) => ({
+        distProjectName: item.project_name || "",
+        distSector: item.sector || "",
+        distMonth: dist.month || "",
+        allottedKela: dist.allotted_kela ?? "",
+        allottedEgg: dist.allotted_egg ?? "",
+        allottedKhajur: dist.allotted_khajur ?? "",
+        kelaBene: dist.kela_beneficiary ?? "",
+        eggBene: dist.egg_beneficiary ?? "",
+        khajurBene: dist.khajur_beneficiary ?? "",
+        kelaDist: dist.kela_distribution ?? "",
+        eggDist: dist.egg_distribution ?? "",
+        khajurDist: dist.khajur_distribution ?? "",
+      }));
+    });
+
     const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
     let csv = "BAL POSHAN DEMAND DATA (PROJECT WISE)\n";
     csv += `For the year : ${displayFinancialYear(selectedFinYear)}, Quarter : ${selectedQuarter || "All"}\n\n`;
     csv += visibleMainColumns.map((col) => escapeCsv(col.label)).join(",") + "\n";
-    csv += getVisibleRows(mainRows, visibleMainColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
+    csv += getVisibleRows(allMainRows, visibleMainColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
     csv += "\n\nDISTRIBUTION DETAILS\n";
     csv += visibleDistColumns.map((col) => escapeCsv(col.label)).join(",") + "\n";
-    csv += getVisibleRows(distributionRows, visibleDistColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
+    csv += getVisibleRows(allDistRows, visibleDistColumns).map((row) => row.map(escapeCsv).join(",")).join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -297,30 +361,72 @@ const BalPosDemandProj = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
+    if (filteredData.length === 0) return;
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
-    const distHtml = distributionRows.length > 0 && distTableRef.current
-      ? `<div style="margin-top:30px;"><h4 style="color:#dc2626;">Distribution Details</h4>${distTableRef.current.outerHTML}</div>`
-      : "";
+    const visibleMainCols = mainTableColumns.filter(c => visibleColumns[c.key]);
+    const mainHeaders = visibleMainCols.map(c => `<th>${c.label}</th>`).join("");
+    const mainRowsHtml = filteredData.map((item, idx) => {
+      const row = {
+        sno: idx + 1,
+        demandId: item.demand_id ?? "",
+        projectName: item.project_name ?? "",
+        sector: item.sector ?? "",
+        financialYear: item.financial_year ?? "",
+        quarter: item.quarter ?? "",
+        oldBalance: item.old_balance ?? "",
+        kelaBeneficiary: item.kela_chips_beneficiary ?? "",
+        eggBeneficiary: item.egg_beneficiary ?? "",
+        nonEggBeneficiary: item.not_eat_egg_beneficiary ?? "",
+      };
+      return `<tr>${visibleMainCols.map(col => `<td>${row[col.key]}</td>`).join("")}</tr>`;
+    }).join("");
+
+    const allDistRows = filteredData.flatMap((item) => {
+      if (!Array.isArray(item.distribution)) return [];
+      return item.distribution.map((dist) => ({
+        distProjectName: item.project_name || "",
+        distSector: item.sector || "",
+        distMonth: dist.month || "",
+        allottedKela: dist.allotted_kela ?? "",
+        allottedEgg: dist.allotted_egg ?? "",
+        allottedKhajur: dist.allotted_khajur ?? "",
+        kelaBene: dist.kela_beneficiary ?? "",
+        eggBene: dist.egg_beneficiary ?? "",
+        khajurBene: dist.khajur_beneficiary ?? "",
+        kelaDist: dist.kela_distribution ?? "",
+        eggDist: dist.egg_distribution ?? "",
+        khajurDist: dist.khajur_distribution ?? "",
+      }));
+    });
+
+    let distHtml = "";
+    if (allDistRows.length > 0) {
+      const visibleDistCols = distTableColumns.filter(c => visibleColumns[c.key]);
+      const distHeaders = visibleDistCols.map(c => `<th>${c.label}</th>`).join("");
+      const distRowsHtml = allDistRows.map(row => {
+        return `<tr>${visibleDistCols.map(col => `<td>${row[col.key]}</td>`).join("")}</tr>`;
+      }).join("");
+      distHtml = `<div style="margin-top:30px;"><h4 style="color:#dc2626;">Distribution Details</h4><table><thead><tr>${distHeaders}</tr></thead><tbody>${distRowsHtml}</tbody></table></div>`;
+    }
 
     printWindow.document.write(`
       <html>
         <head>
           <title>Bal Poshan Project Report</title>
           <style>
-            body { font-family: Arial, sans-serif; }
-            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px; }
             th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-            th { background-color: #f1f5f9; }
+            th { background-color: #f1f5f9; font-weight: bold; }
             h2, h4 { text-align: center; color: #dc2626; }
           </style>
         </head>
         <body>
           <h2>Bal Poshan Demand Data | Project Wise</h2>
           <h4>For the year : ${displayFinancialYear(selectedFinYear)} and Quarter : ${selectedQuarter || "All"}</h4>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mainHeaders}</tr></thead><tbody>${mainRowsHtml}</tbody></table>
           ${distHtml}
         </body>
       </html>

@@ -236,10 +236,10 @@ const DemandkitProject = () => {
   };
 
   const handleCopy = async () => {
-    if (sortedData.length === 0) return;
+    if (filteredData.length === 0) return; // Use filteredData for total count
     const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
     const headers = activeCols.map(c => c.label);
-    const rows = sortedData.map((item, index) => {
+    const rows = sortedData.map((item, index) => { // Use sortedData for actual rows
       return activeCols.map(col => {
         if (col.key === "sno") return startIndex + index + 1;
         if (col.key === "district") return item.district || "-";
@@ -266,10 +266,10 @@ const DemandkitProject = () => {
   };
 
   const handleExcel = () => {
-    if (sortedData.length === 0) return;
+    if (filteredData.length === 0) return; // Use filteredData for total count
     const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
     const headers = activeCols.map(c => c.label);
-    const rows = sortedData.map((item, index) => {
+    const rows = sortedData.map((item, index) => { // Use sortedData for actual rows
       return activeCols.map(col => {
         if (col.key === "sno") return startIndex + index + 1;
         if (col.key === "district") return item.district || "-";
@@ -300,12 +300,12 @@ const DemandkitProject = () => {
   };
 
   const handlePDF = () => {
+    if (filteredData.length === 0) return; // Use filteredData for total count
     const printWindow = window.open("", "_blank", "width=1200,height=800");
-    if (!printWindow) return;
     const doc = printWindow.document;
     const activeCols = (viewMode === "demand" ? allColumns : distributionColumns).filter(c => visibleColumns[c.key]);
-    const mHeaders = activeCols.map(c => `<th>${c.label}</th>`).join("");
-    const mRows = sortedData.map((item, idx) => {
+    const mHeaders = activeCols.map(c => `<th>${c.label}</th>`).join(""); // Use activeCols for headers
+    const mRows = sortedData.map((item, idx) => { // Use sortedData for all rows
       let r = "<tr>";
       activeCols.forEach(col => {
         let val = "-";
@@ -323,7 +323,17 @@ const DemandkitProject = () => {
       });
       return r + "</tr>";
     }).join("");
-
+    
+    let totalRowHtml = '';
+    if (sortedData.length > 0) {
+      const totalCells = activeCols.map(col => {
+        if (col.key === "sno") return `<td class="text-end" style="padding: 8px 6px; border-top: 2px solid #dee2e6;">Total &rarr;</td>`;
+        if (col.key === "beneficiary") return `<td class="text-center" style="padding: 8px 6px; border-top: 2px solid #dee2e6;">${totals.beneficiary}</td>`;
+        if (col.key === "demandKits") return `<td class="text-center" style="padding: 8px 6px; border-top: 2px solid #dee2e6;">${totals.demandKits}</td>`;
+        return `<td></td>`; // Empty cell for other columns in the total row
+      }).join("");
+      totalRowHtml = `<tr class="total-row fw-bold">${totalCells}</tr>`;
+    }
     doc.open();
     doc.write(`
       <!DOCTYPE html>
@@ -345,7 +355,7 @@ const DemandkitProject = () => {
       <body>
         <h3>${viewMode === 'demand' ? 'Mahalaxmi Kit Demand Data' : 'Mahalaxmi Kit Distribution Data'}</h3>
         <h5>Demand for the year : ${selectedYear || "All"} and Quarter : ${selectedQuarter === "All" ? "All" : getDisplayQuarter(selectedQuarter)}</h5>
-        <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
+        <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}${totalRowHtml}</tbody></table>
       </body>
       </html>
     `);

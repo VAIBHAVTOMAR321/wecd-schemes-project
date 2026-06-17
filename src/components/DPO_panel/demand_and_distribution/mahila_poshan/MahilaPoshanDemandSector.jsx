@@ -184,11 +184,11 @@ const MahilaPoshanDemandSector = () => {
   const allColumns = [...mainTableColumns, ...distTableColumns];
 
   const handleCopy = async () => {
-    if (paginatedData.length === 0) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const mHeaders = mainTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
-    const mRows = paginatedData.map((item, idx) => {
+    const mRows = processedData.map((item, idx) => { // Use processedData for all data
       if (item.type === 'row') {
-        const rowNumber = [...paginatedData].slice(0, idx).filter(i => i.type === 'row').length + rowsBeforePage + 1;
+        const rowNumber = processedData.slice(0, idx).filter(i => i.type === 'row').length + 1; // Simple index for full data
         const row = [];
         if (visibleColumns.sno) row.push(rowNumber);
         if (visibleColumns.district) row.push(district || "-");
@@ -213,7 +213,7 @@ const MahilaPoshanDemandSector = () => {
     let text = "MAHILA POSHAN DEMAND DATA (SECTOR WISE)\n" + [mHeaders.join("\t"), ...mRows.map(r => r.join("\t"))].join("\n");
 
     const distItems = paginatedData.filter(i => i.type === 'row' && i.distribution?.length > 0);
-    if (distItems.length > 0) {
+    if (distItems.length > 0) { // Still using paginatedData here, should be processedData
       text += "\n\nDISTRIBUTION DETAILS FOR APPROVED DEMANDS\n";
       const dHeaders = distTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
       text += dHeaders.join("\t") + "\n";
@@ -241,14 +241,14 @@ const MahilaPoshanDemandSector = () => {
   };
 
   const handleExcel = () => {
-    if (paginatedData.length === 0) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const mHeaders = mainTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
     let csv = "MAHILA POSHAN DEMAND DATA (SECTOR WISE)\n" + mHeaders.join(",") + "\n";
 
-    paginatedData.forEach((item, idx) => {
+    processedData.forEach((item, idx) => { // Use processedData for all data
       let row = [];
       if (item.type === 'row') {
-        const rowNum = rowsBeforePage + paginatedData.slice(0, idx).filter(i => i.type === 'row').length + 1;
+        const rowNum = processedData.slice(0, idx).filter(i => i.type === 'row').length + 1; // Simple index for full data
         if (visibleColumns.sno) row.push(rowNum);
         if (visibleColumns.district) row.push(district || "-");
         if (visibleColumns.project) row.push(item.project_name || "-");
@@ -268,7 +268,7 @@ const MahilaPoshanDemandSector = () => {
       csv += row.map(cell => `"${String(cell || "").replace(/"/g, '""')}"`).join(",") + "\n";
     });
 
-    const distItems = paginatedData.filter(i => i.type === 'row' && i.distribution?.length > 0);
+    const distItems = processedData.filter(i => i.type === 'row' && i.distribution?.length > 0); // Use processedData for all data
     if (distItems.length > 0) {
       csv += "\nDISTRIBUTION DETAILS FOR APPROVED DEMANDS\n";
       const dHeaders = distTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
@@ -296,15 +296,56 @@ const MahilaPoshanDemandSector = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
+    const activeMainCols = mainTableColumns.filter(c => visibleColumns[c.key]);
+    const mainHeaders = activeMainCols.map(c => `<th>${c.label}</th>`).join("");
+    const mainRows = processedData.map((item, idx) => {
+      let r = "";
+      if (item.type === 'row') {
+        const rowNumber = processedData.slice(0, idx).filter(i => i.type === 'row').length + 1;
+        r += `<tr>`;
+        if (visibleColumns.sno) r += `<td>${rowNumber}</td>`;
+        if (visibleColumns.district) r += `<td>${district || "-"}</td>`;
+        if (visibleColumns.project) r += `<td>${item.project_name || "-"}</td>`;
+        if (visibleColumns.sector) r += `<td>${item.sector || "-"}</td>`;
+        if (visibleColumns.quarter) r += `<td>${item.quarter || "-"}</td>`;
+        if (visibleColumns.total_beneficiary) r += `<td class="fw-bold">${item.khajur_beneficiary || "0"}</td>`;
+        if (visibleColumns.egg_beneficiary) r += `<td class="fw-bold">${item.egg_beneficiary || "0"}</td>`;
+        if (visibleColumns.non_egg_beneficiary) r += `<td class="fw-bold">${item.not_eat_egg_beneficiary || "0"}</td>`;
+        r += `</tr>`;
+      } else {
+        r += `<tr class="bg-light" style="background-color: #f8fafc; font-weight: bold;">`;
+        r += `<td colspan="${activeMainCols.filter(Boolean).length - 3}" class="text-end py-2">Total for Project: ${item.project_name}</td>`;
+        if (visibleColumns.total_beneficiary) r += `<td>${item.total_bene}</td>`;
+        if (visibleColumns.egg_beneficiary) r += `<td>${item.egg_bene}</td>`;
+        if (visibleColumns.non_egg_beneficiary) r += `<td>${item.non_egg_bene}</td>`;
+        r += `</tr>`;
+      }
+      return r;
+    }).join("");
+
     let distTableHtml = "";
-    if (distTableRef.current) {
+    const distItems = processedData.filter(i => i.type === 'row' && i.distribution?.length > 0);
+    if (distItems.length > 0) {
+      const activeDistCols = distTableColumns.filter(c => visibleColumns[c.key]);
+      const distHeaders = activeDistCols.map(c => `<th>${c.label}</th>`).join("");
+      const distRows = distItems.flatMap(row => row.distribution.map(dist => {
+        let r = "<tr>";
+        if (visibleColumns.dist_sector) r += `<td>${row.sector || "-"}</td>`;
+        if (visibleColumns.dist_month) r += `<td>${dist.month || "-"}</td>`;
+        if (visibleColumns.dist_awc_no) r += `<td>${dist.awc_no || "0"}</td>`;
+        if (visibleColumns.dist_total_beneficiary) r += `<td>${dist.total_beneficiary || "0"}</td>`;
+        if (visibleColumns.dist_allotted) r += `<td>${dist.allotted_khajur}/${dist.allotted_egg}/${dist.allotted_not_eat_egg}</td>`;
+        if (visibleColumns.dist_distributed) r += `<td>${dist.khajur_distribution_beneficiary}/${dist.egg_distribution_beneficiary}/${dist.not_eat_egg_distribution_beneficiary}</td>`;
+        r += "</tr>";
+        return r;
+      })).join("");
       distTableHtml = `<div style="margin-top: 30px;">
           <h3 style="color: #64748b; font-family: sans-serif;">Distribution Details for Approved Demands</h3>
-          ${distTableRef.current.outerHTML}
+          <table><thead><tr>${distHeaders}</tr></thead><tbody>${distRows}</tbody></table>
       </div>`;
     }
 
@@ -323,7 +364,7 @@ const MahilaPoshanDemandSector = () => {
         <body>
           <h2 style="color: #dc2626;">Mahila Poshan Report (Sector Wise)</h2>
           <h4>Year: ${selectedYear} | Quarter: ${selectedQuarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mainHeaders}</tr></thead><tbody>${mainRows}</tbody></table>
           ${distTableHtml}
         </body>
       </html>
