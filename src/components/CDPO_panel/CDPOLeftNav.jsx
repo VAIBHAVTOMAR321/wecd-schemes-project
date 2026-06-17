@@ -57,6 +57,9 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
   const userRole = user ? user.role : null;
   const [openSubmenu, setOpenSubmenu] = useState([]);
   const toggleSubmenu = (index) => {
+    if (!sidebarOpen) {
+      setSidebarOpen(true);
+    }
     setOpenSubmenu((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
@@ -82,6 +85,9 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
   }, [location.pathname, isMobile, isTablet, setSidebarOpen]);
 
   const handleItemClick = (e, path) => {
+    if (!sidebarOpen) {
+      setSidebarOpen(true);
+    }
     if (onNavClick) {
       e.preventDefault();
       onNavClick(path);
@@ -205,6 +211,7 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
       {/* Desktop Sidebar */}
       <div
         className={`user-left-nav ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}
+        onClick={() => !sidebarOpen && setSidebarOpen(true)}
       >
             <div className="sidebar-header">
              {sidebarOpen ? (
@@ -321,7 +328,18 @@ const CDPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavCli
 
        {!sidebarOpen && !isMobile && !isTablet && (
          <div className="sidebar-flyout">
-           <div className="flyout-header-title">{item.label}</div>
+           <div 
+             className="flyout-header-title"
+             style={{ cursor: "pointer" }}
+             onClick={() => {
+               setSidebarOpen(true);
+               if (item.path && item.path !== "#") {
+                 navigate(item.path);
+               }
+             }}
+           >
+             {item.label}
+           </div>
            {item.submenu && item.submenu.length > 0 && (
              <div className="flyout-body">
                {item.submenu.map((subItem, subIndex) => {
