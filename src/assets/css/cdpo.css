@@ -966,7 +966,7 @@ border: none !important;
  }
  
  .user-offcanvas-body {
-     background: linear-gradient(135deg, #4246e4, hsl(25, 92%, 47%)) !important;
+     background: linear-gradient(135deg, #4246e4, #4246e4) !important;
      padding: 0 !important;
  }
  

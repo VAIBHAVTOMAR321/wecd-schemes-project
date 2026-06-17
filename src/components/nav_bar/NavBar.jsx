@@ -31,7 +31,7 @@ function NavBar() {
   ''
 ) : (
   <>
- <div style={{ lineHeight: "1.2" }}>
+ <div style={{ lineHeight: "1.2", textAlign: "justify" }}>
   
 
 

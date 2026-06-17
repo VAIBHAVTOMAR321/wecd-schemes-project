@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Spinner, Table, Pagination } from "react-bootstrap";
+import {
+  FaMapMarkedAlt,
+  FaNetworkWired,
+  FaBoxOpen,
+  FaCalendarAlt,
+  FaCalendarCheck,
+} from "react-icons/fa";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
+import "../../assets/css/dashboard.css";
 import DPOHeader from "./DPOHeader";
 import DPOLeftNav from "./DPOLeftNav";
 
@@ -160,6 +168,9 @@ const DPODashboard = () => {
             <Col lg={6} md={6} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card" style={{ cursor: "pointer" }} onClick={handleProjectClick}>
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaMapMarkedAlt />
+                  </div>
                   <Card.Title className="stats-title">Total Project</Card.Title>
                   <Card.Text className="stats-count">{projectCount !== null ? projectCount : "Loading..."}</Card.Text>
                 </Card.Body>
@@ -168,6 +179,9 @@ const DPODashboard = () => {
             <Col lg={6} md={6} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card" style={{ cursor: "pointer" }} onClick={handleSectorClick}>
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaNetworkWired />
+                  </div>
                   <Card.Title className="stats-title">Total Sector</Card.Title>
                   <Card.Text className="stats-count">{sectorCount !== null ? sectorCount : "Loading..."}</Card.Text>
                 </Card.Body>
@@ -185,6 +199,9 @@ const DPODashboard = () => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaBoxOpen />
+                  </div>
                   <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2024-2025)</Card.Title>
                   <Card.Text className="stats-count">{getDistributionCount("2024-2025")}</Card.Text>
                 </Card.Body>
@@ -193,6 +210,9 @@ const DPODashboard = () => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaCalendarAlt />
+                  </div>
                   <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2025-2026)</Card.Title>
                   <Card.Text className="stats-count">{getDistributionCount("2025-2026")}</Card.Text>
                 </Card.Body>
@@ -201,6 +221,9 @@ const DPODashboard = () => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaCalendarCheck />
+                  </div>
                   <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2026-2027)</Card.Title>
                   <Card.Text className="stats-count">{getDistributionCount("2026-2027")}</Card.Text>
                 </Card.Body>

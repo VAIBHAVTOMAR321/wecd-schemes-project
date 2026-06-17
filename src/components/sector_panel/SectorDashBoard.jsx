@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
+import {
+  FaBuilding,
+  FaBoxOpen,
+  FaCalendarAlt,
+  FaCalendarCheck,
+} from "react-icons/fa";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
 import "../../assets/css/dashboard.css";
@@ -105,6 +111,9 @@ useEffect(() => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaBuilding />
+                  </div>
                   <Card.Title className="stats-title">हमारे कुल आंगनवाड़ी केंद्र</Card.Title>
                   <Card.Text className="stats-count">{isLoadingAnganwadiCount || anganwadiCount === null ? "Loading..." : anganwadiCount}</Card.Text>
                 </Card.Body>
@@ -113,6 +122,9 @@ useEffect(() => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaCalendarCheck />
+                  </div>
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2026-27)</Card.Title>
                   <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2026-2027"] === null ? "Loading..." : mahalaxmiCounts["2026-2027"]}</Card.Text>
                 </Card.Body>
@@ -123,6 +135,9 @@ useEffect(() => {
              <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaCalendarAlt />
+                  </div>
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2025-26)</Card.Title>
                   <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2025-2026"] === null ? "Loading..." : mahalaxmiCounts["2025-2026"]}</Card.Text>
                 </Card.Body>
@@ -131,6 +146,9 @@ useEffect(() => {
             <Col lg={4} md={4} sm={6} xs={12}>
               <Card className="h-100 shadow-sm border-0 stats-card">
                 <Card.Body className="text-center">
+                  <div className="stats-icon" aria-hidden="true">
+                    <FaBoxOpen />
+                  </div>
                   <Card.Title className="stats-title">महालक्ष्मी लाभार्थी वित्तीय वर्ष (2024-2025)</Card.Title>
                   <Card.Text className="stats-count">{isLoadingCounts || mahalaxmiCounts["2024-2025"] === null ? "Loading..." : mahalaxmiCounts["2024-2025"]}</Card.Text>
                 </Card.Body>
