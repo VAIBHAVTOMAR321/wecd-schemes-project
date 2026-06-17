@@ -1990,6 +1990,9 @@ img {
     visibility: visible;
     transform: translateX(0);
     pointer-events: auto;
+
+    max-height: 40vh;
+    overflow-y: auto;
 }
 
 .flyout-header-title {
