@@ -7,6 +7,7 @@ import CDPOLeftNav from "./CDPOLeftNav";
 import CDPOHeader from "./CDPOHeader";
 
 const SECTOR_API_URL = "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-sector/";
+const RESET_PASSWORD_API_URL = "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo/reset-password/";
 
 const OURSector = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -117,6 +118,30 @@ const OURSector = () => {
     }
   };
 
+  const handleResetPassword = async (username) => {
+    if (!username) return;
+    const confirmed = window.confirm(`क्या आप सच में "${username}" का पासवर्ड रिसेट करना चाहते हैं?`);
+    if (!confirmed) return;
+
+    setSaving(true);
+    setApiError("");
+    try {
+      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+      const payload = { username };
+      const response = await api.put(RESET_PASSWORD_API_URL, payload, { headers });
+      if (response.status === 200 || response.data?.success) {
+        alert(`सेक्टर "${username}" का पासवर्ड सफलतापूर्वक रिसेट कर दिया गया है।`);
+      } else {
+        throw new Error("पासवर्ड रिसेट करने में विफल");
+      }
+    } catch (err) {
+      setApiError(err.response?.data?.error || err.response?.data?.message || err.message);
+      console.error("Failed to reset password:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const totalPages = Math.ceil(sectorData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginatedData = sectorData.slice(startIndex, startIndex + rowsPerPage);
@@ -172,6 +197,7 @@ const OURSector = () => {
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>मोबाइल</th>
                           <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>अपडेटेड</th>
                           <th className="py-2" style={{ backgroundColor: "#e0f2fe" }}>एक्शन</th>
+                          <th className="py-2" style={{ backgroundColor: "#eef2ff" }}>पासवर्ड रिसेट</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -195,6 +221,11 @@ const OURSector = () => {
                               <td>
                                 <Button size="sm" variant="primary" onClick={() => handleEdit(row)}>
                                   एडिट
+                                </Button>
+                              </td>
+                              <td>
+                                <Button size="sm" variant="danger" onClick={() => handleResetPassword(row.sdname)} disabled={saving}>
+                                  रिसेट
                                 </Button>
                               </td>
                             </tr>
