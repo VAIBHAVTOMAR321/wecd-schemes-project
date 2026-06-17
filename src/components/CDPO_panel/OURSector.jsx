@@ -224,7 +224,7 @@ const OURSector = () => {
                                 </Button>
                               </td>
                               <td>
-                                <Button size="sm" variant="danger" onClick={() => handleResetPassword(row.sdname)} disabled={saving}>
+                                <Button size="sm" variant="danger" onClick={() => handleResetPassword(row.sector)} disabled={saving}>
                                   रिसेट
                                 </Button>
                               </td>
