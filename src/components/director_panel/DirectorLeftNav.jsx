@@ -471,13 +471,13 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
                          </Link>
                        )}
                       {subItem.submenu && (
-                        <Collapse in={openSubmenu.includes(Number(subItemId))}>
+                        <Collapse in={openSubmenu.includes(subItemId)}>
                           <div className="submenu-container-user">
                             {subItem.submenu.map((nestedItem, nestedIndex) => (
                               <Link
                                 key={nestedIndex}
                                 to={nestedItem.path}
-                                className="submenu-item nav-link"
+                                className={`submenu-item nav-link ${location.pathname === nestedItem.path ? "active" : ""}`}
                                 onClick={(e) => handleItemClick(e, nestedItem.path, false)}
                               >
                                 <span className="nav-text">{nestedItem.label}</span>
