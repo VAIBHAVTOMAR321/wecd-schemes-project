@@ -24,6 +24,7 @@ const MahalaxmiYear = () => {
   const [kitSummaryData, setKitSummaryData] = useState([]);
   const [kitSummaryLoading, setKitSummaryLoading] = useState(true);
   const [kitSummaryError, setKitSummaryError] = useState(null);
+  const [yearlyAvailableKits, setYearlyAvailableKits] = useState(0);
   const [demandLoading, setDemandLoading] = useState(false);
   const [demandError, setDemandError] = useState(null);
   // State for Allotment (Prapt Kit)
@@ -117,11 +118,29 @@ useEffect(() => {
     setKitSummaryError(null);
     try {
       const response = await api.get("/cdpo/maha-kit-summary/");
-      if (response.data.success && Array.isArray(response.data.data)) {
-        const filteredByYear = response.data.data.filter(
-          (item) => item.financial_year === selectedYear
+      if (response.data.success && Array.isArray(response.data.financial_years)) {
+        const foundYear = response.data.financial_years.find(
+          (fy) => fy.financial_year === selectedYear
         );
-        setKitSummaryData(filteredByYear);
+        if (foundYear) {
+          const rootProject = response.data.project || "";
+          // Try to find a district from any record that has it
+          const firstDistrict = foundYear.records.find(r => r.district)?.district || "";
+          
+          const enrichedRecords = (foundYear.records || []).map(record => ({
+            ...record,
+            project: record.project || rootProject,
+            district: record.district || firstDistrict,
+            // Populate total_available_kits from remaining_balance if missing (e.g., for Previous Balance record)
+            total_available_kits: record.total_available_kits !== undefined ? record.total_available_kits : record.remaining_balance
+          }));
+          
+          setKitSummaryData(enrichedRecords);
+          setYearlyAvailableKits(foundYear.available_kits || 0);
+        } else {
+          setKitSummaryData([]);
+          setYearlyAvailableKits(0);
+        }
       } else {
         setKitSummaryError("Failed to fetch kit summary data.");
       }
@@ -504,7 +523,7 @@ useEffect(() => {
             <Col xs={12} md={6} lg={4} className="text-center">
               <h6 className="fw-bold text-primary mb-2">उपलब्ध किट</h6>
               <Badge pill bg="warning" className="p-3 fs-3 fw-bold shadow-sm mx-auto" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: '#ffc107', color: '#343a40' }}>
-                {kitSummaryData.reduce((sum, item) => sum + (parseInt(item.total_available_kits) || 0), 0)}
+                {yearlyAvailableKits}
               </Badge>
             </Col>
           </Row>
