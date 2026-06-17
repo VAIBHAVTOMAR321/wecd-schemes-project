@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Card } from "react-bootstrap";
+import {
+  FaChartLine,
+  FaMapMarkedAlt,
+  FaNetworkWired,
+  FaBoxOpen,
+  FaCalendarAlt,
+  FaCalendarCheck,
+} from "react-icons/fa";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
 import "../../assets/css/dashboard.css";
@@ -84,6 +92,39 @@ const DirectorDashboard = () => {
 
 
 
+  const statCards = [
+    {
+      icon: <FaChartLine />,
+      title: "Total District",
+      value: districtCount !== null ? districtCount : "Loading...",
+    },
+    {
+      icon: <FaMapMarkedAlt />,
+      title: "Total Project",
+      value: projectCount !== null ? projectCount : "Loading...",
+    },
+    {
+      icon: <FaNetworkWired />,
+      title: "Total Sector",
+      value: sectorCount !== null ? sectorCount : "Loading...",
+    },
+    {
+      icon: <FaBoxOpen />,
+      title: "Distributed Mahalakshmi Kit (2024-2025)",
+      value: getDistributionCount("2024-2025"),
+    },
+    {
+      icon: <FaCalendarAlt />,
+      title: "Distributed Mahalakshmi Kit (2025-2026)",
+      value: getDistributionCount("2025-2026"),
+    },
+    {
+      icon: <FaCalendarCheck />,
+      title: "Distributed Mahalakshmi Kit (2026-2027)",
+      value: getDistributionCount("2026-2027"),
+    },
+  ];
+
   return (
     <div className="dashboard-container">
       <DirectorLeftNav
@@ -96,61 +137,22 @@ const DirectorDashboard = () => {
         <DirectorHeader toggleSidebar={toggleSidebar} />
 
         <Container fluid className="dashboard-box mt-3">
-          <Row className="g-4 mb-4">
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Total District</Card.Title>
-                  <Card.Text className="stats-count">{districtCount !== null ? districtCount : "Loading..."}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Total Project</Card.Title>
-                  <Card.Text className="stats-count">{projectCount !== null ? projectCount : "Loading..."}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Total Sector</Card.Title>
-                  <Card.Text className="stats-count">{sectorCount !== null ? sectorCount : "Loading..."}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2024-2025)</Card.Title>
-                  <Card.Text className="stats-count">{getDistributionCount("2024-2025")}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2025-2026)</Card.Title>
-                  <Card.Text className="stats-count">{getDistributionCount("2025-2026")}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4} md={4} sm={6} xs={12}>
-              <Card className="h-100 shadow-sm border-0 stats-card">
-                <Card.Body className="text-center">
-                  <Card.Title className="stats-title">Distributed Mahalakshmi Kit (2026-2027)</Card.Title>
-                  <Card.Text className="stats-count">{getDistributionCount("2026-2027")}</Card.Text>
-                </Card.Body>
-              </Card>
-            </Col>
+          <Row className="g-4 mb-3">
+            {statCards.map((stat, index) => (
+              <Col lg={4} md={4} sm={6} xs={12} key={index}>
+                <Card className="h-100 shadow-sm border-0 stats-card">
+                  <Card.Body className="text-center">
+                    <div className="stats-icon" aria-hidden="true">
+                      {stat.icon}
+                    </div>
+                    <Card.Title className="stats-title">{stat.title}</Card.Title>
+                    <Card.Text className="stats-count">{stat.value}</Card.Text>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
           </Row>
-
         </Container>
-       
-
-        
       </div>
     </div>
   );
