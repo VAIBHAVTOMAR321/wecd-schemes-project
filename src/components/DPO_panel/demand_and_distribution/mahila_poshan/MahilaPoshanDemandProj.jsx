@@ -149,10 +149,10 @@ const MahilaPoshanDemandProj = () => {
   ];
 
   const handleCopy = async () => {
-    if (paginatedData.length === 0) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const mHeaders = mainTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
-    const mRows = paginatedData.map((item, idx) => {
-      const rowNum = (currentPage - 1) * itemsPerPage + idx + 1;
+    const mRows = processedData.map((item, idx) => { // Use processedData for all data
+      const rowNum = idx + 1; // Simple index for full data
       const row = [];
       if (visibleColumns.sno) row.push(rowNum);
       if (visibleColumns.district) row.push(item.district || district || "-");
@@ -169,7 +169,7 @@ const MahilaPoshanDemandProj = () => {
 
     let text = "MAHILA POSHAN DEMAND DATA | PROJECT WISE\n" + [mHeaders.join("\t"), ...mRows, totalRow].join("\n");
 
-    const distItems = paginatedData.filter(i => i.distribution?.length > 0);
+    const distItems = processedData.filter(i => i.distribution?.length > 0); // Use processedData for all data
     if (distItems.length > 0) {
       text += "\n\nDISTRIBUTION DETAILS FOR APPROVED DEMANDS\n";
       const dHeaders = distTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
@@ -196,13 +196,13 @@ const MahilaPoshanDemandProj = () => {
   };
 
   const handleExcel = () => {
-    if (paginatedData.length === 0) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const mHeaders = mainTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
     let csv = "MAHILA POSHAN DEMAND DATA | PROJECT WISE\n" + mHeaders.join(",") + "\n";
 
-    paginatedData.forEach((item, idx) => {
+    processedData.forEach((item, idx) => { // Use processedData for all data
       const row = [];
-      if (visibleColumns.sno) row.push((currentPage - 1) * itemsPerPage + idx + 1);
+      if (visibleColumns.sno) row.push(idx + 1); // Simple index for full data
       if (visibleColumns.district) row.push(item.district || district || "-");
       if (visibleColumns.project) row.push(item.project_name || "-");
       if (visibleColumns.quarter) row.push(item.quarter || "-");
@@ -215,7 +215,7 @@ const MahilaPoshanDemandProj = () => {
     // Add Grand Total Row
     csv += `Grand Total,,,,${totals.khajur},${totals.egg},${totals.nonEgg}\n`;
 
-    const distItems = paginatedData.filter(i => i.distribution?.length > 0);
+    const distItems = processedData.filter(i => i.distribution?.length > 0); // Use processedData for all data
     if (distItems.length > 0) {
       csv += "\nDISTRIBUTION DETAILS FOR APPROVED DEMANDS\n";
       const dHeaders = distTableColumns.filter(c => visibleColumns[c.key]).map(c => c.label);
@@ -242,15 +242,55 @@ const MahilaPoshanDemandProj = () => {
   };
 
   const handlePDF = () => {
-    if (!tableRef.current) return;
+    if (processedData.length === 0) return; // Use processedData for all data
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
+    const activeMainCols = mainTableColumns.filter(c => visibleColumns[c.key]);
+    const mainHeaders = activeMainCols.map(c => `<th>${c.label}</th>`).join("");
+    const mainRows = processedData.map((item, idx) => {
+      let r = "<tr>";
+      activeMainCols.forEach(col => {
+        let val = "-";
+        if (col.key === "sno") val = idx + 1;
+        else if (col.key === "district") val = item.district || district || "-";
+        else if (col.key === "project") val = item.project_name || "-";
+        else if (col.key === "quarter") val = item.quarter || "-";
+        else if (col.key === "khajur_beneficiary") val = item.khajur_beneficiary || "0";
+        else if (col.key === "egg_beneficiary") val = item.egg_beneficiary || "0";
+        else if (col.key === "non_egg_beneficiary") val = item.not_eat_egg_beneficiary || "0";
+        r += `<td>${val}</td>`;
+      });
+      return r + "</tr>";
+    }).join("");
+
+    const mainTotalRowHtml = `<tr class="table-light fw-bold border-top-2">
+      <td colspan="${activeMainCols.length - 3}" class="text-end py-3">Grand Total</td>
+      ${visibleColumns.khajur_beneficiary ? `<td>${totals.khajur || 0}</td>` : ''}
+      ${visibleColumns.egg_beneficiary ? `<td>${totals.egg || 0}</td>` : ''}
+      ${visibleColumns.non_egg_beneficiary ? `<td>${totals.nonEgg || 0}</td>` : ''}
+    </tr>`;
+
     let distTableHtml = "";
-    if (distTableRef.current) {
+    const distItems = processedData.filter(i => i.distribution?.length > 0);
+    if (distItems.length > 0) {
+      const activeDistCols = distTableColumns.filter(c => visibleColumns[c.key]);
+      const distHeaders = activeDistCols.map(c => `<th>${c.label}</th>`).join("");
+      const distRows = distItems.flatMap(row => row.distribution.map(dist => {
+        let r = "<tr>";
+        if (visibleColumns.dist_sector) r += `<td>${dist.sector_name || row.sector || "-"}</td>`;
+        if (visibleColumns.dist_month) r += `<td>${dist.month || "-"}</td>`;
+        if (visibleColumns.dist_awc_no) r += `<td>${dist.awc_no || "0"}</td>`;
+        if (visibleColumns.dist_total_beneficiary) r += `<td>${dist.total_beneficiary || "0"}</td>`;
+        if (visibleColumns.dist_allotted) r += `<td>${dist.allotted_khajur}/${dist.allotted_egg}/${dist.allotted_not_eat_egg}</td>`;
+        if (visibleColumns.dist_distributed) r += `<td>${dist.khajur_distribution_beneficiary}/${dist.egg_distribution_beneficiary}/${dist.not_eat_egg_distribution_beneficiary}</td>`;
+        r += "</tr>";
+        return r;
+      })).join("");
+
       distTableHtml = `<div style="margin-top: 30px;">
           <h3 style="color: #64748b; font-family: sans-serif;">Distribution Details for Approved Demands</h3>
-          ${distTableRef.current.outerHTML}
+          <table><thead><tr>${distHeaders}</tr></thead><tbody>${distRows}</tbody></table>
       </div>`;
     }
 
@@ -266,7 +306,7 @@ const MahilaPoshanDemandProj = () => {
         <body>
           <h2>Mahila Poshan Demand Data | Project wise</h2>
           <h4>Year: ${selectedYear} | Quarter: ${selectedQuarter}</h4>
-          ${tableRef.current.outerHTML}
+          <table><thead><tr>${mainHeaders}</tr></thead><tbody>${mainRows}${mainTotalRowHtml}</tbody></table>
           ${distTableHtml}
         </body>
       </html>
