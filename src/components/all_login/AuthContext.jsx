@@ -60,11 +60,11 @@ export function AuthProvider({ children }) {
     console.log('🔴 Logging out...');
 
     // 1. Determine redirect path based on role (Logic from Login.jsx)
-    let redirectPath = '/login';
+    let redirectPath = '/wecdschemes/Login';
     if (role === 'director') {
-      redirectPath = '/login?director';
+      redirectPath = '/wecdschemes/Login';
     } else if (role === 'dpo' || role === 'cdpo') {
-      redirectPath = '/login?district';
+      redirectPath = '/wecdschemes/Login';
     }
     // For supervisor/anganwadi, it remains '/login'
 
