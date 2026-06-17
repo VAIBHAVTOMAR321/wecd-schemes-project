@@ -117,8 +117,8 @@ const DemandkitProject = () => {
     }
   };
 
-  const getFilteredData = () => {
-    return data.filter((item) => {
+  const filteredData = useMemo(() => {
+    const filtered = data.filter((item) => {
       const matchesYear = !selectedYear || item.fin_year === selectedYear;
       const matchesQuarter = selectedQuarter === "All" || item.quarter === quarterReverseMap[selectedQuarter];
       const matchesSearch = !searchTerm ||
@@ -126,9 +126,37 @@ const DemandkitProject = () => {
         (item.project && item.project.toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesYear && matchesQuarter && matchesSearch;
     });
-  };
 
-  const filteredData = useMemo(() => getFilteredData(), [data, selectedYear, selectedQuarter, searchTerm]);
+    if (selectedQuarter !== "All") return filtered;
+
+    // Aggregate data by project when "All" quarters are selected to ensure unique project entries
+    const aggregated = filtered.reduce((acc, curr) => {
+      const key = curr.sdname || `${curr.district}-${curr.project}`;
+      if (!acc[key]) {
+        acc[key] = {
+          ...curr,
+          quarter: "Overall",
+          req_kit_count: 0,
+          beneficiary: 0,
+          req_kit: 0,
+          demand_kits: 0,
+          received_kits: 0,
+          distributed_kits: 0,
+          available_balance: 0,
+        };
+      }
+      acc[key].req_kit_count = (parseInt(acc[key].req_kit_count) || 0) + (parseInt(curr.req_kit_count) || 0);
+      acc[key].beneficiary = (parseInt(acc[key].beneficiary) || 0) + (parseInt(curr.beneficiary) || 0);
+      acc[key].req_kit = (parseInt(acc[key].req_kit) || 0) + (parseInt(curr.req_kit) || 0);
+      acc[key].demand_kits = (parseInt(acc[key].demand_kits) || 0) + (parseInt(curr.demand_kits) || 0);
+      acc[key].received_kits = (parseInt(acc[key].received_kits) || 0) + (parseInt(curr.received_kits) || 0);
+      acc[key].distributed_kits = (parseInt(acc[key].distributed_kits) || 0) + (parseInt(curr.distributed_kits) || 0);
+      acc[key].available_balance = (parseInt(acc[key].available_balance) || 0) + (parseInt(curr.available_balance) || 0);
+      return acc;
+    }, {});
+
+    return Object.values(aggregated);
+  }, [data, selectedYear, selectedQuarter, searchTerm]);
 
   const sortedData = useMemo(() => {
     const sorted = [...filteredData].sort((a, b) => {
