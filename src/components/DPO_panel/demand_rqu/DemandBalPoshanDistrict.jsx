@@ -24,7 +24,8 @@ const DemandBalPoshanDistrict = () => {
   const [selectedQuarter, setSelectedQuarter] = useState("");
   const [fetchKey, setFetchKey] = useState(1);
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPendingPage, setCurrentPendingPage] = useState(1);
+  const [currentApprovedPage, setCurrentApprovedPage] = useState(1);
   const itemsPerPage = 10;
 
   const [editingId, setEditingId] = useState(null);
@@ -237,29 +238,34 @@ const DemandBalPoshanDistrict = () => {
     );
   });
 
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedData = filteredData.slice(startIndex, endIndex);
-
   const pendingFilteredData = filteredData.filter((item) => {
     const s = (item.dir_status || "").toLowerCase();
     return s !== "approve" && s !== "approved" && s !== "rejected" && s !== "reject";
   });
-  const pendingPaginatedData = pendingFilteredData.slice(startIndex, endIndex);
+
+  const statusFilteredData = filteredData.filter((item) => {
+    const s = (item.dir_status || "").toLowerCase();
+    return s === "approve" || s === "approved" || s === "rejected" || s === "reject";
+  });
+
+  const pendingTotalPages = Math.ceil(pendingFilteredData.length / itemsPerPage);
+  const approvedTotalPages = Math.ceil(statusFilteredData.length / itemsPerPage);
+
+  const pendingStartIndex = (currentPendingPage - 1) * itemsPerPage;
+  const pendingPaginatedData = pendingFilteredData.slice(pendingStartIndex, pendingStartIndex + itemsPerPage);
+
+  const approvedStartIndex = (currentApprovedPage - 1) * itemsPerPage;
+  const statusPaginatedData = statusFilteredData.slice(approvedStartIndex, approvedStartIndex + itemsPerPage);
 
   useEffect(() => {
-    setCurrentPage(1);
+    setCurrentPendingPage(1);
+    setCurrentApprovedPage(1);
   }, [selectedFinYear, selectedQuarter, searchTerm]);
 
   const handleViewClick = () => {
-    setCurrentPage(1);
+    setCurrentPendingPage(1);
+    setCurrentApprovedPage(1);
     setFetchKey((prev) => prev + 1);
-  };
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
   };
 
   const toggleActionInput = (mode, item) => {
@@ -300,14 +306,6 @@ const DemandBalPoshanDistrict = () => {
     setEditRemark("");
   };
 
-  const getStatusBadge = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "approve" || s === "approved") return <Badge bg="success">Approved</Badge>;
-    if (s === "pending") return <Badge bg="warning">Pending</Badge>;
-    if (s === "rejected" || s === "reject") return <Badge bg="danger">Rejected</Badge>;
-    return <Badge bg="secondary">{status || "-"}</Badge>;
-  };
-
   const renderDemandTable = () => {
     if (loading) {
       return (
@@ -326,7 +324,7 @@ const DemandBalPoshanDistrict = () => {
       );
     }
     return pendingPaginatedData.map((item, index) => {
-      const actualIndex = startIndex + index + 1;
+      const actualIndex = pendingStartIndex + index + 1;
       return (
         <tr key={item.id ?? actualIndex}>
           {visibleColumns.sno && <td>{actualIndex}</td>}
@@ -386,12 +384,6 @@ const DemandBalPoshanDistrict = () => {
     });
   };
 
-  const statusFilteredData = filteredData.filter((item) => {
-    const s = (item.dir_status || "").toLowerCase();
-    return s === "approve" || s === "approved" || s === "rejected" || s === "reject";
-  });
-  const statusPaginatedData = statusFilteredData.slice(startIndex, endIndex);
-
   const renderApprovalTable = () => {
     if (loading) {
       return (
@@ -410,7 +402,7 @@ const DemandBalPoshanDistrict = () => {
       );
     }
     return statusPaginatedData.map((item, index) => {
-      const actualIndex = startIndex + index + 1;
+      const actualIndex = approvedStartIndex + index + 1;
       return (
         <tr key={item.id ?? actualIndex}>
           {visibleColumns.sno && <td>{actualIndex}</td>}
@@ -429,19 +421,27 @@ const DemandBalPoshanDistrict = () => {
     });
   };
 
-  const renderPagination = () => {
+  const getStatusBadge = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "approve" || s === "approved") return <Badge bg="success">Approved</Badge>;
+    if (s === "pending") return <Badge bg="warning">Pending</Badge>;
+    if (s === "rejected" || s === "reject") return <Badge bg="danger">Rejected</Badge>;
+    return <Badge bg="secondary">{status || "-"}</Badge>;
+  };
+
+  const renderPagination = (currentPage, totalPages, onPageChange) => {
     if (totalPages <= 1) return null;
     const items = [];
-    items.push(<Pagination.First key="first" onClick={() => handlePageChange(1)} disabled={currentPage === 1} />);
-    items.push(<Pagination.Prev key="prev" onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />);
-    items.push(<Pagination.Item key={1} active={1 === currentPage} onClick={() => handlePageChange(1)}>1</Pagination.Item>);
+    items.push(<Pagination.First key="first" onClick={() => onPageChange(1)} disabled={currentPage === 1} />);
+    items.push(<Pagination.Prev key="prev" onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />);
+    items.push(<Pagination.Item key={1} active={1 === currentPage} onClick={() => onPageChange(1)}>1</Pagination.Item>);
     if (totalPages > 1) {
       items.push(<Pagination.Ellipsis key="ellipsis-start" disabled />);
       const startPage = Math.max(2, currentPage - 1);
       const endPage = Math.min(totalPages - 1, currentPage + 1);
       for (let i = startPage; i <= endPage; i++) {
         items.push(
-          <Pagination.Item key={i} active={i === currentPage} onClick={() => handlePageChange(i)}>
+          <Pagination.Item key={i} active={i === currentPage} onClick={() => onPageChange(i)}>
             {i}
           </Pagination.Item>
         );
@@ -449,10 +449,10 @@ const DemandBalPoshanDistrict = () => {
       if (totalPages > 2) {
         items.push(<Pagination.Ellipsis key="ellipsis-end" disabled />);
       }
-      items.push(<Pagination.Item key={totalPages} active={totalPages === currentPage} onClick={() => handlePageChange(totalPages)}>{totalPages}</Pagination.Item>);
+      items.push(<Pagination.Item key={totalPages} active={totalPages === currentPage} onClick={() => onPageChange(totalPages)}>{totalPages}</Pagination.Item>);
     }
-    items.push(<Pagination.Next key="next" onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />);
-    items.push(<Pagination.Last key="last" onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />);
+    items.push(<Pagination.Next key="next" onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />);
+    items.push(<Pagination.Last key="last" onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} />);
     return (
       <div className="d-flex justify-content-center mt-3">
         <Pagination>{items}</Pagination>
@@ -584,10 +584,10 @@ const DemandBalPoshanDistrict = () => {
                 </div>
               </Card.Body>
               <Card.Footer className="bg-white border-0 py-2">
-                <small className="text-muted">Showing {totalItems === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries</small>
+                <small className="text-muted">Showing {pendingFilteredData.length === 0 ? 0 : pendingStartIndex + 1} to {Math.min(pendingStartIndex + itemsPerPage, pendingFilteredData.length)} of {pendingFilteredData.length} entries</small>
               </Card.Footer>
             </Card>
-            {renderPagination()}
+            {renderPagination(currentPendingPage, pendingTotalPages, setCurrentPendingPage)}
 
             <h5 className="mb-3 fw-bold">Approved and Rejected</h5>
             <Card className="border-0 shadow-sm">
@@ -613,8 +613,11 @@ const DemandBalPoshanDistrict = () => {
                   </Table>
                 </div>
               </Card.Body>
+              <Card.Footer className="bg-white border-0 py-2">
+                <small className="text-muted">Showing {statusFilteredData.length === 0 ? 0 : approvedStartIndex + 1} to {Math.min(approvedStartIndex + itemsPerPage, statusFilteredData.length)} of {statusFilteredData.length} entries</small>
+              </Card.Footer>
             </Card>
-            {renderPagination()}
+            {renderPagination(currentApprovedPage, approvedTotalPages, setCurrentApprovedPage)}
           </Container>
         )}
       </div>
