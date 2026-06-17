@@ -454,7 +454,7 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
                         </Link>
                       )}
                       {subItem.submenu && (
-                        <Collapse in={openSubmenu.includes(Number(subItemId))}>
+                        <Collapse in={openSubmenu.includes(subItemId)}>
                           <div className="submenu-container-user">
                             {subItem.submenu.map((nestedItem, nestedIndex) => (
                               <Link
