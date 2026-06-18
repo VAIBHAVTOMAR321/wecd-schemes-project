@@ -250,10 +250,10 @@ useEffect(() => {
                         size="sm" 
                         name="prevBalance"
                         type="number" 
-                        placeholder="संख्या दर्ज करें"
+                        placeholder="लागू नहीं"
                         value={formData.prevBalance} 
                         onChange={handleInputChange}
-                        disabled={isDuplicate}
+                        disabled={true}
                       />
                     </Form.Group>
                   </Col>

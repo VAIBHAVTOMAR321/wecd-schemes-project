@@ -394,7 +394,7 @@ useEffect(() => {
           )}
 
           {/* Data Table Section */}
-          <div className="bg-white p-2 rounded shadow-sm border border-light overflow-hidden">
+          <div className="bg-white p-2 rounded shadow-sm border border-light overflow-auto">
             <div className="d-flex justify-content-between align-items-center mb-2 px-2">
               <h6 className="fw-bold mb-0 border-start border-4 ps-2" style={{ color: "#60a5fa", borderLeftColor: "#60a5fa !important" }}>
                 Monthly Distribution
@@ -403,7 +403,7 @@ useEffect(() => {
             </div>
             
             <div className="w-100">
-              <Table bordered hover size="sm" className="mb-0 text-center align-middle w-100" style={{ tableLayout: 'fixed' }}>
+              <Table bordered hover size="sm" className="mb-0 text-center align-middle w-100">
                 <thead>
                   <tr className="text-[9px] text-uppercase fw-black bg-light" style={{ lineHeight: '1.1' }}>
                     <th className="py-1 bg-slate-50">S.No</th>
