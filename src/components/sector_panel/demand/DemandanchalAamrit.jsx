@@ -238,10 +238,10 @@ useEffect(() => {
                         size="sm"
                         name="remainingMilkPowderKg"
                         type="number" 
-                        placeholder="मात्रा दर्ज करें"
+                        placeholder="Not Applicable"
                         value={formData.remainingMilkPowderKg} 
                         onChange={handleInputChange}
-                        disabled={isDuplicate}
+                        disabled
                         required
                       />
                     </Form.Group>
