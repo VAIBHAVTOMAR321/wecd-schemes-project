@@ -18,7 +18,7 @@ const DpoOurAwc = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 20;
+  const rowsPerPage = 50;
 
   useEffect(() => {
     const handleResize = () => {
