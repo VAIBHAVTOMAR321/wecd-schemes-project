@@ -117,7 +117,7 @@ const DpoOurAwc = () => {
 
         <Container fluid className="dashboard-box mt-3">
           <div className="main-heading mb-4">
-            <h3 className="fw-bold mb-2">Our Sectors</h3>
+            <h3 className="fw-bold mb-2">Anganwadi Centers</h3>
             <p className="text-muted mb-0">
               District: {district || "-"} {districtCode ? `(${districtCode})` : ""} | Total AWCs: {totalCount}
             </p>
@@ -153,14 +153,14 @@ const DpoOurAwc = () => {
                           <td>{row.awc_code}</td>
                           <td className="text-start">{row.awc_name}</td>
                           <td>
-                            <span className={`badge ${row.awc_type === "AWC" ? "bg-primary" : "bg-secondary"}`}>
+                           
                               {row.awc_type}
-                            </span>
+                          
                           </td>
                           <td>
-                            <span className={`badge ${row.code1?.startsWith("SCP") ? "bg-warning text-dark" : "bg-info"}`}>
+                           
                               {row.code1}
-                            </span>
+                          
                           </td>
                           <td className="text-start">{row.sector}</td>
                           <td className="text-start">{row.project}</td>
