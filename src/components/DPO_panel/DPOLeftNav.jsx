@@ -91,11 +91,11 @@ const DPOLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNavClic
         path: "/DPODashboard",
       },
 
-      //  {
-      //   icon: <FaTachometerAlt />,
-      //   label: "Our Projects  ",
-      //   path: "/OurCdpoProject",
-      // },
+       {
+        icon: <FaTachometerAlt />,
+        label: "Our AWC  ",
+        path: "/DpoOurAwc",
+      },
       {
         icon: <FaTachometerAlt />,
         label: "Our Sectors  ",
