@@ -203,6 +203,7 @@ const SectorProfile = () => {
                               onChange={handleProfileChange}
                               placeholder="जिला दर्ज करें"
                               className="border-2"
+                              disabled
                               style={{ fontSize: '12px' }}
                             />
                           </Form.Group>
@@ -218,6 +219,7 @@ const SectorProfile = () => {
                               onChange={handleProfileChange}
                               placeholder="सेक्टर दर्ज करें"
                               className="border-2"
+                              disabled
                               style={{ fontSize: '12px' }}
                             />
                           </Form.Group>
@@ -225,7 +227,7 @@ const SectorProfile = () => {
                         <Col md={4}>
                           <Form.Group>
                             <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Project Name</Form.Label>
-                            <Form.Control
+                              <Form.Control
                               size="sm"
                               type="text"
                               name="projectName"
@@ -233,6 +235,7 @@ const SectorProfile = () => {
                               onChange={handleProfileChange}
                               placeholder="प्रोजेक्ट नाम दर्ज करें"
                               className="border-2"
+                              disabled
                               style={{ fontSize: '12px' }}
                             />
                           </Form.Group>
@@ -248,6 +251,7 @@ const SectorProfile = () => {
                               onChange={handleProfileChange}
                               placeholder="प्रोजेक्ट कोड दर्ज करें"
                               className="border-2"
+                              disabled
                               style={{ fontSize: '12px' }}
                             />
                           </Form.Group>
