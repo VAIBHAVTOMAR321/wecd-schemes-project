@@ -47,7 +47,7 @@ import DemandMahalakshmi from "./components/DPO_panel/demand_rqu/DemandMahalaksh
 import OurAwcProject from "./components/CDPO_panel/OurAwcProject";
 import OurDpo from "./components/director_panel/our_staff/OurDpo";
 import OURSector from "./components/CDPO_panel/OURSector";
-import OurCdpoProject from "./components/DPO_panel/OurCdpoProject";
+import DpoOurAwc from "./components/DPO_panel/DpoOurAwc";
 import OurSectors from "./components/DPO_panel/OurSectors";
 import DemandkitProject from "./components/DPO_panel/demand_and_distribution/mahalaxmi_kit/DemandkitProject";
 import DemandAnchalProj from "./components/DPO_panel/demand_and_distribution/amrit_anchal/DemandAnchalProj";
@@ -103,14 +103,14 @@ const hideNavbarRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/St
         "/DemandPoshanFinal", "/DemandkitProject", "/DemandAnchalSec", "/DemandAnchalProj",
         "/MahalaxmiYear",
          "/DemandBalPoshan", "/OurAwcProject", "/OurCdpo", "/DirectorOurSector",
-          "/DistributionMahilaPoshFinal", "/OurCdpoProject", "/OurSectors",
+          "/DistributionMahilaPoshFinal", "/DpoOurAwc", "/OurSectors",
            "/DemandBalPoshanProject", "/OurBenReq", "/StockMahalakshmi", "/Mahalaxmi",
             "/Stockmahila", "/DistributionBalPoshan","/AWCS",
              "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile",      "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj",
              "/DirDemandAnchalDist", "/DirDemandAnchalSec", "/DirDemandkitDistrict", "/DirDemandkitProject"];
 const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/DemandAnchalProj",
      "/StockBal", "/OurBenReq", "/StockMahalakshmi", "/OurAwcProject", "/OurSector",
-        "/StockAnchal", "/OurCdpoProject", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
+        "/StockAnchal", "/DpoOurAwc", "/OurSectors", "/OurCdpo", "/DirectorOurSector",
        "/DemandAmritAnchalProject", "/OurDpo", "/OURSector","/AWCS",
         "/MahalaxmiYear", "/DemandkitProject", "/DemandAnchalSec", "/Mahalaxmi", "/DirBalPoshanDemandDist",
         "/Stockmahila", "/SectorProfile", "/DemandBalPoshanProject","/DemandMahilaPoshanProject", "/OurAwc", "/MahalakshmiKit", "/DemandanchalAamrit", "/DemandPoshanFinal", "/DemandBalPoshan", "/DistributionMahilaPoshFinal", "/DistributionBalPoshan", "/DPODashboard", "/DemandMahalakshmi", "/CDPODashboard", "/DirectorDashboard", "/CDPOProfile", "/DemandMahilaPoshanDistirct", "/DemandBalPoshanDistrict", "/MahilaPoshanDemandSector", "/MahilaPoshanDemandProj", "/BalPosDemandSector", "/BalPosDemandProj", "/DirMahilaPoshanDemandSector", "/DirMahilaPoshanDemandDist", "/DirMahilaPoshanDemandProj", "/DirBalPoshanDemandSector", "/DirBalPoshanDemandProj",
@@ -258,9 +258,9 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
             <StockAnchal />
           </ProtectedRoute>
         } />
-         <Route path="/OurCdpoProject" element={
+         <Route path="/DpoOurAwc" element={
            <ProtectedRoute>
-             <OurCdpoProject />
+             <DpoOurAwc />
            </ProtectedRoute>
          } />
          <Route path="/OurSectors" element={

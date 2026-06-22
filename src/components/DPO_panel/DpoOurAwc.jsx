@@ -5,7 +5,7 @@ import "../../assets/css/supervisorleftnav.css";
 import DPOHeader from "./DPOHeader";
 import DPOLeftNav from "./DPOLeftNav";
 
-const OurCdpoProject = () => {
+const DpoOurAwc = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
@@ -57,4 +57,4 @@ const OurCdpoProject = () => {
   );
 };
 
-export default OurCdpoProject;
+export default DpoOurAwc;
