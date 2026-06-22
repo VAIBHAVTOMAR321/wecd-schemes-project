@@ -77,7 +77,7 @@ const OurAwc = () => {
       <div className="main-content-dash">
         <SectorHeader toggleSidebar={toggleSidebar} />
 
-        <Container fluid className="p-4">
+        <Container fluid className="">
           <div className="d-flex justify-content-between align-items-center awc-heading mb-4">
             <h3 className="fw-bold text-uppercase mb-0" style={{ color: "#60a5fa", fontSize: "clamp(1rem, 2.5vw, 1.5rem)" }}>
               आंगनवाड़ी केंद्र

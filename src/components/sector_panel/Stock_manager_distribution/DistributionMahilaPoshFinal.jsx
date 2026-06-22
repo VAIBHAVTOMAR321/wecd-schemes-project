@@ -379,16 +379,16 @@ useEffect(() => {
             </Card>
           )}
 
-          {/* Data Table Section */}
-          <div className="bg-white p-2 rounded shadow-sm border border-light overflow-hidden">
-            <div className="d-flex justify-content-between align-items-center mb-2 px-2">
-              <h6 className="fw-bold mb-0 text-primary border-start border-4 border-primary ps-2">
-                Monthly Distribution
-              </h6>
-              <i className="bi bi-info-circle text-muted" title="Metrics are based on approved sector demands"></i>
-            </div>
-            
-            <div className="w-100">
+{/* Data Table Section */}
+           <div className="bg-white p-2 rounded shadow-sm border border-light overflow-hidden">
+             <div className="d-flex justify-content-between align-items-center mb-2 px-2">
+               <h6 className="fw-bold mb-0 text-primary border-start border-4 border-primary ps-2">
+                 Monthly Distribution
+               </h6>
+               <i className="bi bi-info-circle text-muted" title="Metrics are based on approved sector demands"></i>
+             </div>
+             
+             <div className="table-responsive w-100">
               <Table bordered hover size="sm" className="mb-0 text-center align-middle w-100" style={{ tableLayout: 'auto' }}>
                 <thead>
                   <tr className="text-[9px] text-uppercase fw-black bg-light" style={{ lineHeight: '1.1' }}>
