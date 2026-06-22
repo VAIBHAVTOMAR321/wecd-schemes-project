@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Form, InputGroup, FormControl, Badge, Alert, Button, Pagination } from "react-bootstrap";
+import React, { useState, useEffect, useRef } from "react";
+import { Container, Row, Col, Card, Spinner, Table, Form, InputGroup, FormControl, Badge, Alert, Button, Pagination, Modal } from "react-bootstrap";
+import { FaCopy, FaFileExcel, FaFilePdf, FaColumns } from "react-icons/fa";
 import { useAuth } from "../../all_login/AuthContext";
 import "../../../assets/css/supervisorleftnav.css";
 import "../../../assets/css/cdpo.css";
@@ -28,6 +29,34 @@ const DemandMahalakshmi = () => {
   const [editingId, setEditingId] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const tableRef = useRef(null);
+
+  const [visibleColumns, setVisibleColumns] = useState({
+    sno: true,
+    district: true,
+    project: true,
+    fin_year: true,
+    bene: true,
+    req_kit: true,
+    quarter: true,
+    demand_date: true,
+    dpo_status: true,
+  });
+
+  const columns = [
+    { key: "sno", label: "S.no" },
+    { key: "district", label: "District" },
+    { key: "project", label: "Project name" },
+    { key: "fin_year", label: "Financial Year" },
+    { key: "bene", label: "Bene" },
+    { key: "req_kit", label: "Req Kit" },
+    { key: "quarter", label: "Quarter" },
+    { key: "demand_date", label: "Demand Date" },
+    { key: "dpo_status", label: "DPO Status" },
+  ];
 
   const { api, isReady } = useAuth();
 
@@ -92,6 +121,8 @@ const DemandMahalakshmi = () => {
   }, [api, isReady, selectedFinYear, selectedQuarter, fetchKey]);
 
   const filteredData = demandData.filter((item) => {
+    if (selectedFinYear && item.fin_year !== selectedFinYear) return false;
+    if (selectedQuarter && selectedQuarter !== "All" && item.quarter !== selectedQuarter) return false;
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -207,6 +238,91 @@ const DemandMahalakshmi = () => {
     return date.toLocaleString("en-IN");
   };
 
+  const handleCopy = async () => {
+    if (filteredData.length === 0) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    const mRows = filteredData.map((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push(idx + 1);
+      if (visibleColumns.district) row.push(item.district || "-");
+      if (visibleColumns.project) row.push(item.project || "-");
+      if (visibleColumns.fin_year) row.push(item.fin_year || "-");
+      if (visibleColumns.bene) row.push(item.bene ?? "0");
+      if (visibleColumns.req_kit) row.push(item.req_kit ?? "0");
+      if (visibleColumns.quarter) row.push(item.quarter || "-");
+      if (visibleColumns.demand_date) row.push(formatDate(item.demand_date));
+      if (visibleColumns.dpo_status) row.push(item.dpo_status || "-");
+      return row.join("\t");
+    });
+    const text = "Mahalakshmi Kit Demand Report\n" + [mHeaders.join("\t"), ...mRows].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleExcel = () => {
+    if (filteredData.length === 0) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
+    let csv = "Mahalakshmi Kit Demand Report\n" + mHeaders.join(",") + "\n";
+    filteredData.forEach((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push(idx + 1);
+      if (visibleColumns.district) row.push(`"${item.district || "-"}"`);
+      if (visibleColumns.project) row.push(`"${item.project || "-"}"`);
+      if (visibleColumns.fin_year) row.push(`"${item.fin_year || "-"}"`);
+      if (visibleColumns.bene) row.push(item.bene ?? 0);
+      if (visibleColumns.req_kit) row.push(item.req_kit ?? 0);
+      if (visibleColumns.quarter) row.push(`"${item.quarter || "-"}"`);
+      if (visibleColumns.demand_date) row.push(`"${formatDate(item.demand_date)}"`);
+      if (visibleColumns.dpo_status) row.push(`"${item.dpo_status || "-"}"`);
+      csv += row.join(",") + "\n";
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Mahalakshmi_Kit_Demand_Report.csv";
+    link.click();
+  };
+
+  const handlePDF = () => {
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+    const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => `<th>${c.label}</th>`).join("");
+    const mRows = filteredData.map((item, idx) => {
+      let row = "<tr>";
+      if (visibleColumns.sno) row += `<td>${idx + 1}</td>`;
+      if (visibleColumns.district) row += `<td>${item.district || "-"}</td>`;
+      if (visibleColumns.project) row += `<td>${item.project || "-"}</td>`;
+      if (visibleColumns.fin_year) row += `<td>${item.fin_year || "-"}</td>`;
+      if (visibleColumns.bene) row += `<td>${item.bene ?? 0}</td>`;
+      if (visibleColumns.req_kit) row += `<td>${item.req_kit ?? 0}</td>`;
+      if (visibleColumns.quarter) row += `<td>${item.quarter || "-"}</td>`;
+      if (visibleColumns.demand_date) row += `<td>${formatDate(item.demand_date)}</td>`;
+      if (visibleColumns.dpo_status) row += `<td>${item.dpo_status || "-"}</td>`;
+      row += "</tr>";
+      return row;
+    }).join("");
+    printWindow.document.write(`
+      <html>
+        <head><title>Report</title><style>
+          table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f1f5f9; }
+          h2, h4 { text-align: center; font-family: sans-serif; }
+        </style></head>
+        <body>
+          <h2>Mahalakshmi Kit Demand Report</h2>
+          <h4>FY: ${selectedFinYear || "All"} | Quarter: ${selectedQuarter || "All"}</h4>
+          <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const renderDemandTable = () => {
     if (loading) {
       return (
@@ -228,15 +344,15 @@ const DemandMahalakshmi = () => {
       const actualIndex = pendingStartIndex + index + 1;
       return (
         <tr key={item.id ?? actualIndex}>
-          <td>{actualIndex}</td>
-          <td>{item.district}</td>
-          <td>{item.project}</td>
-          <td>{item.fin_year}</td>
-          <td>{item.bene ?? "0"}</td>
-          <td>{item.req_kit ?? "0"}</td>
-          <td>{item.quarter}</td>
-          <td>{formatDate(item.demand_date)}</td>
-          <td>{getStatusBadge(item.dpo_status)}</td>
+          {visibleColumns.sno && <td>{actualIndex}</td>}
+          {visibleColumns.district && <td>{item.district}</td>}
+          {visibleColumns.project && <td>{item.project}</td>}
+          {visibleColumns.fin_year && <td>{item.fin_year}</td>}
+          {visibleColumns.bene && <td>{item.bene ?? "0"}</td>}
+          {visibleColumns.req_kit && <td>{item.req_kit ?? "0"}</td>}
+          {visibleColumns.quarter && <td>{item.quarter}</td>}
+          {visibleColumns.demand_date && <td>{formatDate(item.demand_date)}</td>}
+          {visibleColumns.dpo_status && <td>{getStatusBadge(item.dpo_status)}</td>}
           <td>
             {editingId === item.id ? (
               <div className="d-flex gap-1">
@@ -289,15 +405,15 @@ const DemandMahalakshmi = () => {
       const actualIndex = approvedStartIndex + index + 1;
       return (
         <tr key={item.id ?? actualIndex}>
-          <td>{actualIndex}</td>
-          <td>{item.district}</td>
-          <td>{item.project}</td>
-          <td>{item.fin_year}</td>
-          <td>{item.bene ?? "0"}</td>
-          <td>{item.req_kit ?? "0"}</td>
-          <td>{item.quarter}</td>
-          <td>{formatDate(item.dpo_date || item.update_on)}</td>
-          <td>{getStatusBadge(item.dpo_status)}</td>
+          {visibleColumns.sno && <td>{actualIndex}</td>}
+          {visibleColumns.district && <td>{item.district}</td>}
+          {visibleColumns.project && <td>{item.project}</td>}
+          {visibleColumns.fin_year && <td>{item.fin_year}</td>}
+          {visibleColumns.bene && <td>{item.bene ?? "0"}</td>}
+          {visibleColumns.req_kit && <td>{item.req_kit ?? "0"}</td>}
+          {visibleColumns.quarter && <td>{item.quarter}</td>}
+          {visibleColumns.demand_date && <td>{formatDate(item.dpo_date || item.update_on)}</td>}
+          {visibleColumns.dpo_status && <td>{getStatusBadge(item.dpo_status)}</td>}
         </tr>
       );
     });
@@ -425,22 +541,31 @@ const DemandMahalakshmi = () => {
               </Card.Body>
             </Card>
 
+            <Row className="mb-3 align-items-center">
+              <Col md={6} className="d-flex gap-2">
+                <Button variant="secondary" size="sm" onClick={handleCopy}>{copySuccess ? <Badge bg="success">Copied!</Badge> : <><FaCopy className="me-1" /> Copy</>}</Button>
+                <Button variant="secondary" size="sm" onClick={handleExcel}><FaFileExcel className="me-1" /> Excel</Button>
+                <Button variant="secondary" size="sm" onClick={handlePDF}><FaFilePdf className="me-1" /> PDF</Button>
+                <Button variant="secondary" size="sm" onClick={() => setShowColumnModal(true)}><FaColumns className="me-1" /> Column visibility</Button>
+              </Col>
+            </Row>
+
             <h5 className="mb-3 fw-bold">Demand List</h5>
             <Card className="mb-4 border-0 shadow-sm">
               <Card.Body className="p-0">
                 <div className="table-responsive">
-                  <Table striped bordered hover size="sm" className="mb-0">
+                  <Table striped bordered hover size="sm" className="mb-0" ref={tableRef}>
                     <thead className="table-light">
                       <tr>
-                        <th>S.no</th>
-                        <th>District</th>
-                        <th>Project name</th>
-                        <th>Financial Year</th>
-                        <th>Bene</th>
-                        <th>Req Kit</th>
-                        <th>Quarter</th>
-                        <th>Demand Date</th>
-                        <th>DPO Status</th>
+                        {visibleColumns.sno && <th>S.no</th>}
+                        {visibleColumns.district && <th>District</th>}
+                        {visibleColumns.project && <th>Project name</th>}
+                        {visibleColumns.fin_year && <th>Financial Year</th>}
+                        {visibleColumns.bene && <th>Bene</th>}
+                        {visibleColumns.req_kit && <th>Req Kit</th>}
+                        {visibleColumns.quarter && <th>Quarter</th>}
+                        {visibleColumns.demand_date && <th>Demand Date</th>}
+                        {visibleColumns.dpo_status && <th>DPO Status</th>}
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -463,15 +588,15 @@ const DemandMahalakshmi = () => {
                   <Table striped bordered hover size="sm" className="mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th>S.no</th>
-                        <th>District</th>
-                        <th>Project name</th>
-                        <th>Financial Year</th>
-                        <th>Bene</th>
-                        <th>Req Kit</th>
-                        <th>Quarter</th>
-                        <th>DPO Date</th>
-                        <th>DPO Status</th>
+                        {visibleColumns.sno && <th>S.no</th>}
+                        {visibleColumns.district && <th>District</th>}
+                        {visibleColumns.project && <th>Project name</th>}
+                        {visibleColumns.fin_year && <th>Financial Year</th>}
+                        {visibleColumns.bene && <th>Bene</th>}
+                        {visibleColumns.req_kit && <th>Req Kit</th>}
+                        {visibleColumns.quarter && <th>Quarter</th>}
+                        {visibleColumns.demand_date && <th>DPO Date</th>}
+                        {visibleColumns.dpo_status && <th>DPO Status</th>}
                       </tr>
                     </thead>
                     <tbody>{renderApprovalTable()}</tbody>
@@ -488,6 +613,35 @@ const DemandMahalakshmi = () => {
           </Container>
         )}
       </div>
+
+      <Modal show={showColumnModal} onHide={() => setShowColumnModal(false)} size="sm" centered>
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '16px' }}>Column Visibility</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Check 
+            type="checkbox" 
+            label="Select All" 
+            className="mb-2 fw-bold border-bottom pb-2"
+            checked={Object.values(visibleColumns).every(val => val)}
+            onChange={(e) => {
+              const isChecked = e.target.checked;
+              const newVisibility = {};
+              columns.forEach(col => {
+                newVisibility[col.key] = isChecked;
+              });
+              setVisibleColumns(newVisibility);
+            }}
+          />
+          {columns.map(col => (
+            <Form.Check 
+              key={col.key} type="checkbox" label={col.label}
+              checked={visibleColumns[col.key]}
+              onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
+            />
+          ))}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
