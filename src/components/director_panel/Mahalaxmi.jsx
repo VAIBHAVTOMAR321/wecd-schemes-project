@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Container, Row, Col, Card, Spinner, Form, Button, InputGroup, Table, Pagination, Badge, Alert, Modal } from "react-bootstrap";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { FaCopy, FaFileExcel, FaFilePdf, FaColumns, FaSearch, FaCheck } from "react-icons/fa";
 import { useAuth } from "../all_login/AuthContext";
 import "../../assets/css/supervisorleftnav.css";
@@ -8,10 +10,10 @@ import DirectorHeader from "./DirectorHeader";
 import DirectorLeftNav from "./DirectorLeftNav";
 
 const quarter_month_map = {
-  "Q1": "Apr-May-June",
-  "Q2": "July-Aug-Sept",
-  "Q3": "Oct-Nov-Dec",
-  "Q4": "Jan-Feb-March",
+  "Q1": ["Apr", "May", "June"],
+  "Q2": ["July", "Aug", "Sept"],
+  "Q3": ["Oct", "Nov", "Dec"],
+  "Q4": ["Jan", "Feb", "March"],
 };
 
 const Mahalaxmi = () => {
@@ -25,13 +27,13 @@ const Mahalaxmi = () => {
   const [quarter, setQuarter] = useState("Q1");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [tableData, setTableData] = useState([]);
+  const [allData, setAllData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
   const [error, setError] = useState(null);
 
-  // Entries per page - 100 as requested
-  const entriesPerPage = 100;
+  // Entries per page - 1000 as requested
+  const entriesPerPage = 1000;
 
   const tableRef = useRef(null);
   const [showColumnModal, setShowColumnModal] = useState(false);
@@ -64,33 +66,30 @@ const Mahalaxmi = () => {
   ];
 
   // Fetch data from API with pagination
-  const fetchBeneficiaryData = useCallback(async (page = 1) => {
+  const fetchBeneficiaryData = useCallback(async () => {
     if (!api) return;
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`director/beneficiary-summary/`, {
+      const response = await api.get(`https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/beneficiary-summary/`, {
         params: {
           fin_year: financialYear,
           quarter: quarter,
-          page: page,
-          page_size: entriesPerPage
         }
       });
-      setTableData(response.data?.results?.data || []);
+      setAllData(response.data?.data || []);
       setTotalEntries(response.data?.count || 0);
-      setCurrentPage(page);
     } catch (err) {
       console.error("Error fetching beneficiary data:", err);
       setError("Failed to fetch beneficiary records. Please try again.");
-      setTableData([]);
+      setAllData([]);
     } finally {
       setLoading(false);
     }
-  }, [api, financialYear, quarter, entriesPerPage]);
+  }, [api, financialYear, quarter]);
 
   // Filter data for search (client-side filtering)
-  const allFilteredData = tableData.filter((item) => {
+  const filteredData = allData.filter((item) => {
     if (!searchTerm.trim()) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -103,14 +102,12 @@ const Mahalaxmi = () => {
     );
   });
 
-  // Display data based on whether search is active
-  const displayData = searchTerm.trim() 
-    ? allFilteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage)
-    : tableData;
+  // Paginate the filtered data
+  const paginatedData = filteredData.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
   // Total pages calculation
-  const displayTotal = searchTerm.trim() ? allFilteredData.length : totalEntries;
-  const totalPages = Math.max(1, Math.ceil(displayTotal / entriesPerPage));
+  const totalFilteredEntries = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredEntries / entriesPerPage));
 
   // Generate pagination numbers with ellipsis
   const getPaginationRange = () => {
@@ -155,25 +152,20 @@ const Mahalaxmi = () => {
   const handlePageChange = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
-    // If no search term, fetch from API
-    if (!searchTerm.trim()) {
-      fetchBeneficiaryData(pageNumber);
-    }
-    // If search term, just change page (client-side pagination)
   };
 
   // Handle filter button click
   const handleFilter = () => {
     setSearchTerm("");
     setCurrentPage(1);
-    fetchBeneficiaryData(1);
+    fetchBeneficiaryData();
   };
 
   // Handle copy
   const handleCopy = async () => {
-    if (displayData.length === 0) return;
+    if (filteredData.length === 0) return;
     const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
-    const mRows = displayData.map((item, idx) => {
+    const mRows = filteredData.map((item, idx) => {
       const row = [];
       if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
       if (visibleColumns.district) row.push(item.district || "-");
@@ -201,11 +193,11 @@ const Mahalaxmi = () => {
 
   // Handle Excel export
   const handleExcel = () => {
-    if (displayData.length === 0) return;
+    if (filteredData.length === 0) return;
     const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => c.label);
     let csv = "Mahalaxmi Beneficiary Report\n" + mHeaders.join(",") + "\n";
 
-    displayData.forEach((item, idx) => {
+    filteredData.forEach((item, idx) => {
       const row = [];
       if (visibleColumns.sno) row.push((currentPage - 1) * entriesPerPage + idx + 1);
       if (visibleColumns.district) row.push(`"${item.district || "-"}"`);
@@ -229,13 +221,15 @@ const Mahalaxmi = () => {
 
   // Handle PDF export
   const handlePDF = () => {
+    if (filteredData.length === 0) return;
+
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
     const mHeaders = columns.filter(c => visibleColumns[c.key]).map(c => `<th>${c.label}</th>`).join("");
-    const mRows = displayData.map((item, idx) => {
+    const mRows = filteredData.map((item, idx) => {
       let row = "<tr>";
-      if (visibleColumns.sno) row += `<td>${(currentPage - 1) * entriesPerPage + idx + 1}</td>`;
+      if (visibleColumns.sno) row += `<td>${idx + 1}</td>`;
       if (visibleColumns.district) row += `<td>${item.district || "-"}</td>`;
       if (visibleColumns.project) row += `<td>${item.project || "-"}</td>`;
       if (visibleColumns.sector) row += `<td>${item.sector || "-"}</td>`;
@@ -251,16 +245,19 @@ const Mahalaxmi = () => {
 
     printWindow.document.write(`
       <html>
-        <head><title>Report</title><style>
-          table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 11px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f1f5f9; }
-          h2, h4 { text-align: center; font-family: sans-serif; }
-        </style></head>
+        <head>
+          <title>Mahalaxmi Beneficiary Report</title>
+          <style>
+            body { font-family: sans-serif; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f1f5f9; }
+            h2, h4 { text-align: center; }
+          </style>
+        </head>
         <body>
           <h2>Mahalaxmi Beneficiary Report</h2>
-          <h4>FY: ${financialYear} | Quarter: ${quarter_month_map[quarter]}</h4>
-          <p style="text-align: center;">Page ${currentPage} of ${totalPages} | Showing ${displayData.length} entries</p>
+          <h4>FY: ${financialYear} | Quarter: ${quarter_month_map[quarter].join('-')} | Total Records: ${filteredData.length}</h4>
           <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
         </body>
       </html>
@@ -285,7 +282,7 @@ const Mahalaxmi = () => {
 
   // Initial data fetch
   useEffect(() => {
-    fetchBeneficiaryData(1);
+    fetchBeneficiaryData();
   }, [fetchBeneficiaryData]);
 
   const toggleSidebar = () => {
@@ -293,8 +290,8 @@ const Mahalaxmi = () => {
   };
 
   // Calculate showing range
-  const showingFrom = displayTotal === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
-  const showingTo = Math.min(currentPage * entriesPerPage, displayTotal);
+  const showingFrom = totalFilteredEntries === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1;
+  const showingTo = Math.min(currentPage * entriesPerPage, totalFilteredEntries);
 
   const paginationRange = getPaginationRange();
 
@@ -358,7 +355,7 @@ const Mahalaxmi = () => {
                   </Button>
                 </Col>
                 <Col className="text-end">
-                  <span className="fw-bold text-dark small">Current View: {financialYear} | {quarter_month_map[quarter]}</span>
+                  <span className="fw-bold text-dark small">Current View: {financialYear} | {quarter_month_map[quarter].join('-')}</span>
                 </Col>
               </Row>
             </Card.Body>
@@ -398,7 +395,7 @@ const Mahalaxmi = () => {
           {searchTerm.trim() && (
             <Alert variant="info" className="py-2 px-3 mb-2">
               <small>
-                <strong>Search Active:</strong> Showing {allFilteredData.length} results for "{searchTerm}" 
+                <strong>Search Active:</strong> Showing {filteredData.length} results for "{searchTerm}" 
                 <Button variant="link" size="sm" className="p-0 ms-2" onClick={() => { setSearchTerm(""); setCurrentPage(1); }}>
                   Clear Search
                 </Button>
@@ -433,8 +430,8 @@ const Mahalaxmi = () => {
                       <p className="mt-2 mb-0">Loading beneficiary data... (Page {currentPage})</p>
                     </td>
                   </tr>
-                ) : displayData.length > 0 ? (
-                  displayData.map((row, index) => (
+                ) : paginatedData.length > 0 ? (
+                  paginatedData.map((row, index) => (
                     <tr key={row.id || `${currentPage}-${index}`}>
                       {visibleColumns.sno && <td className="text-center">{(currentPage - 1) * entriesPerPage + index + 1}</td>}
                       {visibleColumns.district && <td>{row.district}</td>}
@@ -465,14 +462,14 @@ const Mahalaxmi = () => {
               <Row className="align-items-center">
                 <Col md={4}>
                   <div className="text-muted small">
-                    Showing <strong>{showingFrom}</strong> to <strong>{showingTo}</strong> of <strong>{displayTotal}</strong> entries
+                    Showing <strong>{showingFrom}</strong> to <strong>{showingTo}</strong> of <strong>{totalFilteredEntries}</strong> entries
                     {searchTerm.trim() && <span className="text-info"> (filtered)</span>}
                   </div>
                 </Col>
                 <Col md={4} className="text-center">
                   <div className="d-flex align-items-center justify-content-center gap-2">
                     <span className="text-muted small">Entries per page:</span>
-                    <span className="badge bg-primary">100</span>
+                    <span className="badge bg-primary">1000</span>
                   </div>
                 </Col>
                 <Col md={4} className="d-flex justify-content-end">
