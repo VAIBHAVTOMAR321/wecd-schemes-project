@@ -1,8 +1,28 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Container, Row, Col, Card, Spinner, Table, Button, Form, FormControl, Modal } from "react-bootstrap";
-import { 
-  FaBuilding, FaUserTie, FaSearch, FaCopy, FaFileExcel, FaFilePdf, FaEye, 
-  FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight, FaCheck 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Container,
+  Card,
+  Spinner,
+  Table,
+  Pagination,
+  Button,
+  Form,
+  Modal,
+  Badge,
+  Row,
+  Col,
+  FormControl,
+} from "react-bootstrap";
+import {
+  FaBuilding,
+  FaUserTie,
+  FaSearch,
+  FaCopy,
+  FaFileExcel,
+  FaFilePdf,
+  FaColumns,
+  FaArrowUp,
+  FaArrowDown,
 } from "react-icons/fa";
 import { useAuth } from "../../all_login/AuthContext";
 import "../../../assets/css/supervisorleftnav.css";
@@ -10,41 +30,62 @@ import "../../../assets/css/dashboard.css";
 import DirectorLeftNav from "../DirectorLeftNav";
 import DirectorHeader from "../DirectorHeader";
 
-
 const OurCdpo = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  
+
   const { api } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortConfig, setSortConfig] = useState({ key: 'project_name', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({
+    key: "project_name",
+    direction: "asc",
+  });
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const tableRef = useRef(null);
 
-  const [visibleColumns, setVisibleColumns] = useState({
-    sno: true,
-    district: true,
-    project_name: true,
-    cdpo_incharge: true,
-    cdpo_mobile: true,
-    status: true,
+  const rowsPerPage = 10;
+
+  // ─── Column Definition (DpoOurAwc style) ───
+  const columns = [
+    { key: "sno", label: "S.No", sortable: false },
+    { key: "district", label: "District", sortable: true },
+    { key: "project_name", label: "Project Name", sortable: true },
+    { key: "cdpo_incharge", label: "CDPO Incharge", sortable: false },
+    { key: "cdpo_mobile", label: "CDPO Mobile", sortable: false },
+    { key: "status", label: "Status", sortable: true, dataKey: "stat_fin" },
+  ];
+
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const initial = {};
+    columns.forEach((col) => {
+      initial[col.key] = true;
+    });
+    return initial;
   });
 
-  const itemsPerPage = 10;
-
+  // ─── Fetch Data ───
   const fetchData = async () => {
     setLoading(true);
+    setError("");
     try {
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/projects/");
+      const response = await api.get(
+        "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/projects/"
+      );
       if (response.data?.success) {
         setData(response.data.data || []);
       }
     } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message
+      );
       console.error("Error fetching projects:", err);
     } finally {
       setLoading(false);
@@ -54,30 +95,56 @@ const OurCdpo = () => {
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
+      const tablet = window.innerWidth > 768 && window.innerWidth <= 992;
       setIsMobile(mobile);
-      setIsTablet(window.innerWidth > 768 && window.innerWidth <= 992);
-      setSidebarOpen(!mobile);
+      setIsTablet(tablet);
+      setSidebarOpen(mobile ? false : true);
     };
     handleResize();
     window.addEventListener("resize", handleResize);
     fetchData();
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [api]);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortConfig]);
 
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  // ─── Sort Logic ───
   const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc")
+      direction = "desc";
     setSortConfig({ key, direction });
   };
 
-  const filteredData = useMemo(() => {
-    let result = data.filter(item => {
-      const matchesSearch = !searchTerm || 
-        item.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const SortIcon = ({ colKey }) => (
+    <span className="ms-1" style={{ fontSize: "10px", color: "#94a3b8" }}>
+      {sortConfig.key === colKey ? (
+        sortConfig.direction === "asc" ? (
+          <FaArrowUp />
+        ) : (
+          <FaArrowDown />
+        )
+      ) : (
+        <>
+          <FaArrowUp />
+          <FaArrowDown />
+        </>
+      )}
+    </span>
+  );
+
+  // ─── Filtered & Sorted Data ───
+  const filteredData = (() => {
+    let result = data.filter((item) => {
+      const matchesSearch =
+        !searchTerm ||
+        item.project_name
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         item.district?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
@@ -85,54 +152,170 @@ const OurCdpo = () => {
     return result.sort((a, b) => {
       const valA = a[sortConfig.key] || "";
       const valB = b[sortConfig.key] || "";
-      return sortConfig.direction === 'asc' 
-        ? valA.toString().localeCompare(valB.toString()) 
+      return sortConfig.direction === "asc"
+        ? valA.toString().localeCompare(valB.toString())
         : valB.toString().localeCompare(valA.toString());
     });
-  }, [data, searchTerm, sortConfig]);
+  })();
 
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  // ─── Pagination ───
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredData.length / rowsPerPage)
+  );
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
 
-  const handleCopy = async () => {
-    const headers = ["S.no", "District", "Project name", "CDPO Incharge", "CDPO Mobile", "Status"];
-    const rows = paginatedData.map((item, idx) => [
-      (currentPage - 1) * itemsPerPage + idx + 1,
-      item.district, item.project_name, "-", "-", item.stat_fin
-    ]);
-    const text = [headers.join("\t"), ...rows.map(r => r.join("\t"))].join("\n");
-    await navigator.clipboard.writeText(text);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+  const getPaginationItems = () => {
+    const items = [];
+    const maxVisible = 5;
+
+    items.push(1);
+
+    let start = Math.max(2, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(
+      totalPages - 1,
+      currentPage + Math.floor(maxVisible / 2)
+    );
+
+    if (currentPage <= Math.floor(maxVisible / 2) + 1) {
+      end = Math.min(totalPages - 1, maxVisible);
+    }
+    if (currentPage >= totalPages - Math.floor(maxVisible / 2)) {
+      start = Math.max(2, totalPages - maxVisible + 1);
+    }
+
+    if (start > 2) {
+      items.push("start-ellipsis");
+    }
+
+    for (let i = start; i <= end; i++) {
+      items.push(i);
+    }
+
+    if (end < totalPages - 1) {
+      items.push("end-ellipsis");
+    }
+
+    if (totalPages > 1) {
+      items.push(totalPages);
+    }
+
+    return items;
   };
 
+  const paginationItems = getPaginationItems();
+
+  // ─── Helper: get value from row for a column ───
+  const getCellValue = (row, col, index) => {
+    const dataKey = col.dataKey || col.key;
+    switch (col.key) {
+      case "sno":
+        return startIndex + index + 1;
+      case "cdpo_incharge":
+        return row.cdpo_incharge || "-";
+      case "cdpo_mobile":
+        return row.cdpo_mobile || "-";
+      case "status":
+        return row[dataKey] || "active";
+      default:
+        return row[dataKey] || "";
+    }
+  };
+
+  // ─── COPY to Clipboard (DpoOurAwc style) ───
+  const handleCopy = async () => {
+    if (filteredData.length === 0) return;
+    const mHeaders = columns
+      .filter((c) => visibleColumns[c.key])
+      .map((c) => c.label);
+    const mRows = filteredData.map((item, idx) => {
+      const row = [];
+      columns
+        .filter((c) => visibleColumns[c.key])
+        .forEach((col) => {
+          row.push(getCellValue(item, col, idx));
+        });
+      return row.join("\t");
+    });
+    const text =
+      "Project | CDPO Incharge Report\n" +
+      [mHeaders.join("\t"), ...mRows].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ─── EXCEL Export (DpoOurAwc style) ───
   const handleExcel = () => {
-    const headers = ["S.no", "District", "Project name", "CDPO Incharge", "CDPO Mobile", "Status"];
-    let csv = headers.join(",") + "\n";
-    paginatedData.forEach((item, idx) => {
-      const row = [(currentPage - 1) * itemsPerPage + idx + 1, item.district, item.project_name, "-", "-", item.stat_fin];
+    if (filteredData.length === 0) return;
+    const mHeaders = columns
+      .filter((c) => visibleColumns[c.key])
+      .map((c) => c.label);
+    let csv =
+      "Project | CDPO Incharge Report\n" + mHeaders.join(",") + "\n";
+    filteredData.forEach((item, idx) => {
+      const row = [];
+      columns
+        .filter((c) => visibleColumns[c.key])
+        .forEach((col) => {
+          const val = getCellValue(item, col, idx);
+          row.push(`"${val}"`);
+        });
       csv += row.join(",") + "\n";
     });
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "CDPO_Projects_Report.csv";
+    link.download = `CDPO_Projects_Report_${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
     link.click();
   };
 
+  // ─── PDF Export (DpoOurAwc style) ───
   const handlePDF = () => {
-    const printWindow = window.open("", "_blank");
+    const printWindow = window.open(
+      "",
+      "_blank",
+      "width=1200,height=800"
+    );
+    if (!printWindow) return;
+    const mHeaders = columns
+      .filter((c) => visibleColumns[c.key])
+      .map((c) => `<th>${c.label}</th>`)
+      .join("");
+    const mRows = filteredData
+      .map((item, idx) => {
+        let row = "<tr>";
+        columns
+          .filter((c) => visibleColumns[c.key])
+          .forEach((col) => {
+            const val = getCellValue(item, col, idx);
+            row += `<td>${val}</td>`;
+          });
+        row += "</tr>";
+        return row;
+      })
+      .join("");
     printWindow.document.write(`
       <html>
-        <head><title>CDPO Projects Report</title><style>
+        <head><title>Report</title><style>
           table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
           th { background-color: #f1f5f9; }
+          h2, h4 { text-align: center; font-family: sans-serif; }
           .text-lowercase { text-transform: lowercase; }
         </style></head>
         <body>
-          <h2 style="text-align:center">Project | CDPO Incharge Report</h2>
-          ${tableRef.current.outerHTML}
+          <h2>Project | CDPO Incharge Report</h2>
+          <h4>Total Projects: ${filteredData.length} | Date: ${new Date().toLocaleDateString()}</h4>
+          <table><thead><tr>${mHeaders}</tr></thead><tbody>${mRows}</tbody></table>
         </body>
       </html>
     `);
@@ -140,11 +323,21 @@ const OurCdpo = () => {
     printWindow.print();
   };
 
-  const SortIcon = ({ colKey }) => (
-    <span className="ms-1" style={{ fontSize: '10px', color: '#94a3b8' }}>
-      {sortConfig.key === colKey ? (sortConfig.direction === 'asc' ? <FaArrowUp /> : <FaArrowDown />) : <><FaArrowUp /><FaArrowDown /></>}
-    </span>
-  );
+  // ─── Render Cell ───
+  const renderCell = (row, col, index) => {
+    const val = getCellValue(row, col, index);
+    if (col.key === "status") {
+      return (
+        <td>
+          <span className="text-lowercase text-muted">{val}</span>
+        </td>
+      );
+    }
+    if (col.key === "project_name") {
+      return <td className="fw-bold">{val}</td>;
+    }
+    return <td>{val}</td>;
+  };
 
   return (
     <div className="dashboard-container">
@@ -157,142 +350,313 @@ const OurCdpo = () => {
       <div className="main-content-dash">
         <DirectorHeader toggleSidebar={toggleSidebar} />
 
-        <Container fluid className="p-4 bg-white" style={{ minHeight: '100vh' }}>
-          <div className="d-flex align-items-center mb-4">
-            <div className="p-2 rounded me-3 d-flex align-items-center justify-content-center" style={{ backgroundColor: '#e0f2f1', width: '40px', height: '40px' }}>
-              <FaBuilding style={{ color: '#14b8a6' }} size={18} />
-              <FaUserTie style={{ color: '#14b8a6', marginLeft: '-4px', marginTop: '4px' }} size={12} />
+        <Container fluid className="dashboard-box mt-3">
+          <div className="main-heading mb-4 d-flex align-items-center">
+            <div
+              className="p-2 rounded me-3 d-flex align-items-center justify-content-center"
+              style={{
+                backgroundColor: "#e0f2f1",
+                width: "40px",
+                height: "40px",
+              }}
+            >
+              <FaBuilding style={{ color: "#14b8a6" }} size={18} />
+              <FaUserTie
+                style={{
+                  color: "#14b8a6",
+                  marginLeft: "-4px",
+                  marginTop: "4px",
+                }}
+                size={12}
+              />
             </div>
-            <h4 className="fw-bold text-dark m-0" style={{ letterSpacing: '-0.5px' }}>Project | CDPO Incharge</h4>
+            <div>
+              <h3
+                className="fw-bold mb-0"
+                style={{ letterSpacing: "-0.5px" }}
+              >
+                Project | CDPO Incharge
+              </h3>
+              <p className="text-muted mb-0" style={{ fontSize: "13px" }}>
+                Total Projects: {data.length}
+              </p>
+            </div>
           </div>
 
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div className="d-flex gap-1">
-              <Button size="sm" className="border-0 px-3 py-1" style={{ backgroundColor: '#64748b', fontSize: '12px' }} onClick={handleCopy}>
-                {copySuccess ? <FaCheck className="me-1" /> : <FaCopy className="me-1" />} {copySuccess ? "Copied" : "Copy"}
-              </Button>
-              <Button size="sm" className="border-0 px-3 py-1" style={{ backgroundColor: '#64748b', fontSize: '12px' }} onClick={handleExcel}><FaFileExcel className="me-1" /> Excel</Button>
-              <Button size="sm" className="border-0 px-3 py-1" style={{ backgroundColor: '#64748b', fontSize: '12px' }} onClick={handlePDF}><FaFilePdf className="me-1" /> PDF</Button>
-              <Button size="sm" className="border-0 px-3 py-1" style={{ backgroundColor: '#64748b', fontSize: '12px' }} onClick={() => setShowColumnModal(true)}><FaEye className="me-1" /> Column visibility</Button>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <span className="small fw-bold text-muted">Search:</span>
-              <FormControl size="sm" style={{ width: '180px' }} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            </div>
-          </div>
+          {error && (
+            <div className="alert alert-danger mb-3">{error}</div>
+          )}
 
-          <div className="table-responsive">
-            {loading ? (
-              <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
-            ) : (
-              <Table hover className="align-middle border-top" style={{ fontSize: '13px' }} ref={tableRef}>
-                <thead className="bg-white">
-                  <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                    {visibleColumns.sno && <th className="py-3 text-muted">S.no</th>}
-                    {visibleColumns.district && <th className="py-3 text-muted" onClick={() => handleSort('district')} style={{ cursor: 'pointer' }}>District <SortIcon colKey="district" /></th>}
-                    {visibleColumns.project_name && <th className="py-3 text-muted" onClick={() => handleSort('project_name')} style={{ cursor: 'pointer' }}>Project name <SortIcon colKey="project_name" /></th>}
-                    {visibleColumns.cdpo_incharge && <th className="py-3 text-muted" onClick={() => handleSort('cdpo_incharge')} style={{ cursor: 'pointer' }}>CDPO Incharge <SortIcon colKey="cdpo_incharge" /></th>}
-                    {visibleColumns.cdpo_mobile && <th className="py-3 text-muted" onClick={() => handleSort('cdpo_mobile')} style={{ cursor: 'pointer' }}>CDPO Mobile <SortIcon colKey="cdpo_mobile" /></th>}
-                    {visibleColumns.status && <th className="py-3 text-muted" onClick={() => handleSort('stat_fin')} style={{ cursor: 'pointer' }}>Status <SortIcon colKey="stat_fin" /></th>}
-                  </tr>
-                </thead>
-                <tbody style={{ backgroundColor: '#f8fafc' }}>
-                  {paginatedData.map((item, idx) => (
-                    <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
-                      {visibleColumns.sno && <td>{(currentPage - 1) * itemsPerPage + idx + 1}</td>}
-                      {visibleColumns.district && <td>{item.district}</td>}
-                      {visibleColumns.project_name && <td className="fw-bold">{item.project_name}</td>}
-                      {visibleColumns.cdpo_incharge && <td>-</td>}
-                      {visibleColumns.cdpo_mobile && <td>-</td>}
-                      {visibleColumns.status && (
-                        <td>
-                          <span className="text-lowercase text-muted">{item.stat_fin || 'active'}</span>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            )}
-          </div>
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+            </div>
+          ) : (
+            <>
+              {/* ─── Toolbar Buttons (DpoOurAwc style) ─── */}
+              <Row className="mb-3 align-items-center">
+                <Col md={6} className="d-flex gap-2 flex-wrap">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCopy}
+                    disabled={filteredData.length === 0}
+                  >
+                    {copySuccess ? (
+                      <Badge bg="success">Copied!</Badge>
+                    ) : (
+                      <>
+                        <FaCopy className="me-1" /> Copy
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleExcel}
+                    disabled={filteredData.length === 0}
+                  >
+                    <FaFileExcel className="me-1" /> Excel
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handlePDF}
+                    disabled={filteredData.length === 0}
+                  >
+                    <FaFilePdf className="me-1" /> PDF
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowColumnModal(true)}
+                  >
+                    <FaColumns className="me-1" /> Column visibility
+                  </Button>
+                </Col>
+                <Col
+                  md={6}
+                  className="d-flex align-items-center justify-content-md-end gap-2 mt-2 mt-md-0"
+                >
+                  <span
+                    className="small fw-bold text-muted"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    <FaSearch className="me-1" />
+                    Search:
+                  </span>
+                  <FormControl
+                    size="sm"
+                    style={{ width: "200px" }}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Project or district..."
+                  />
+                </Col>
+              </Row>
 
-          <div className="d-flex justify-content-between align-items-center mt-4">
-            <div className="small text-muted">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length.toLocaleString()} entries
-            </div>
-            <div className="custom-pagination d-flex align-items-center gap-2">
-              <Button variant="link" className="text-muted p-0" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>
-                <FaChevronLeft size={12} />
-              </Button>
-              {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <div 
-                    key={pageNum} onClick={() => setCurrentPage(pageNum)}
-                    style={{
-                      width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', fontSize: '13px',
-                      backgroundColor: currentPage === pageNum ? '#14b8a6' : 'transparent',
-                      color: currentPage === pageNum ? 'white' : '#64748b', fontWeight: currentPage === pageNum ? 'bold' : 'normal'
-                    }}
-                  >{pageNum}</div>
-                );
-              })}
-              {totalPages > 5 && <span className="text-muted">...</span>}
-              {totalPages > 5 && (
-                <div 
-                  onClick={() => setCurrentPage(totalPages)}
-                  style={{
-                    width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%', fontSize: '13px',
-                    color: '#64748b'
-                  }}
-                >{totalPages}</div>
-              )}
-              <Button variant="link" className="text-muted p-0" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)}>
-                <FaChevronRight size={12} />
-              </Button>
-            </div>
-          </div>
+              {/* ─── Table Card (DpoOurAwc style) ─── */}
+              <Card className="border-0 shadow-sm">
+                <Card.Body className="p-0">
+                  <div className="table-responsive">
+                    <Table
+                      ref={tableRef}
+                      striped
+                      bordered
+                      hover
+                      className="mb-0 text-center align-middle"
+                      size="sm"
+                      style={{ fontSize: "13px" }}
+                    >
+                      <thead className="table-light">
+                        <tr>
+                          {columns
+                            .filter((c) => visibleColumns[c.key])
+                            .map((col) => (
+                              <th
+                                key={col.key}
+                                style={
+                                  col.sortable
+                                    ? {
+                                        cursor: "pointer",
+                                        userSelect: "none",
+                                      }
+                                    : {}
+                                }
+                                onClick={() =>
+                                  col.sortable &&
+                                  handleSort(col.dataKey || col.key)
+                                }
+                              >
+                                {col.label}
+                                {col.sortable && (
+                                  <SortIcon
+                                    colKey={col.dataKey || col.key}
+                                  />
+                                )}
+                              </th>
+                            ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedData.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={
+                                Object.values(visibleColumns).filter(
+                                  Boolean
+                                ).length
+                              }
+                              className="text-center text-muted py-4"
+                            >
+                              No project data found
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedData.map((row, index) => (
+                            <tr key={row.project_name || index}>
+                              {columns
+                                .filter((c) => visibleColumns[c.key])
+                                .map((col) =>
+                                  renderCell(row, col, index)
+                                )}
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+                </Card.Body>
+
+                {filteredData.length > 0 && (
+                  <Card.Footer className="bg-white border-0 py-2">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <small className="text-muted">
+                        Showing{" "}
+                        {filteredData.length === 0
+                          ? 0
+                          : startIndex + 1}{" "}
+                        to{" "}
+                        {Math.min(
+                          endIndex,
+                          filteredData.length
+                        )}{" "}
+                        of{" "}
+                        {filteredData.length.toLocaleString()}{" "}
+                        entries
+                      </small>
+                      <Pagination size="sm" className="mb-0">
+                        <Pagination.First
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(1)}
+                        />
+                        <Pagination.Prev
+                          disabled={currentPage === 1}
+                          onClick={() =>
+                            setCurrentPage((page) =>
+                              Math.max(1, page - 1)
+                            )
+                          }
+                        />
+
+                        {paginationItems.map((item) => {
+                          if (
+                            item === "start-ellipsis" ||
+                            item === "end-ellipsis"
+                          ) {
+                            return (
+                              <Pagination.Ellipsis
+                                key={item}
+                                disabled
+                              />
+                            );
+                          }
+                          return (
+                            <Pagination.Item
+                              key={item}
+                              active={item === currentPage}
+                              onClick={() =>
+                                setCurrentPage(item)
+                              }
+                            >
+                              {item}
+                            </Pagination.Item>
+                          );
+                        })}
+
+                        <Pagination.Next
+                          disabled={
+                            currentPage === totalPages
+                          }
+                          onClick={() =>
+                            setCurrentPage((page) =>
+                              Math.min(totalPages, page + 1)
+                            )
+                          }
+                        />
+                        <Pagination.Last
+                          disabled={
+                            currentPage === totalPages
+                          }
+                          onClick={() =>
+                            setCurrentPage(totalPages)
+                          }
+                        />
+                      </Pagination>
+                    </div>
+                  </Card.Footer>
+                )}
+              </Card>
+            </>
+          )}
         </Container>
       </div>
 
-      <Modal show={showColumnModal} onHide={() => setShowColumnModal(false)} size="sm" centered>
-        <Modal.Header closeButton className="border-0 pb-2">
-          <Modal.Title style={{ fontSize: '14px', fontWeight: 'bold' }}>Column Visibility</Modal.Title>
+      {/* ─── Column Visibility Modal (DpoOurAwc style with Select All) ─── */}
+      <Modal
+        show={showColumnModal}
+        onHide={() => setShowColumnModal(false)}
+        size="sm"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: "16px" }}>
+            Column Visibility
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="pt-0">
-          {Object.keys(visibleColumns).map(key => (
+        <Modal.Body>
+          <Form.Check
+            type="checkbox"
+            label="Select All"
+            className="mb-2 fw-bold border-bottom pb-2"
+            checked={Object.values(visibleColumns).every(
+              (val) => val
+            )}
+            onChange={(e) => {
+              const isChecked = e.target.checked;
+              const newVisibility = {};
+              columns.forEach((col) => {
+                newVisibility[col.key] = isChecked;
+              });
+              setVisibleColumns(newVisibility);
+            }}
+          />
+          {columns.map((col) => (
             <Form.Check
-              key={key} type="checkbox" id={`col-${key}`} label={key.replace('_', ' ').toUpperCase()}
-              checked={visibleColumns[key]}
-              onChange={() => setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }))}
-              className="mb-2" style={{ fontSize: '13px' }}
+              key={col.key}
+              type="checkbox"
+              label={col.label}
+              checked={visibleColumns[col.key]}
+              onChange={() =>
+                setVisibleColumns((prev) => ({
+                  ...prev,
+                  [col.key]: !prev[col.key],
+                }))
+              }
             />
           ))}
         </Modal.Body>
       </Modal>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .custom-pagination div:hover {
-          background-color: #f1f5f9 !important;
-          color: #0f172a !important;
-        }
-        .custom-pagination div[style*="background-color: rgb(20, 184, 166)"]:hover {
-          background-color: #0d9488 !important;
-          color: white !important;
-        }
-        .table thead th {
-          border-bottom: none;
-          font-weight: 600;
-          text-transform: none;
-          letter-spacing: 0;
-        }
-        .table tbody tr:nth-of-type(odd) {
-          background-color: #f8fafc;
-        }
-        .bg-teal-light {
-          background-color: #e0f2f1;
-        }
-      `}} />
     </div>
   );
 };
