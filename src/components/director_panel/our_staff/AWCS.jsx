@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Container, Row, Col, Card, Spinner, Table, Button, Form, FormControl, Modal } from "react-bootstrap";
-import { 
-  FaBuilding, FaSearch, FaCopy, FaFileExcel, FaFilePdf, FaEye, 
-  FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight, FaCheck 
+import {
+  FaBuilding, FaSearch, FaCopy, FaFileExcel, FaFilePdf, FaEye,
+  FaArrowUp, FaArrowDown, FaChevronLeft, FaChevronRight, FaCheck
 } from "react-icons/fa";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { useAuth } from "../../all_login/AuthContext";
 import "../../../assets/css/supervisorleftnav.css";
 import "../../../assets/css/dashboard.css";
@@ -38,7 +40,7 @@ const AWCS = () => {
     district: true,
   });
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 1000;
 
   const fetchInitialData = async () => {
     setLoading(true);
@@ -107,11 +109,29 @@ const AWCS = () => {
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const handleCopy = async () => {
-    const headers = ["S.no", "AWC Code", "AWC", "AWC Type", "Grant", "Sector name", "Project name", "District"];
-    const rows = paginatedData.map((item, idx) => [
-      (currentPage - 1) * itemsPerPage + idx + 1,
-      item.awc_code, item.awc_name, item.awc_type, item.code1, item.sector, item.project, districtMap[item.district_code] || "-"
-    ]);
+    if (filteredData.length === 0) return;
+    const headers = [];
+    if (visibleColumns.sno) headers.push("S.no");
+    if (visibleColumns.awc_code) headers.push("AWC Code");
+    if (visibleColumns.awc_name) headers.push("AWC");
+    if (visibleColumns.awc_type) headers.push("AWC Type");
+    if (visibleColumns.grant) headers.push("Grant");
+    if (visibleColumns.sector) headers.push("Sector name");
+    if (visibleColumns.project) headers.push("Project name");
+    if (visibleColumns.district) headers.push("District");
+
+    const rows = filteredData.map((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push(idx + 1);
+      if (visibleColumns.awc_code) row.push(item.awc_code || "-");
+      if (visibleColumns.awc_name) row.push(item.awc_name || "-");
+      if (visibleColumns.awc_type) row.push(item.awc_type || "-");
+      if (visibleColumns.grant) row.push(item.code1 || "-");
+      if (visibleColumns.sector) row.push(item.sector || "-");
+      if (visibleColumns.project) row.push(item.project || "-");
+      if (visibleColumns.district) row.push(districtMap[item.district_code] || "-");
+      return row;
+    });
     const text = [headers.join("\t"), ...rows.map(r => r.join("\t"))].join("\n");
     await navigator.clipboard.writeText(text);
     setCopySuccess(true);
@@ -119,11 +139,29 @@ const AWCS = () => {
   };
 
   const handleExcel = () => {
-    const headers = ["S.no", "AWC Code", "AWC", "AWC Type", "Grant", "Sector name", "Project name", "District"];
+    if (filteredData.length === 0) return;
+    const headers = [];
+    if (visibleColumns.sno) headers.push("S.no");
+    if (visibleColumns.awc_code) headers.push("AWC Code");
+    if (visibleColumns.awc_name) headers.push("AWC");
+    if (visibleColumns.awc_type) headers.push("AWC Type");
+    if (visibleColumns.grant) headers.push("Grant");
+    if (visibleColumns.sector) headers.push("Sector name");
+    if (visibleColumns.project) headers.push("Project name");
+    if (visibleColumns.district) headers.push("District");
+
     let csv = headers.join(",") + "\n";
-    paginatedData.forEach((item, idx) => {
-      const row = [(currentPage - 1) * itemsPerPage + idx + 1, item.awc_code, item.awc_name, item.awc_type, item.code1, item.sector, item.project, districtMap[item.district_code] || "-"];
-      csv += row.join(",") + "\n";
+    filteredData.forEach((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push(idx + 1);
+      if (visibleColumns.awc_code) row.push(`"${item.awc_code || "-"}"`);
+      if (visibleColumns.awc_name) row.push(`"${item.awc_name || "-"}"`);
+      if (visibleColumns.awc_type) row.push(`"${item.awc_type || "-"}"`);
+      if (visibleColumns.grant) row.push(`"${item.code1 || "-"}"`);
+      if (visibleColumns.sector) row.push(`"${item.sector || "-"}"`);
+      if (visibleColumns.project) row.push(`"${item.project || "-"}"`);
+      if (visibleColumns.district) row.push(`"${districtMap[item.district_code] || "-"}"`);
+      csv += row.map(cell => cell).join(",") + "\n";
     });
     const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
@@ -133,22 +171,53 @@ const AWCS = () => {
   };
 
   const handlePDF = () => {
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
-      <html>
-        <head><title>Anganwadi Centers Report</title><style>
-          table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f1f5f9; }
-        </style></head>
-        <body>
-          <h2 style="text-align:center">Anganwadi Centers - District: ${appliedDistrict === "All" ? "All" : districtMap[appliedDistrict]}</h2>
-          ${tableRef.current.outerHTML}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+    if (filteredData.length === 0) return;
+
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    const title = `Anganwadi Centers - District: ${appliedDistrict === "All" ? "All" : districtMap[appliedDistrict]}`;
+    const subtitle = `Total Records: ${filteredData.length}`;
+
+    doc.setFontSize(16);
+    doc.text(title, doc.internal.pageSize.getWidth() / 2, 15, { align: "center" });
+    doc.setFontSize(10);
+    doc.text(subtitle, doc.internal.pageSize.getWidth() / 2, 22, { align: "center" });
+
+    const headers = [];
+    if (visibleColumns.sno) headers.push("S.no");
+    if (visibleColumns.awc_code) headers.push("AWC Code");
+    if (visibleColumns.awc_name) headers.push("AWC");
+    if (visibleColumns.awc_type) headers.push("AWC Type");
+    if (visibleColumns.grant) headers.push("Grant");
+    if (visibleColumns.sector) headers.push("Sector name");
+    if (visibleColumns.project) headers.push("Project name");
+    if (visibleColumns.district) headers.push("District");
+
+    const body = filteredData.map((item, idx) => {
+      const row = [];
+      if (visibleColumns.sno) row.push(idx + 1);
+      if (visibleColumns.awc_code) row.push(item.awc_code || "-");
+      if (visibleColumns.awc_name) row.push(item.awc_name || "-");
+      if (visibleColumns.awc_type) row.push(item.awc_type || "-");
+      if (visibleColumns.grant) row.push(item.code1 || "-");
+      if (visibleColumns.sector) row.push(item.sector || "-");
+      if (visibleColumns.project) row.push(item.project || "-");
+      if (visibleColumns.district) row.push(districtMap[item.district_code] || "-");
+      return row;
+    });
+
+    autoTable(doc, {
+      head: [headers],
+      body: body,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [241, 245, 249], textColor: [0, 0, 0], fontStyle: 'bold' },
+    });
+
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
   };
 
   const SortIcon = ({ colKey }) => (

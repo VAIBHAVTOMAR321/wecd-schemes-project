@@ -1,7 +1,7 @@
 {
   "name": "geeyandhara",
   "private": true,
-   "homepage": "/wecdschemes",
+  "homepage": "/wecdschemes",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -14,6 +14,8 @@
     "axios": "^1.15.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "react": "^19.2.4",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.4",
