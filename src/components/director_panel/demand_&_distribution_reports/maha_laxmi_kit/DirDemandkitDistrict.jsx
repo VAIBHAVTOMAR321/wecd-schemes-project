@@ -363,27 +363,21 @@ const DirDemandkitDistrict = () => {
     if (!printWindow) return;
 
     const rows = getExportData();
+    const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
 
-    const tbodyRows = rows.map((row) => `
-      <tr>
-        <td class="text-center">${row.sno}</td>
-        <td>${row.district}</td>
-        <td class="text-center">${row.financial_year}</td>
-        <td class="text-center">${row.quarter}</td>
-        <td class="text-center">${row.no_of_beneficiaries}</td>
-        <td class="text-center">${row.required_kits}</td>
-      </tr>
-    `).join("");
+    const tbodyRows = rows.map((row) => {
+      const cells = visibleCols.map((col) => `<td class="text-center">${col.key === "district" ? row[col.key] : (col.key === "financial_year" || col.key === "quarter" || col.key === "no_of_beneficiaries" || col.key === "required_kits" ? row[col.key] : "")}</td>`).join("");
+      return `<tr>${visibleCols.map((col, i) => {
+        if (col.key === "district") return `<td>${row[col.key]}</td>`;
+        return `<td class="text-center">${row[col.key]}</td>`;
+      }).join("")}</tr>`;
+    }).join("");
 
-    const overallRow = `
-      <tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
-        <td></td>
-        <td class="text-start" style="padding:8px;">Overall Total</td>
-        <td></td><td></td>
-        <td class="text-center">${overallTotals.beneficiaries}</td>
-        <td class="text-center">${overallTotals.kits}</td>
-      </tr>
-    `;
+    const totalRow = visibleCols.map((col) => {
+      const val = col.key === "district" ? "Overall Total" : (col.key === "no_of_beneficiaries" ? overallTotals.beneficiaries : (col.key === "required_kits" ? overallTotals.kits : ""));
+      if (col.key === "district") return `<td class="text-start" style="padding:8px;background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
+      return `<td class="text-center" style="background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
+    }).join("");
 
     printWindow.document.write(`
       <html>
@@ -403,15 +397,10 @@ const DirDemandkitDistrict = () => {
           <table>
             <thead>
               <tr style="background-color:#004d4d;color:#fff;">
-                <th style="padding:6px;">S.No</th>
-                <th style="padding:6px;">District</th>
-                <th style="padding:6px;">Financial Year</th>
-                <th style="padding:6px;">Quarter</th>
-                <th style="padding:6px;">No of Beneficiaries</th>
-                <th style="padding:6px;">Required Kits</th>
+                ${visibleCols.map((col) => `<th style="padding:6px;">${col.label}</th>`).join("")}
               </tr>
             </thead>
-            <tbody>${tbodyRows}${overallRow}</tbody>
+            <tbody>${tbodyRows}<tr style="background-color:#004d4d;color:#fff;font-weight:bold;">${totalRow}</tr></tbody>
           </table>
         </body>
       </html>
