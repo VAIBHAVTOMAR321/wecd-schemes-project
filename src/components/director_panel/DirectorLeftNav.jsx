@@ -9,6 +9,7 @@ import {
   FaUsers,
   FaBook,
   FaBuilding,
+  FaMapMarkedAlt,
   FaImage,
   FaTools,
   FaComments,
@@ -31,6 +32,7 @@ import {
   FaKey,
   FaFemale,
   FaChild,
+  FaLayerGroup,
   FaBox,
   FaLeaf,
   FaGift,
@@ -108,7 +110,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
           label: "Our Staff",
           submenu: [
 {
-       icon: <FaBuilding />,
+       icon: <FaMapMarkedAlt />,
        label: "Our Districts",
        path: "/OurDpo",
      },
@@ -119,12 +121,12 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
      },
  
        {
-       icon: <FaCube />,
+       icon: <FaLayerGroup />,
        label: "Our Sector",
        path: "/DirectorOurSector",
      },
      {
-       icon: <FaCube />,
+       icon: <FaBuilding />,
        label: "Our Awc Centers",
        path: "/AWCS",
      },
@@ -133,13 +135,13 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
         },
 
  {
-         icon: <FaTachometerAlt />,
+         icon: <FaGift />,
          label: "Mahalaxmi  Beneficiary ",
          path: "/Mahalaxmi",
          active: true,
        },
        {
-         icon: <FaUsers />,
+         icon: <FaBox />,
          label: "Demand & Distribution Reports",
          submenu: [
 {
