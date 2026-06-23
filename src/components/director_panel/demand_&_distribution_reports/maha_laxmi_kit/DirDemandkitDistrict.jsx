@@ -346,7 +346,7 @@ const DirDemandkitDistrict = () => {
     let csv = "MAHALAXMI KIT DEMAND DATA (DISTRICT WISE)\n";
     csv += `For the year: ${financialYear}, Quarter: ${quarter}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
-    csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
+    csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n") + "\n";
     csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -366,17 +366,25 @@ const DirDemandkitDistrict = () => {
     const visibleCols = tableColumns.filter((col) => visibleColumns[col.key]);
 
     const tbodyRows = rows.map((row) => {
-      const cells = visibleCols.map((col) => `<td class="text-center">${col.key === "district" ? row[col.key] : (col.key === "financial_year" || col.key === "quarter" || col.key === "no_of_beneficiaries" || col.key === "required_kits" ? row[col.key] : "")}</td>`).join("");
-      return `<tr>${visibleCols.map((col, i) => {
-        if (col.key === "district") return `<td>${row[col.key]}</td>`;
-        return `<td class="text-center">${row[col.key]}</td>`;
-      }).join("")}</tr>`;
+      const cells = visibleCols.map((col) => {
+        const val = row[col.key] ?? "";
+        if (col.key === "district") return `<td>${val}</td>`;
+        return `<td class="text-center">${val}</td>`;
+      }).join("");
+      return `<tr>${cells}</tr>`;
     }).join("");
 
     const totalRow = visibleCols.map((col) => {
-      const val = col.key === "district" ? "Overall Total" : (col.key === "no_of_beneficiaries" ? overallTotals.beneficiaries : (col.key === "required_kits" ? overallTotals.kits : ""));
-      if (col.key === "district") return `<td class="text-start" style="padding:8px;background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
-      return `<td class="text-center" style="background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
+      let val = "";
+      if (col.key === "district") {
+        val = "Overall Total";
+      } else if (col.key === "no_of_beneficiaries") {
+        val = overallTotals.beneficiaries;
+      } else if (col.key === "required_kits") {
+        val = overallTotals.kits;
+      }
+      const style = col.key === "district" ? "text-start" : "text-center";
+      return `<td class="${style}" style="padding:${col.key === "district" ? "8px;" : ""}background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
     }).join("");
 
     printWindow.document.write(`
@@ -400,7 +408,7 @@ const DirDemandkitDistrict = () => {
                 ${visibleCols.map((col) => `<th style="padding:6px;">${col.label}</th>`).join("")}
               </tr>
             </thead>
-            <tbody>${tbodyRows}<tr style="background-color:#004d4d;color:#fff;font-weight:bold;">${totalRow}</tr></tbody>
+            <tbody>${tbodyRows}<tr>${totalRow}</tr></tbody>
           </table>
         </body>
       </html>
@@ -766,7 +774,7 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     let csv = "MAHALAXMI KIT DISTRIBUTION DATA (DISTRICT WISE)\n";
     csv += `For the year: ${distFinancialYear}, Quarter: ${distQuarter}\n\n`;
     csv += visibleCols.map((col) => escapeCsv(col.label)).join(",") + "\n";
-    csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n");
+    csv += rows.map((row) => visibleCols.map((col) => escapeCsv(row[col.key])).join(",")).join("\n") + "\n";
     csv += visibleCols.map((col) => escapeCsv(totalRow[col.key])).join(",");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -778,37 +786,40 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleDistPDF = () => {
+const handleDistPDF = () => {
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
     const rows = getDistExportData();
-    const tbodyRows = rows.map((row) => `
-      <tr>
-        <td class="text-center">${row.sno}</td>
-        <td>${row.district}</td>
-        <td class="text-center">${row.financial_year}</td>
-        <td class="text-center">${row.quarter}</td>
-        <td class="text-center">${row.beneficiary}</td>
-        <td class="text-center">${row.demand_kits}</td>
-        <td class="text-center">${row.received_kits}</td>
-        <td class="text-center">${row.distributed_kits}</td>
-        <td class="text-center">${row.available_balance}</td>
-      </tr>
-    `).join("");
+    const visibleCols = distTableColumns.filter((col) => distVisibleColumns[col.key]);
 
-    const overallRow = `
-      <tr style="background-color:#004d4d;color:#fff;font-weight:bold;">
-        <td></td>
-        <td class="text-start" style="padding:8px;">Overall Total</td>
-        <td></td><td></td>
-        <td class="text-center">${distOverallTotals.beneficiary}</td>
-        <td class="text-center">${distOverallTotals.demandKits}</td>
-        <td class="text-center">${distOverallTotals.receivedKits}</td>
-        <td class="text-center">${distOverallTotals.distributedKits}</td>
-        <td class="text-center">${distOverallTotals.availableBalance}</td>
-      </tr>
-    `;
+    const tbodyRows = rows.map((row) => {
+      const cells = visibleCols.map((col) => {
+        const val = row[col.key] ?? "";
+        if (col.key === "district") return `<td>${val}</td>`;
+        return `<td class="text-center">${val}</td>`;
+      }).join("");
+      return `<tr>${cells}</tr>`;
+    }).join("");
+
+    const totalRow = visibleCols.map((col) => {
+      let val = "";
+      if (col.key === "district") {
+        val = "Overall Total";
+      } else if (col.key === "beneficiary") {
+        val = distOverallTotals.beneficiary;
+      } else if (col.key === "demand_kits") {
+        val = distOverallTotals.demandKits;
+      } else if (col.key === "received_kits") {
+        val = distOverallTotals.receivedKits;
+      } else if (col.key === "distributed_kits") {
+        val = distOverallTotals.distributedKits;
+      } else if (col.key === "available_balance") {
+        val = distOverallTotals.availableBalance;
+      }
+      const style = col.key === "district" ? "text-start" : "text-center";
+      return `<td class="${style}" style="padding:${col.key === "district" ? "8px;" : ""}background-color:#004d4d;color:#fff;font-weight:bold;">${val}</td>`;
+    }).join("");
 
     printWindow.document.write(`
       <html>
@@ -828,18 +839,10 @@ const DistributionReportView = ({ api, quarter, financialYear }) => {
           <table>
             <thead>
               <tr style="background-color:#004d4d;color:#fff;">
-                <th style="padding:6px;">S.No</th>
-                <th style="padding:6px;">District</th>
-                <th style="padding:6px;">Financial Year</th>
-                <th style="padding:6px;">Quarter</th>
-                <th style="padding:6px;">Beneficiary</th>
-                <th style="padding:6px;">Demand Kits</th>
-                <th style="padding:6px;">Received Kits</th>
-                <th style="padding:6px;">Distributed Kits</th>
-                <th style="padding:6px;">Available Balance</th>
+                ${visibleCols.map((col) => `<th style="padding:6px;">${col.label}</th>`).join("")}
               </tr>
             </thead>
-            <tbody>${tbodyRows}${overallRow}</tbody>
+            <tbody>${tbodyRows}<tr>${totalRow}</tr></tbody>
           </table>
         </body>
       </html>
