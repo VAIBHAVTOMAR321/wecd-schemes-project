@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -77,17 +78,26 @@ import DirDemandkitProject from "./components/director_panel/demand_&_distributi
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, isReady, role } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const postLogout = sessionStorage.getItem('post_logout');
+    if (postLogout) {
+      sessionStorage.removeItem('post_logout');
+      navigate('/Login', { replace: true, state: { from: location, message: 'You need to login again' } });
+    }
+  }, [isReady, navigate, location]);
 
   if (!isReady) {
     return null;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/Login" state={{ from: location }} replace />;
+    return <Navigate to="/Login" state={{ from: location, message: 'You need to login again' }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/Login" state={{ from: location, unauthorized: true }} replace />;
+    return <Navigate to="/Login" state={{ from: location, message: 'You need to login again' }} replace />;
   }
 
   return children;

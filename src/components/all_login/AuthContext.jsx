@@ -49,6 +49,7 @@ export function AuthProvider({ children }) {
   const tokensRef = useRef({ accessToken: null, refreshToken: null });
   const refreshPromiseRef = useRef(null);
   const logoutTimerRef = useRef(null);
+  const isAuthenticatedRef = useRef(!!accessToken);
 
   // 🔐 Check if refresh token is expired
   const isRefreshTokenExpired = () => {
@@ -59,6 +60,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     console.log('🔴 Logging out...');
 
+    sessionStorage.setItem('post_logout', '1');
     // 1. Determine redirect path based on role (Logic from Login.jsx)
     let redirectPath = '/wecdschemes/Login';
     if (role === 'director') {
@@ -86,9 +88,13 @@ export function AuthProvider({ children }) {
       logoutTimerRef.current = null;
     }
 
-    // 2. Perform redirection using window.location
+    // 2. Manipulate browser history to prevent back navigation
+    window.history.replaceState(null, '', '/wecdschemes/Login');
+    window.history.pushState(null, '', '/wecdschemes/Login');
+
+    // 3. Perform redirection using window.location
     // This avoids "useNavigate" errors and crashes
-    window.location.href = redirectPath;
+    window.location.replace(redirectPath);
   }, [role]);
 
   const login = useCallback((data) => {
@@ -226,6 +232,7 @@ export function AuthProvider({ children }) {
   // Keep tokensRef in sync with state for the axios interceptors
   useEffect(() => {
     tokensRef.current = { accessToken, refreshToken };
+    isAuthenticatedRef.current = !!accessToken;
   }, [accessToken, refreshToken]);
 
   // Persist auth state to localStorage on changes
@@ -271,6 +278,18 @@ export function AuthProvider({ children }) {
       }
     };
   }, [refreshTokenExpiry, logout]);
+
+  // Prevent back navigation after logout
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!isAuthenticatedRef.current) {
+        window.location.replace('/wecdschemes/Login');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Set up proactive refresh every 30 seconds
   useEffect(() => {

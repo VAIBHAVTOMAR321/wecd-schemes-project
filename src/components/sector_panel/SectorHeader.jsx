@@ -18,10 +18,12 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../all_login/AuthContext";
 
 
 function SectorHeader({ toggleSidebar }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // State to track if the API itself failed (404/500)
   const [apiError, setApiError] = useState(null);
@@ -56,7 +58,7 @@ function SectorHeader({ toggleSidebar }) {
   };
 
   const handleLogout = () => {
-    navigate("/", { replace: true });
+    logout();
   };
 
   return (

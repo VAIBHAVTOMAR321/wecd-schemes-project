@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import '../../assets/css/login.css';
 import UkLogo from '../../assets/images/new_logo_uk.png';
@@ -31,10 +31,12 @@ const [formData, setFormData] = useState({
   const [selectedSector, setSelectedSector] = useState('');
   const [SectorProjectsData, setSectorProjectsData] = useState([]);
 
-  const navigate = useNavigate();
-  const { login } = useAuth();
+   const navigate = useNavigate();
+   const { login } = useAuth();
+   const location = useLocation();
+   const logoutMessage = location.state?.message;
 
-// Content for Government Portal Style (consistent with Home.jsx)
+ // Content for Government Portal Style (consistent with Home.jsx)
    const content = {
      brandSubtitle: "Women Empowerment & Child Development Department",
      roleLabel: "Select Your Role",
@@ -362,6 +364,12 @@ const handleLoginSuccess = (data) => {
                 <div className="alert-message error">
                   <i className="bi bi-exclamation-circle"></i>
                   {error}
+                </div>
+              )}
+              {logoutMessage && (
+                <div className="alert-message" style={{ background: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7' }}>
+                  <i className="bi bi-info-circle"></i>
+                  {logoutMessage}
                 </div>
               )}
 
