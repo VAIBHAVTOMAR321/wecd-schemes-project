@@ -216,24 +216,7 @@ const CDPOProfile = () => {
                       </div>
                     )}
 
-                    <div className="text-center mt-4">
-                      <Button
-                        type="submit"
-                        variant="light"
-                        className="px-4 py-1 fw-bold shadow-sm text-white"
-                        style={{ fontSize: '13px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }}
-                        disabled={profileLoading || profileSaving}
-                      >
-                        {profileSaving ? (
-                          <>
-                            <Spinner animation="border" size="sm" className="me-2" />
-                            सेव कर रहा है...
-                          </>
-                        ) : (
-                          "प्रोफ़ाइल सेव करें"
-                        )}
-                      </Button>
-                    </div>
+                    
                   </Form>
                 </Card.Body>
               </Card>
@@ -330,5 +313,6 @@ const CDPOProfile = () => {
     </div>
   );
 };
+
 
 export default CDPOProfile;
