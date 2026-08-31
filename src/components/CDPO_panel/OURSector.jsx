@@ -75,14 +75,36 @@ const OURSector = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  const sanitizeValue = (value) => {
+    if (!value) return value;
+    return value.replace(/<[^>]*>/g, "");
+  };
+
+  const cleanSectorIncharge = (value) => {
+    if (!value) return value;
+    const sanitized = sanitizeValue(value);
+    return sanitized.replace(/[^a-zA-Z\s.\u0900-\u097F'-]/g, "").replace(/\s+/g, " ").trim();
+  };
+
+  const cleanInchargeMob = (value) => {
+    if (!value) return value;
+    return sanitizeValue(value).replace(/\D/g, "").slice(0, 10);
+  };
+
   const handleEdit = (row) => {
     setEditingId(row.id);
-    setEditForm({ ...row, password: "" });
+    setEditForm({
+      ...row,
+      password: "",
+      sector_incharge: cleanSectorIncharge(row.sector_incharge),
+      incharge_mob: cleanInchargeMob(row.incharge_mob),
+    });
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setEditForm((prev) => prev ? { ...prev, [name]: value } : null);
+    const cleanedValue = name === "sector_incharge" ? cleanSectorIncharge(value) : cleanInchargeMob(value);
+    setEditForm((prev) => prev ? { ...prev, [name]: cleanedValue } : null);
   };
 
   const handleSave = async () => {
