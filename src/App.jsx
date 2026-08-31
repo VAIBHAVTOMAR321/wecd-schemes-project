@@ -1,11 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -75,29 +74,18 @@ import DirDemandkitProject from "./components/director_panel/demand_&_distributi
 
 
 //  Protected Route component
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, isReady, role } = useAuth();
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isReady } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const postLogout = sessionStorage.getItem('post_logout');
-    if (postLogout) {
-      sessionStorage.removeItem('post_logout');
-      navigate('/Login', { replace: true, state: { from: location, message: 'You need to login again' } });
-    }
-  }, [isReady, navigate, location]);
-
+  // While checking auth state, show nothing (prevents flash of wrong content)
   if (!isReady) {
     return null;
   }
 
+  // If not authenticated, redirect to login (with return URL)
   if (!isAuthenticated) {
-    return <Navigate to="/Login" state={{ from: location, message: 'You need to login again' }} replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/Login" state={{ from: location, message: 'You need to login again' }} replace />;
+    return <Navigate to="/Login" state={{ from: location }} replace />;
   }
 
   return children;
@@ -135,37 +123,13 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
       {!shouldHideNavbar && <NavBar />}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/SectorDashBoard" element={
-          <ProtectedRoute allowedRoles={['supervisor']}>
-            <SectorDashBoard />
-          </ProtectedRoute>
-        } />
-        <Route path="/CDPOProfile" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <CDPOProfile />
-          </ProtectedRoute>
-        } />
-        <Route path="/DemandBalPoshanProject" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <DemandBalPoshanProject />
-          </ProtectedRoute>
-        } />
-        <Route path="/StockBal" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <StockBal />
-          </ProtectedRoute>
-        } />
+        <Route path="/SectorDashBoard" element={<SectorDashBoard />} />
+        <Route path="/CDPOProfile" element={<CDPOProfile />} />
+        <Route path="/DemandBalPoshanProject" element={<DemandBalPoshanProject />} />
+        <Route path="/StockBal" element={<StockBal />} />
      
-        <Route path="/DemandMahilaPoshanProject" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <DemandMahilaPoshanProject />
-          </ProtectedRoute>
-        } />
-        <Route path="/Stockmahila" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <Stockmahila />
-          </ProtectedRoute>
-        } />
+        <Route path="/DemandMahilaPoshanProject" element={<DemandMahilaPoshanProject />} />
+        <Route path="/Stockmahila" element={<Stockmahila />} />
          <Route path="/MahalakshmiBen" element={
           <ProtectedRoute>
             <MahalakshmiBen />
@@ -387,36 +351,12 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
            </ProtectedRoute>
          } />
          
-        <Route path="/DPODashboard" element={
-          <ProtectedRoute allowedRoles={['dpo']}>
-            <DPODashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/DemandMahalakshmi" element={
-          <ProtectedRoute allowedRoles={['dpo']}>
-            <DemandMahalakshmi />
-          </ProtectedRoute>
-        } />
-        <Route path="/DemandMahilaPoshanDistirct" element={
-          <ProtectedRoute allowedRoles={['dpo']}>
-            <DemandMahilaPoshanDistirct />
-          </ProtectedRoute>
-        } />
-        <Route path="/DemandBalPoshanDistrict" element={
-          <ProtectedRoute allowedRoles={['dpo']}>
-            <DemandBalPoshanDistrict />
-          </ProtectedRoute>
-        } />
-        <Route path="/CDPODashboard" element={
-          <ProtectedRoute allowedRoles={['cdpo']}>
-            <CDPODashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/DirectorDashboard" element={
-          <ProtectedRoute allowedRoles={['director']}>
-            <DirectorDashboard />
-          </ProtectedRoute>
-        } />
+        <Route path="/DPODashboard" element={<DPODashboard />} />
+        <Route path="/DemandMahalakshmi" element={<DemandMahalakshmi />} />
+        <Route path="/DemandMahilaPoshanDistirct" element={<DemandMahilaPoshanDistirct />} />
+        <Route path="/DemandBalPoshanDistrict" element={<DemandBalPoshanDistrict />} />
+        <Route path="/CDPODashboard" element={<CDPODashboard />} />
+        <Route path="/DirectorDashboard" element={<DirectorDashboard />} />
         <Route path="/Login" element={<Login />} />
         </Routes>
        {!shouldHideFooter && <Footer />}
