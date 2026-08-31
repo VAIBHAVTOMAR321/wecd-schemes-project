@@ -19,6 +19,10 @@ const CDPOProfile = () => {
     password: "",
     confirmPassword: ""
   });
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [strengthMessage, setStrengthMessage] = useState("");
+  const [passwordErrors, setPasswordErrors] = useState([]);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [profileData, setProfileData] = useState({
     id: "",
     district: "",
@@ -120,9 +124,105 @@ const CDPOProfile = () => {
     }
   };
 
+  const calculatePasswordStrength = (password) => {
+    if (!password) return 0;
+
+    let strength = 0;
+
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    if (!/(.)\1{2,}/.test(password)) strength++;
+    if (!/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(password)) strength++;
+
+    const normalizedStrength = Math.min(Math.floor((strength / 7) * 4), 4);
+    return normalizedStrength;
+  };
+
+  const getStrengthLabel = (strength) => {
+    switch (strength) {
+      case 0: return "";
+      case 1: return "बहुत कमजोर - कम से कम 8 अक्षरों का पासवर्ड उपयोग करें";
+      case 2: return "कमजोर - अंक, विशेष वर्ण जोड़ें";
+      case 3: return "मध्यम - अपने पासवर्ड को और अधिक जटिल बनाएं";
+      case 4: return "मजबूत";
+      default: return "";
+    }
+  };
+
+  const getStrengthColor = (strength) => {
+    switch (strength) {
+      case 1: return "#dc2626";
+      case 2: return "#f97316";
+      case 3: return "#facc15";
+      case 4: return "#16a34a";
+      default: return "#e5e7eb";
+    }
+  };
+
+  const validatePassword = (password) => {
+    const errors = [];
+    
+    if (!password) {
+      return { isValid: false, errors: ["पासवर्ड आवश्यक है"] };
+    }
+    
+    if (password.length < 8) {
+      errors.push("कम से कम 8 अक्षरों का होना चाहिए");
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push("कम से कम एक बड़ा अक्षर (A-Z) होना चाहिए");
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push("कम से कम एक छोटा अक्षर (a-z) होना चाहिए");
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      errors.push("कम से कम एक अंक (0-9) होना चाहिए");
+    }
+    
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      errors.push("कम से कम एक विशेष वर्ण (!@#$%^&*) होना चाहिए");
+    }
+    
+    if (/(.)\1{2,}/.test(password)) {
+      errors.push("लगातार 3 या अधिक समान वर्ण नहीं हो सकते (जैसे aaa, 111)");
+    }
+    
+    const sequentialPattern = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i;
+    if (sequentialPattern.test(password)) {
+      errors.push("क्रमिक अक्षर या अंक नहीं हो सकते (जैसे abc, 123)");
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData(prev => ({ ...prev, [name]: value }));
+
+    if (name === "password") {
+      const strength = calculatePasswordStrength(value);
+      setPasswordStrength(strength);
+      setStrengthMessage(getStrengthLabel(strength));
+      
+      const validation = validatePassword(value);
+      setPasswordErrors(validation.errors);
+      setIsPasswordValid(validation.isValid);
+    } else if (name === "confirmPassword") {
+      // Re-validate password when confirm password changes
+      const validation = validatePassword(passwordData.password);
+      setPasswordErrors(validation.errors);
+      setIsPasswordValid(validation.isValid);
+    }
   };
 
   const handleChangePassword = async (e) => {
@@ -134,13 +234,14 @@ const CDPOProfile = () => {
       return;
     }
 
-    if (passwordData.password !== passwordData.confirmPassword) {
-      setMessage({ text: "पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते", type: "error" });
+    const validation = validatePassword(passwordData.password);
+    if (!validation.isValid) {
+      setMessage({ text: validation.errors[0], type: "error" });
       return;
     }
 
-    if (passwordData.password.length < 3) {
-      setMessage({ text: "पासवर्ड कम से कम 3 अक्षरों का होना चाहिए", type: "error" });
+    if (passwordData.password !== passwordData.confirmPassword) {
+      setMessage({ text: "पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते", type: "error" });
       return;
     }
 
@@ -153,6 +254,8 @@ const CDPOProfile = () => {
       if (response.status === 200) {
         setMessage({ text: "पासवर्ड सफलतापूर्वक बदल दिया गया", type: "success" });
         setPasswordData({ password: "", confirmPassword: "" });
+        setPasswordStrength(0);
+        setStrengthMessage("");
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.response?.data?.error || "पासवर्ड बदलने में विफल";
@@ -234,15 +337,17 @@ const CDPOProfile = () => {
                         <Form.Group>
                           <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Password</Form.Label>
                           <div className="input-wrapper">
-                            <Form.Control
-                              size="sm"
-                              type={showPassword ? 'text' : 'password'}
-                              name="password"
-                              value={passwordData.password}
-                              onChange={handlePasswordChange}
-                              placeholder="कृपया नया पासवर्ड दर्ज करें"
-                              className="border-2"
-                            />
+                              <Form.Control
+                                size="sm"
+                                type={showPassword ? 'text' : 'password'}
+                                name="password"
+                                value={passwordData.password}
+                                onChange={handlePasswordChange}
+                                placeholder="कृपया नया पासवर्ड दर्ज करें"
+                                className="border-2"
+                                style={{ borderColor: passwordData.password ? getStrengthColor(passwordStrength) : undefined }}
+                                minLength={8}
+                              />
                             <Button
                               type="button"
                               variant="link"
@@ -252,6 +357,34 @@ const CDPOProfile = () => {
                               <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
                             </Button>
                           </div>
+                          {passwordData.password && (
+                            <div className="mt-2">
+                              <div className="progress" style={{ height: '6px', backgroundColor: '#e5e7eb' }}>
+                                <div
+                                  className="progress-bar"
+                                  role="progressbar"
+                                  style={{
+                                    width: `${(passwordStrength / 4) * 100}%`,
+                                    backgroundColor: getStrengthColor(passwordStrength),
+                                    transition: 'width 0.3s ease'
+                                  }}
+                                ></div>
+                              </div>
+                              <small className="text-muted" style={{ fontSize: '10px' }}>
+                                {strengthMessage}
+                              </small>
+                              {passwordErrors.length > 0 && (
+                                <div className="mt-1" style={{ fontSize: '10px' }}>
+                                  {passwordErrors.map((error, index) => (
+                                    <div key={index} style={{ color: '#dc2626' }}>
+                                      <i className="bi bi-x-circle me-1"></i>
+                                      {error}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </Form.Group>
                       </Col>
                       <Col md={6}>
@@ -279,6 +412,10 @@ const CDPOProfile = () => {
                         </Form.Group>
                       </Col>
                     </Row>
+                    <div className="alert alert-info py-2 px-3 mt-2" style={{ fontSize: '11px', backgroundColor: '#dbeafe', borderColor: '#93c5fd', color: '#1e40af' }}>
+                      <i className="bi bi-info-circle me-1"></i>
+                      पासवर्ड कम से कम 8 अक्षरों का होना चाहिए, उसमें बड़े और छोटे अक्षर, अंक और विशेष वर्ण होने चाहिए
+                    </div>
                     {message.text && (
                       <div className={`alert-message ${message.type === "success" ? "success" : "error"}`} style={{ marginTop: '15px' }}>
                         <i className={`bi ${message.type === "success" ? "bi-check-circle" : "bi-exclamation-circle"}`}></i>
@@ -291,7 +428,7 @@ const CDPOProfile = () => {
                         variant="light"
                         className="px-4 py-1 fw-bold shadow-sm text-white"
                         style={{ fontSize: '13px', backgroundColor: "#60a5fa", borderColor: "#60a5fa" }}
-                        disabled={loading}
+                        disabled={loading || !isPasswordValid}
                       >
                         {loading ? (
                           <>
