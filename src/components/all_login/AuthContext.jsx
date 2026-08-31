@@ -283,12 +283,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handlePopState = () => {
       if (!isAuthenticatedRef.current) {
-        const confirmed = window.confirm("Are you sure you want to logout?");
-        if (confirmed) {
-          window.location.replace('/wecdschemes/Login');
-        } else {
-          window.history.forward();
-        }
+        window.location.replace('/wecdschemes/Login');
       } else {
         const path = window.location.pathname;
         const isLoginPage = path.includes('/Login') || path.includes('/login');
