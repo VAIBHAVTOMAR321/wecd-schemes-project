@@ -279,17 +279,32 @@ export function AuthProvider({ children }) {
     };
   }, [refreshTokenExpiry, logout]);
 
-  // Prevent back navigation after logout
+  // Prevent back navigation after logout and block back-to-login when authenticated
   useEffect(() => {
     const handlePopState = () => {
       if (!isAuthenticatedRef.current) {
-        window.location.replace('/wecdschemes/Login');
+        const confirmed = window.confirm("Are you sure you want to logout?");
+        if (confirmed) {
+          window.location.replace('/wecdschemes/Login');
+        } else {
+          window.history.forward();
+        }
+      } else {
+        const path = window.location.pathname;
+        const isLoginPage = path.includes('/Login') || path.includes('/login');
+        if (isLoginPage) {
+          window.history.forward();
+          const confirmed = window.confirm("Are you sure you want to logout?");
+          if (confirmed) {
+            logout();
+          }
+        }
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [logout]);
 
   // Set up proactive refresh every 30 seconds
   useEffect(() => {
@@ -303,6 +318,45 @@ export function AuthProvider({ children }) {
       if (interval) clearInterval(interval);
     };
   }, [accessToken, refreshToken, refreshAccessToken]);
+
+  const sessionCheckTimerRef = useRef(null);
+
+  const checkSessionStatus = useCallback(async () => {
+    try {
+      const token = tokensRef.current.accessToken;
+      if (!token) return;
+      await axios.get(`${API_URL}/session-status/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      if (error.response?.status === 401) {
+        alert('Your account has been logged in on another device. Please login again.');
+        logout();
+      }
+    }
+  }, [logout]);
+
+  useEffect(() => {
+    if (accessToken && refreshToken) {
+      if (sessionCheckTimerRef.current) {
+        clearInterval(sessionCheckTimerRef.current);
+      }
+      checkSessionStatus();
+      sessionCheckTimerRef.current = setInterval(checkSessionStatus, 5000);
+
+      return () => {
+        if (sessionCheckTimerRef.current) {
+          clearInterval(sessionCheckTimerRef.current);
+          sessionCheckTimerRef.current = null;
+        }
+      };
+    } else {
+      if (sessionCheckTimerRef.current) {
+        clearInterval(sessionCheckTimerRef.current);
+        sessionCheckTimerRef.current = null;
+      }
+    }
+  }, [accessToken, refreshToken, checkSessionStatus]);
 
   // Authenticated axios instance with automatic token refresh logic
   const api = useMemo(() => {
