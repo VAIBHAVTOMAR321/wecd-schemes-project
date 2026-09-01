@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -16,6 +16,11 @@ const [formData, setFormData] = useState({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaQuestion, setCaptchaQuestion] = useState('');
+  const [captchaError, setCaptchaError] = useState('');
+  const captchaTimerRef = useRef(null);
 
   // New state for password reset modal
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -104,7 +109,39 @@ const [formData, setFormData] = useState({
     }
   }, [roleOptions]);
 
-const handleChange = (e) => {
+  const generateCaptcha = (showError = false) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCaptchaQuestion(code);
+    setCaptchaAnswer(code);
+    setCaptchaInput('');
+    if (showError) {
+      setCaptchaError('Invalid CAPTCHA. Please try again.');
+      if (captchaTimerRef.current) clearTimeout(captchaTimerRef.current);
+      captchaTimerRef.current = setTimeout(() => {
+        setCaptchaError('');
+      }, 3000);
+    } else {
+      setCaptchaError('');
+      if (captchaTimerRef.current) {
+        clearTimeout(captchaTimerRef.current);
+        captchaTimerRef.current = null;
+      }
+    }
+    return code;
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+    return () => {
+      if (captchaTimerRef.current) clearTimeout(captchaTimerRef.current);
+    };
+  }, []);
+
+ const handleChange = (e) => {
       const { name, value } = e.target;
       setFormData(prev => ({ ...prev, [name]: value }));
       setError('');
@@ -261,9 +298,17 @@ const handleLoginSuccess = (data) => {
       setError(content.errors.passwordRequired);
       return;
     }
+    if (captchaInput !== captchaAnswer) {
+      generateCaptcha(true);
+      return;
+    }
 
     setLoading(true);
     setError('');
+    if (captchaTimerRef.current) {
+      clearTimeout(captchaTimerRef.current);
+      captchaTimerRef.current = null;
+    }
 
     try {
       const payload = {
@@ -455,6 +500,41 @@ const handleLoginSuccess = (data) => {
                     <i className={showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}></i>
                   </button>
                 </div>
+              </div>
+
+              <div className="form-group captcha-group">
+                <label>CAPTCHA</label>
+                <div className="captcha-wrapper">
+                  <div className="captcha-display">
+                    <span id="captcha-question">{captchaQuestion}</span>
+                    <button type="button" className="captcha-refresh" onClick={generateCaptcha}>
+                      <i className="bi bi-arrow-clockwise"></i>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control custom-login-select"
+                    value={captchaInput}
+                    onChange={(e) => {
+                      setCaptchaInput(e.target.value);
+                      if (captchaError) {
+                        setCaptchaError('');
+                        if (captchaTimerRef.current) {
+                          clearTimeout(captchaTimerRef.current);
+                          captchaTimerRef.current = null;
+                        }
+                      }
+                    }}
+                    placeholder="Enter CAPTCHA"
+                    maxLength="6"
+                  />
+                </div>
+                {captchaError && (
+                  <div className="alert-message error captcha-error">
+                    <i className="bi bi-exclamation-circle"></i>
+                    {captchaError}
+                  </div>
+                )}
               </div>
 
               <div className="form-options">

@@ -750,3 +750,58 @@
   .login-right { padding: 16px 12px; }
   .uttarakhand-logo { width: 60px; height: 60px; }
 }
+
+/* ---- CAPTCHA ---- */
+.captcha-group {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.captcha-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.captcha-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.captcha-display span {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1B4F8A;
+  letter-spacing: 2px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.captcha-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #FF8F00;
+  font-size: 18px;
+  padding: 4px;
+  transition: transform 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.captcha-refresh:hover {
+  color: #E65100;
+  transform: rotate(180deg);
+}
+
+.captcha-error {
+  margin-top: 6px;
+  font-size: 11px;
+}
