@@ -60,7 +60,7 @@ const MahilaPoshanDemandSector = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/mp-sector-wise/");
+      const response = await api.get("/mp-sector-wise/");
       if (response.data && response.data.success) {
         setData(response.data.data || []);
         setDistrict(response.data.district || "");

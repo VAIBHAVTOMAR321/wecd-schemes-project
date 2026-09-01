@@ -36,8 +36,9 @@ const ResetPasswordModal = ({ isOpen, onClose, username, role, onPasswordResetSu
       };
 
       const response = await axios.post(
-        'https://mahadevaaya.com/wecdukschemes/wecdukschemes_backend/api/reset-password/',
-        payload
+        '/wecdschemes/wecdschemes_backend/api/reset-password/',
+        payload,
+        { withCredentials: true }
       );
 
       if (response.status === 200) {

@@ -71,7 +71,7 @@ const Mahalaxmi = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/beneficiary-summary/`, {
+      const response = await api.get(`/director/beneficiary-summary/`, {
         params: {
           fin_year: financialYear,
           quarter: quarter,

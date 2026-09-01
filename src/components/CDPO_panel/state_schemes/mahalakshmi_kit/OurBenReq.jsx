@@ -50,7 +50,7 @@ const OurBenReq = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-beneficiary/");
+      const response = await api.get("/cdpo-beneficiary/");
       let rawData = [];
       if (Array.isArray(response.data)) {
         rawData = response.data;

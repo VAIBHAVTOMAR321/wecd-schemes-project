@@ -76,7 +76,7 @@ const DirectorOurSector = () => {
     setError("");
     try {
       const response = await api.get(
-        "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/sectors/"
+        "/director/sectors/"
       );
       if (response.data?.success) {
         setData(response.data.data || []);

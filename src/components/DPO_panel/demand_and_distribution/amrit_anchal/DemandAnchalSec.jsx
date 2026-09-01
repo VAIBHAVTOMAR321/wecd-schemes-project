@@ -59,7 +59,7 @@ const DemandAnchalSec = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-am-demand/");
+      const response = await api.get("/dpo-am-demand/");
       let rawData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setData(rawData);
 

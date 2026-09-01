@@ -68,7 +68,7 @@ const DemandAnchalProj = () => {
     setLoading(true);
     try {
       // New API endpoint for project-wise data
-      const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo/am-demand/project-wise/");
+      const response = await api.get("/dpo/am-demand/project-wise/");
       let rawData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setData(rawData);
 

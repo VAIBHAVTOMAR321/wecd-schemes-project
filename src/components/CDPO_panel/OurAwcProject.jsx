@@ -12,7 +12,7 @@ const OurAwcProject = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
-  const { api, accessToken } = useAuth();
+  const { api } = useAuth();
   const [awcData, setAwcData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -43,8 +43,8 @@ const OurAwcProject = () => {
       setLoading(true);
       setApiError("");
       try {
-        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-        const response = await api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-awc-dropdown/", { headers });
+        // Use api client which handles credentials and CSRF automatically
+        const response = await api.get("/cdpo-awc-dropdown/");
         if (response.data?.success) {
           const data = response.data.data || [];
           setAwcData(data);
@@ -60,7 +60,7 @@ const OurAwcProject = () => {
       }
     };
     fetchAwcData();
-  }, [api, accessToken]);
+  }, [api]);
 
   useEffect(() => {
     setCurrentPage(1);

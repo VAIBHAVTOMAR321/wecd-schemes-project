@@ -75,7 +75,7 @@ const OurCdpo = () => {
     setError("");
     try {
       const response = await api.get(
-        "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/projects/"
+        "/director/projects/"
       );
       if (response.data?.success) {
         setData(response.data.data || []);

@@ -171,14 +171,14 @@ const [formData, setFormData] = useState({
     const fetchDistricts = async () => {
       let url = '';
       if (formData.role === 'supervisor') {
-        url = 'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/sector-dropdown/';
+        url = '/wecdschemes/wecdschemes_backend/api/sector-dropdown/';
       } else if (formData.role === 'cdpo') {
-        url = 'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/';
+        url = '/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/';
       } else if (formData.role === 'dpo') {
-        url = 'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/district-list/';
+        url = '/wecdschemes/wecdschemes_backend/api/district-list/';
       }
       try {
-        const res = await axios.get(url || '');
+        const res = await axios.get(url || '', { withCredentials: true });
         if (res.data.success) setDistricts(res.data.data);
       } catch (err) { console.error("Error fetching districts", err); }
     };
@@ -203,13 +203,13 @@ const handleDistrictChange = async (e) => {
 
         let url = '';
         if (formData.role === 'supervisor') {
-          url = `https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/sector-dropdown/?district=${district}`;
+          url = `/wecdschemes/wecdschemes_backend/api/sector-dropdown/?district=${district}`;
         } else if (formData.role === 'cdpo') {
-          url = `https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/?district=${district}`;
+          url = `/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/?district=${district}`;
         }
 
         try {
-          const res = await axios.get(url);
+          const res = await axios.get(url, { withCredentials: true });
           if (res.data.success) {
             if (formData.role === 'supervisor') {
               setSectorProjectsData(res.data.data);
@@ -258,12 +258,12 @@ const handleSectorChange = async (e) => {
     };
 
 const handleLoginSuccess = (data) => {
+     // With cookie-based auth, response is: { message, role, unique_id, username }
+     // Backend manages cookies, frontend just stores user info in context
      login({
-       access: data.access,
-       refresh: data.refresh,
        role: data.role,
        unique_id: data.unique_id,
-       user: data.user || null,
+       username: data.username,
      });
      alert(content.errors.loginSuccess);
 
@@ -318,11 +318,13 @@ const handleLoginSuccess = (data) => {
       };
 
       const response = await axios.post(
-        'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/login/',
-        payload
+        '/wecdschemes/wecdschemes_backend/api/login/',
+        payload,
+        { withCredentials: true }
       );
 
-      if (response.data.access) {
+      // With cookie-based auth, response contains: { message, role, unique_id, username }
+      if (response.data.message && response.data.role) {
         handleLoginSuccess(response.data);
       }
     } catch (err) {
@@ -349,8 +351,9 @@ const handleLoginSuccess = (data) => {
     setLoading(true);
     try {
       const payload = { username: resetPasswordUsername, password: newPassword, role: resetPasswordRole };
-      const response = await axios.post('https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/login/', payload);
-      if (response.data.access) {
+      const response = await axios.post('/wecdschemes/wecdschemes_backend/api/login/', payload, { withCredentials: true });
+      // With cookie-based auth, response contains: { message, role, unique_id, username }
+      if (response.data.message && response.data.role) {
         handleLoginSuccess(response.data);
       }
     } catch (err) {

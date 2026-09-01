@@ -46,8 +46,8 @@ const AWCS = () => {
     setLoading(true);
     try {
       const [distRes, awcRes] = await Promise.all([
-        api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/districts/"),
-        api.get("https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/awc-dropdown/")
+        api.get("/director/districts/"),
+        api.get("/director/awc-dropdown/")
       ]);
 
       if (distRes.data?.success) setDistricts(distRes.data.data || []);

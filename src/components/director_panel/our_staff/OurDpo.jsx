@@ -75,7 +75,7 @@ const OurDpo = () => {
     setError("");
     try {
       const response = await api.get(
-        "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/director/districts/"
+        "/director/districts/"
       );
       if (response.data?.success) {
         setData(response.data.data || []);

@@ -75,8 +75,8 @@ const DemandkitProject = () => {
     setLoading(true);
     try {
       const endpoint = viewMode === "demand" 
-        ? "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-demand-kit-report/"
-        : "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/dpo-mahalaxmi-stock-report/";
+        ? "/dpo-demand-kit-report/"
+        : "/dpo-mahalaxmi-stock-report/";
         
       const response = await api.get(endpoint);
       let rawData = [];

@@ -6,15 +6,15 @@ import "../../assets/css/awc.css";
 import CDPOLeftNav from "./CDPOLeftNav";
 import CDPOHeader from "./CDPOHeader";
 
-const SECTOR_API_URL = "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo-sector/";
-const RESET_PASSWORD_API_URL = "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/cdpo/reset-password/";
+const SECTOR_API_URL = "/cdpo-sector/";
+const RESET_PASSWORD_API_URL = "/cdpo/reset-password/";
 
 const OURSector = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   
-  const { api, accessToken } = useAuth();
+  const { api } = useAuth();
   const [sectorData, setSectorData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [projectName, setProjectName] = useState("");
@@ -48,8 +48,8 @@ const OURSector = () => {
       setLoading(true);
       setApiError("");
       try {
-        const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-        const response = await api.get(SECTOR_API_URL, { headers });
+        // Use api client which handles credentials and CSRF automatically
+        const response = await api.get(SECTOR_API_URL);
         if (response.data?.success) {
           const data = response.data.data || [];
           setSectorData(data);
@@ -65,7 +65,7 @@ const OURSector = () => {
       }
     };
     fetchSectorData();
-  }, [api, accessToken]);
+  }, [api]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -112,14 +112,14 @@ const OURSector = () => {
     setSaving(true);
     setApiError("");
     try {
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
       const payload = {
         id: editForm.id,
         sector_incharge: editForm.sector_incharge || "",
         incharge_mob: editForm.incharge_mob || "",
         password: editForm.password || "",
       };
-      const response = await api.put(SECTOR_API_URL, payload, { headers });
+      // Use api client which handles credentials and CSRF automatically
+      const response = await api.put(SECTOR_API_URL, payload);
       if (response.data?.success) {
         const responseData = response.data.data;
         if (Array.isArray(responseData)) {
@@ -148,9 +148,9 @@ const OURSector = () => {
     setSaving(true);
     setApiError("");
     try {
-      const headers = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
       const payload = { username };
-      const response = await api.put(RESET_PASSWORD_API_URL, payload, { headers });
+      // Use api client which handles credentials and CSRF automatically
+      const response = await api.put(RESET_PASSWORD_API_URL, payload);
       if (response.status === 200 || response.data?.success) {
         alert(`सेक्टर "${username}" का पासवर्ड सफलतापूर्वक रिसेट कर दिया गया है।`);
       } else {
