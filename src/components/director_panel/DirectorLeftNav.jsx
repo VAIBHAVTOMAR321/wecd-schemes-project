@@ -192,7 +192,7 @@ const DirectorLeftNav = ({ sidebarOpen, setSidebarOpen, isMobile, isTablet, onNa
                   path: "/DirDemandAnchalDist",
                 },
                 {
-                  label: "sector wise",
+                  label: "Sector wise",
                   path: "/DirDemandAnchalSec",
                 },
               ],
