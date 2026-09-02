@@ -4,6 +4,8 @@ import axios from 'axios';
 const AuthContext = createContext(null);
 
 const API_URL = '/wecdschemes/wecdschemes_backend/api';
+const IDLE_TIMEOUT_MINUTES = 5;
+const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -73,6 +75,17 @@ const resetAuthFailureFlag = () => {
   authFailureHandled = false;
 };
 
+const clearClientCookies = () => {
+  document.cookie.split(';').forEach((cookie) => {
+    const cookieName = cookie.split('=')[0].trim();
+    if (cookieName) {
+      ['/','/wecdschemes'].forEach((path) => {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
+      });
+    }
+  });
+};
+
 // Simple URL-based checks - no message parsing
 const isRefreshTokenRequest = (error) => {
   const requestUrl = error?.config?.url || '';
@@ -93,10 +106,14 @@ export function AuthProvider({ children }) {
   const refreshPromiseRef = useRef(null);
   const logoutTimerRef = useRef(null);
   const isAuthenticatedRef = useRef(false);
+  const isLoggingOutRef = useRef(false);
+  const lastActivityRef = useRef(Date.now());
 
-  const logout = useCallback(async () => {
-    console.log('🔴 Logging out...');
-
+  const logout = useCallback(async ({ timedOut = false } = {}) => {
+    if (isLoggingOutRef.current) {
+      return;
+    }
+    isLoggingOutRef.current = true;
     sessionStorage.setItem('post_logout', '1');
 
     // Reset state
@@ -107,6 +124,11 @@ export function AuthProvider({ children }) {
     setRole(null);
     setUniqueId(null);
     isAuthenticatedRef.current = false;
+    clearClientCookies();
+
+    if (timedOut) {
+      alert(`You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. Your session has expired. Please login again.`);
+    }
 
     if (logoutTimerRef.current) {
       clearTimeout(logoutTimerRef.current);
@@ -121,7 +143,7 @@ export function AuthProvider({ children }) {
         withCredentials: true,
       });
     } catch (error) {
-      console.log('⚠️ Logout endpoint call failed:', error.message);
+      // Continue client-side logout when the server request is unavailable.
     }
 
     // Manipulate browser history to prevent back navigation
@@ -141,9 +163,8 @@ export function AuthProvider({ children }) {
       setRole(data.role);
       setUniqueId(data.unique_id);
       isAuthenticatedRef.current = true;
-      console.log('🔑 Login successful. User:', data.username, 'Role:', data.role);
+      lastActivityRef.current = Date.now();
     } else {
-      console.error('Login failed: Role or unique_id not found in response');
       logout();
     }
   }, [logout]);
@@ -167,18 +188,18 @@ export function AuthProvider({ children }) {
 
     try {
       await refreshPromiseRef.current;
-      console.log('🔄 Token refreshed via cookie-based auth');
       processQueue(null);
       return true;
     } catch (error) {
-      console.log('❌ Token refresh failed');
-
-      // ONLY show session timeout for refresh-token API failure
-      // Do NOT check for "logged in elsewhere" here
-      handleSessionTimeout();
+      if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+        logout({ timedOut: true });
+      } else {
+        // Show the server-auth failure message for active users.
+        handleSessionTimeout();
+        logout();
+      }
 
       processQueue(error);
-      logout();
       return false;
     } finally {
       isRefreshing = false;
@@ -191,6 +212,43 @@ export function AuthProvider({ children }) {
     setIsReady(true);
     isAuthenticatedRef.current = !!user;
   }, [user]);
+
+  // Log out authenticated users after one minute without browser activity.
+  useEffect(() => {
+    if (!user || !role || !isAuthenticatedRef.current) {
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current);
+        logoutTimerRef.current = null;
+      }
+      return undefined;
+    }
+
+    const resetIdleTimer = () => {
+      lastActivityRef.current = Date.now();
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current);
+      }
+      logoutTimerRef.current = setTimeout(() => {
+        logout({ timedOut: true });
+      }, IDLE_TIMEOUT_MS);
+    };
+
+    const activityEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetIdleTimer);
+    });
+    resetIdleTimer();
+
+    return () => {
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetIdleTimer);
+      });
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current);
+        logoutTimerRef.current = null;
+      }
+    };
+  }, [user, role, logout]);
 
   // Prevent back navigation after logout
   useEffect(() => {
@@ -252,8 +310,12 @@ export function AuthProvider({ children }) {
         // CASE 1: Session-status request failed with 401
         // ONLY show "logged in elsewhere" message for this specific endpoint
         if (error.response?.status === 401 && isSessionStatusRequest(error)) {
-          handleLoggedInElsewhere();
-          logout();
+          if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+            logout({ timedOut: true });
+          } else {
+            handleLoggedInElsewhere();
+            logout();
+          }
           return Promise.reject(error);
         }
 
