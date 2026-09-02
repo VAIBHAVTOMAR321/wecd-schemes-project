@@ -19,7 +19,7 @@ const processQueue = (error) => {
   failedQueue = [];
 };
 
-// 🔐 Extract CSRF token from document.cookie
+// Extract CSRF token from document.cookie
 const getCSRFToken = () => {
   const name = 'csrftoken';
   let cookieValue = null;
@@ -36,6 +36,54 @@ const getCSRFToken = () => {
   return cookieValue;
 };
 
+const getCSRFHeaders = () => {
+  const csrfToken = getCSRFToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+  };
+};
+
+// Single flag to prevent multiple auth failure alerts
+// Once any auth failure is handled, no other alert will show
+let authFailureHandled = false;
+
+// Show session timeout - ONLY for refresh-token API failures
+const handleSessionTimeout = () => {
+  if (authFailureHandled) {
+    return false;
+  }
+  authFailureHandled = true;
+  alert('Your account has been logged in on another device. Please login again.');
+  return true;
+};
+
+// Show logged in elsewhere - ONLY for session-status API failures
+const handleLoggedInElsewhere = () => {
+  if (authFailureHandled) {
+    return false;
+  }
+  authFailureHandled = true;
+  alert('Session timeout. Please login again.');
+  return true;
+};
+
+// Reset the flag on successful login
+const resetAuthFailureFlag = () => {
+  authFailureHandled = false;
+};
+
+// Simple URL-based checks - no message parsing
+const isRefreshTokenRequest = (error) => {
+  const requestUrl = error?.config?.url || '';
+  return requestUrl.includes('/refresh-token/');
+};
+
+const isSessionStatusRequest = (error) => {
+  const requestUrl = error?.config?.url || '';
+  return requestUrl.includes('/session-status/');
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
@@ -50,7 +98,7 @@ export function AuthProvider({ children }) {
     console.log('🔴 Logging out...');
 
     sessionStorage.setItem('post_logout', '1');
-    
+
     // Reset state
     isRefreshing = false;
     failedQueue = [];
@@ -59,7 +107,7 @@ export function AuthProvider({ children }) {
     setRole(null);
     setUniqueId(null);
     isAuthenticatedRef.current = false;
-    
+
     if (logoutTimerRef.current) {
       clearTimeout(logoutTimerRef.current);
       logoutTimerRef.current = null;
@@ -74,27 +122,25 @@ export function AuthProvider({ children }) {
       });
     } catch (error) {
       console.log('⚠️ Logout endpoint call failed:', error.message);
-      // Even if logout endpoint fails, proceed with local cleanup and redirect
     }
 
-    // 2. Manipulate browser history to prevent back navigation
+    // Manipulate browser history to prevent back navigation
     window.history.replaceState(null, '', '/wecdschemes/Login');
     window.history.pushState(null, '', '/wecdschemes/Login');
 
-    // 3. Perform redirection using window.location
-    const redirectPath = '/wecdschemes/Login';
-    window.location.replace(redirectPath);
+    // Perform redirection
+    window.location.replace('/wecdschemes/Login');
   }, []);
 
   const login = useCallback((data) => {
-    // With cookie-based auth, the backend now manages cookies
-    // Response contains: { message, role, unique_id, username }
+    // Reset auth failure flag on successful login
+    resetAuthFailureFlag();
+
     if (data.role && data.unique_id) {
       setUser(data.username || null);
       setRole(data.role);
       setUniqueId(data.unique_id);
       isAuthenticatedRef.current = true;
-
       console.log('🔑 Login successful. User:', data.username, 'Role:', data.role);
     } else {
       console.error('Login failed: Role or unique_id not found in response');
@@ -103,22 +149,20 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   const refreshAccessToken = useCallback(async () => {
-    // With cookie-based auth, we just need to call the refresh endpoint
-    // The backend will update the httponly cookies
-    if (isRefreshing) {
-      if (refreshPromiseRef.current) {
-        return refreshPromiseRef.current;
-      }
+    // If auth failure already handled, don't even try refreshing
+    if (authFailureHandled) {
+      return false;
     }
 
-    // Prevent multiple concurrent refresh attempts
-    if (refreshPromiseRef.current) {
+    // If already refreshing, return the existing promise
+    if (isRefreshing && refreshPromiseRef.current) {
       return refreshPromiseRef.current;
     }
 
     isRefreshing = true;
     refreshPromiseRef.current = axios.post(`${API_URL}/refresh-token/`, {}, {
       withCredentials: true,
+      headers: getCSRFHeaders(),
     });
 
     try {
@@ -127,8 +171,12 @@ export function AuthProvider({ children }) {
       processQueue(null);
       return true;
     } catch (error) {
-      const errorData = error.response?.data;
-      console.log('❌ Token refresh failed:', errorData?.error || errorData?.message || error.message);
+      console.log('❌ Token refresh failed');
+
+      // ONLY show session timeout for refresh-token API failure
+      // Do NOT check for "logged in elsewhere" here
+      handleSessionTimeout();
+
       processQueue(error);
       logout();
       return false;
@@ -138,17 +186,13 @@ export function AuthProvider({ children }) {
     }
   }, [logout]);
 
-  // Initialize auth state on mount (check if user is already authenticated via cookies)
+  // Initialize auth state on mount
   useEffect(() => {
-    // With cookie-based auth, we rely on the backend to validate cookies
-    // On page load, we can try to call an authenticated endpoint to check if cookies are valid
-    // Or we can just set isReady and let the first API call determine auth state
-    // For now, we'll just mark as ready and let the app handle auth state
     setIsReady(true);
     isAuthenticatedRef.current = !!user;
-  }, []);
+  }, [user]);
 
-  // Prevent back navigation after logout and block back-to-login when authenticated
+  // Prevent back navigation after logout
   useEffect(() => {
     const handlePopState = () => {
       if (!isAuthenticatedRef.current) {
@@ -200,29 +244,38 @@ export function AuthProvider({ children }) {
       async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          // If we already tried to refresh, log out immediately
-          if (originalRequest._retry) {
-            logout();
-            return Promise.reject(error);
-          }
+        // If auth failure already handled by another request, just reject silently
+        if (authFailureHandled) {
+          return Promise.reject(error);
+        }
 
+        // CASE 1: Session-status request failed with 401
+        // ONLY show "logged in elsewhere" message for this specific endpoint
+        if (error.response?.status === 401 && isSessionStatusRequest(error)) {
+          handleLoggedInElsewhere();
+          logout();
+          return Promise.reject(error);
+        }
+
+        // CASE 2: Any other 401 error - try to refresh token
+        // If refresh fails, "session timeout" message will be shown by refreshAccessToken()
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          // If already refreshing, queue this request
           if (isRefreshing) {
             return new Promise((resolve, reject) => {
               failedQueue.push({ resolve, reject });
             }).then(() => {
-              // Retry the original request with new cookies
               return instance(originalRequest);
             }).catch(err => Promise.reject(err));
           }
 
           originalRequest._retry = true;
 
-          // Reuse the centralized refresh logic
+          // Attempt to refresh - this will show "session timeout" if it fails
           const refreshed = await refreshAccessToken();
+
           if (refreshed) {
-            // Cookies are now updated, retry the request
-            // For POST/PUT/PATCH/DELETE, re-add CSRF token
+            // Retry the original request with updated cookies
             const method = originalRequest.method.toUpperCase();
             if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
               const csrfToken = getCSRFToken();
@@ -232,8 +285,10 @@ export function AuthProvider({ children }) {
             }
             return instance(originalRequest);
           }
+
           return Promise.reject(error);
         }
+
         return Promise.reject(error);
       }
     );
@@ -241,7 +296,7 @@ export function AuthProvider({ children }) {
     return instance;
   }, [logout, refreshAccessToken]);
 
-  // Session status check - set up after api is initialized
+  // Session status check - runs periodically when authenticated
   useEffect(() => {
     if (!isAuthenticatedRef.current || !user || !role || !api) {
       // Clear any existing timer if not authenticated
@@ -252,16 +307,21 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Define session check function that uses api
     const checkSessionStatus = async () => {
+      // Don't check if:
+      // 1. Auth failure already handled (alert already shown)
+      // 2. Currently refreshing token (avoid interference)
+      if (authFailureHandled || isRefreshing) {
+        return;
+      }
+
       try {
         await api.get('/session-status/');
+        // Success - session is valid
       } catch (error) {
-        if (error.response?.status === 401) {
-          console.log('❌ Session check failed: account logged in elsewhere');
-          alert('Your account has been logged in on another device. Please login again.');
-          logout();
-        }
+        // Error is handled by the interceptor above
+        // The interceptor will show "logged in elsewhere" and logout
+        // No need to do anything here
       }
     };
 
