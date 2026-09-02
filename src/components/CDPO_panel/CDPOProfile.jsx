@@ -136,7 +136,6 @@ const CDPOProfile = () => {
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
     if (!/(.)\1{2,}/.test(password)) strength++;
-    if (!/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(password)) strength++;
 
     const normalizedStrength = Math.min(Math.floor((strength / 7) * 4), 4);
     return normalizedStrength;
@@ -192,11 +191,6 @@ const CDPOProfile = () => {
     
     if (/(.)\1{2,}/.test(password)) {
       errors.push("लगातार 3 या अधिक समान वर्ण नहीं हो सकते (जैसे aaa, 111)");
-    }
-    
-    const sequentialPattern = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i;
-    if (sequentialPattern.test(password)) {
-      errors.push("क्रमिक अक्षर या अंक नहीं हो सकते (जैसे abc, 123)");
     }
     
     return {

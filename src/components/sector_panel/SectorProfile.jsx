@@ -175,19 +175,31 @@ const SectorProfile = () => {
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
+
+    // BLOCK spaces first - don't allow them at all
+    if (/\s/.test(value)) {
+      if (name === "password") {
+        setErrors(prev => ({ ...prev, password: "पासवर्ड में रिक्त स्थान की अनुमति नहीं है" }));
+      } else {
+        setErrors(prev => ({ ...prev, confirmPassword: "पासवर्ड में रिक्त स्थान की अनुमति नहीं है" }));
+      }
+      return; // Don't update state if space is detected
+    }
+
+    // Update state only after space check passes
     setPasswordData(prev => ({ ...prev, [name]: value }));
 
     if (name === "password") {
-      // Block spaces in password
-      if (/\s/.test(value)) {
-        setErrors(prev => ({ ...prev, password: "पासवर्ड में रिक्त स्थान की अनुमति नहीं है" }));
-        return;
+      // Clear space error if no space
+      if (errors.password === "पासवर्ड में रिक्त स्थान की अनुमति नहीं है") {
+        setErrors(prev => ({ ...prev, password: "" }));
       }
       
       checkPasswordStrength(value);
       
+      // STRICT 8 character check - show error if less than 8
       if (value.length > 0 && value.length < 8) {
-        setErrors(prev => ({ ...prev, password: "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए" }));
+        setErrors(prev => ({ ...prev, password: `पासवर्ड कम से कम 8 अक्षरों का होना चाहिए (अभी ${value.length}/8)` }));
       } else if (value.length >= 8) {
         setErrors(prev => ({ ...prev, password: "" }));
       } else {
@@ -203,10 +215,9 @@ const SectorProfile = () => {
     }
 
     if (name === "confirmPassword") {
-      // Block spaces in confirm password
-      if (/\s/.test(value)) {
-        setErrors(prev => ({ ...prev, confirmPassword: "पासवर्ड में रिक्त स्थान की अनुमति नहीं है" }));
-        return;
+      // Clear space error if no space
+      if (errors.confirmPassword === "पासवर्ड में रिक्त स्थान की अनुमति नहीं है") {
+        setErrors(prev => ({ ...prev, confirmPassword: "" }));
       }
 
       if (value.length > 0 && value !== passwordData.password) {
@@ -221,7 +232,7 @@ const SectorProfile = () => {
 
   const validateProfileForm = () => {
     let isValid = true;
-    const newErrors = { ...errors };
+    const newErrors = { sectorIncharge: "", inchargeMob: "", password: "", confirmPassword: "" };
 
     // Validate Sector Incharge
     if (!profileData.sectorIncharge.trim()) {
@@ -235,8 +246,6 @@ const SectorProfile = () => {
       if (blockedPattern.test(profileData.sectorIncharge)) {
         newErrors.sectorIncharge = "विशेष वर्ण और संख्याएँ अनुमत नहीं हैं";
         isValid = false;
-      } else {
-        newErrors.sectorIncharge = "";
       }
     }
 
@@ -250,54 +259,69 @@ const SectorProfile = () => {
     } else if (!/^[6-9]/.test(profileData.inchargeMob)) {
       newErrors.inchargeMob = "मोबाइल नंबर 6,7,8,9 से शुरू होना चाहिए";
       isValid = false;
-    } else {
-      newErrors.inchargeMob = "";
     }
 
-    setErrors(newErrors);
+    setErrors(prev => ({ ...prev, ...newErrors }));
     return isValid;
   };
 
   const validatePasswordForm = () => {
     let isValid = true;
-    const newErrors = { ...errors };
+    const newErrors = { password: "", confirmPassword: "" };
 
-    if (!passwordData.password) {
+    // CHECK 1: Empty password
+    if (!passwordData.password || passwordData.password.length === 0) {
       newErrors.password = "कृपया नया पासवर्ड दर्ज करें";
       isValid = false;
-    } else if (passwordData.password.length < 8) {
-      newErrors.password = "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए";
+    }
+    // CHECK 2: STRICT - Must be at least 8 characters - THIS IS MANDATORY
+    else if (passwordData.password.length < 8) {
+      newErrors.password = `पासवर्ड कम से कम 8 अक्षरों का होना अनिवार्य है (अभी ${passwordData.password.length}/8 अक्षर हैं)`;
       isValid = false;
-    } else if (!/[A-Z]/.test(passwordData.password)) {
-      newErrors.password = "पासवर्ड में कम से कम एक बड़ा अक्षर (A-Z) होना चाहिए";
-      isValid = false;
-    } else if (!/[a-z]/.test(passwordData.password)) {
-      newErrors.password = "पासवर्ड में कम से कम एक छोटा अक्षर (a-z) होना चाहिए";
-      isValid = false;
-    } else if (!/[0-9]/.test(passwordData.password)) {
-      newErrors.password = "पासवर्ड में कम से कम एक संख्या (0-9) होनी चाहिए";
-      isValid = false;
-    } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(passwordData.password)) {
-      newErrors.password = "पासवर्ड में कम से कम एक विशेष वर्ण (!@#$%...) होना चाहिए";
-      isValid = false;
-    } else if (/\s/.test(passwordData.password)) {
+    }
+    // CHECK 3: No spaces
+    else if (/\s/.test(passwordData.password)) {
       newErrors.password = "पासवर्ड में रिक्त स्थान की अनुमति नहीं है";
       isValid = false;
-    } else {
-      newErrors.password = "";
+    }
+    // CHECK 4: At least one uppercase
+    else if (!/[A-Z]/.test(passwordData.password)) {
+      newErrors.password = "पासवर्ड में कम से कम एक बड़ा अक्षर (A-Z) होना चाहिए";
+      isValid = false;
+    }
+    // CHECK 5: At least one lowercase
+    else if (!/[a-z]/.test(passwordData.password)) {
+      newErrors.password = "पासवर्ड में कम से कम एक छोटा अक्षर (a-z) होना चाहिए";
+      isValid = false;
+    }
+    // CHECK 6: At least one number
+    else if (!/[0-9]/.test(passwordData.password)) {
+      newErrors.password = "पासवर्ड में कम से कम एक संख्या (0-9) होनी चाहिए";
+      isValid = false;
+    }
+    // CHECK 7: At least one special character
+    else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(passwordData.password)) {
+      newErrors.password = "पासवर्ड में कम से कम एक विशेष वर्ण (!@#$%...) होना चाहिए";
+      isValid = false;
     }
 
-    if (!passwordData.confirmPassword) {
+    // CHECK 8: Confirm password empty
+    if (!passwordData.confirmPassword || passwordData.confirmPassword.length === 0) {
       newErrors.confirmPassword = "कृपया पुष्टि पासवर्ड दर्ज करें";
       isValid = false;
-    } else if (passwordData.password !== passwordData.confirmPassword) {
+    }
+    // CHECK 9: No spaces in confirm password
+    else if (/\s/.test(passwordData.confirmPassword)) {
+      newErrors.confirmPassword = "पासवर्ड में रिक्त स्थान की अनुमति नहीं है";
+      isValid = false;
+    }
+    // CHECK 10: Passwords must match
+    else if (passwordData.password !== passwordData.confirmPassword) {
       newErrors.confirmPassword = "पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते";
       isValid = false;
-    } else {
-      newErrors.confirmPassword = "";
     }
 
-    setErrors(newErrors);
+    setErrors(prev => ({ ...prev, ...newErrors }));
     return isValid;
   };
 
@@ -335,8 +359,16 @@ const SectorProfile = () => {
     e.preventDefault();
     setMessage({ text: "", type: "" });
 
+    // FINAL VALIDATION - If password is less than 8 characters, STOP HERE
     if (!validatePasswordForm()) {
-      return;
+      // If password length is less than 8, show clear message
+      if (passwordData.password && passwordData.password.length < 8) {
+        setMessage({ 
+          text: `पासवर्ड बनाना असफल! पासवर्ड में कम से कम 8 अक्षर होने अनिवार्य है। आपने ${passwordData.password.length} अक्षर दर्ज किए हैं, कम से कम ${8 - passwordData.password.length} और अक्षर जोड़ें।`, 
+          type: "error" 
+        });
+      }
+      return; // STOP - do not proceed to API call
     }
 
     setLoading(true);
@@ -399,10 +431,15 @@ const SectorProfile = () => {
           <small style={{ fontSize: '10px', color: passwordStrength.color, fontWeight: '600' }}>
             {passwordStrength.label}
           </small>
+          {passwordData.password.length < 8 && (
+            <small style={{ fontSize: '10px', color: '#ef4444', fontWeight: '600' }}>
+              {passwordData.password.length}/8 अक्षर
+            </small>
+          )}
         </div>
         <div className="mt-1" style={{ fontSize: '10px' }}>
-          <div className={`d-flex align-items-center mb-1 ${passwordStrength.checks.length ? 'text-success' : 'text-muted'}`}>
-            <i className={`bi ${passwordStrength.checks.length ? 'bi-check-circle-fill' : 'bi-circle'} me-1`} style={{ fontSize: '10px' }}></i>
+          <div className={`d-flex align-items-center mb-1 ${passwordStrength.checks.length ? 'text-success' : 'text-danger'}`}>
+            <i className={`bi ${passwordStrength.checks.length ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-1`} style={{ fontSize: '10px' }}></i>
             कम से कम 8 अक्षर
           </div>
           <div className={`d-flex align-items-center mb-1 ${passwordStrength.checks.uppercase ? 'text-success' : 'text-muted'}`}>
@@ -627,6 +664,18 @@ const SectorProfile = () => {
                   <div className="alert-message warning mb-3" style={{ fontSize: '11px' }}>
                     <i className="bi bi-exclamation-triangle"></i>
                     कृपया अपना डिफ़ॉल्ट पासवर्ड अनिवार्य रूप से परिवर्तित कर नवीन पासवर्ड निर्धारित करें तथा उक्त पासवर्ड को भविष्य में उपयोग हेतु सुरक्षित स्थान पर अंकित/संरक्षित रखना सुनिश्चित करें।
+                  </div>
+                  <div 
+                    className="mb-3 p-2" 
+                    style={{ 
+                      backgroundColor: '#fef2f2', 
+                      border: '1px solid #fecaca',
+                      borderRadius: '6px',
+                      fontSize: '10px',
+                      color: '#991b1b'
+                    }}
+                  >
+                    <strong><i className="bi bi-shield-lock me-1"></i>पासवर्ड नियम:</strong> कम से कम <strong>8 अक्षर</strong> + 1 बड़ा अक्षर (A-Z) + 1 छोटा अक्षर (a-z) + 1 संख्या (0-9) + 1 विशेष वर्ण (!@#$%...) — <strong>रिक्त स्थान की अनुमति नहीं</strong>
                   </div>
                   <Form onSubmit={handleChangePassword} noValidate>
                     <Row className="g-3">
