@@ -23,6 +23,7 @@ const CDPOProfile = () => {
   const [strengthMessage, setStrengthMessage] = useState("");
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [profileData, setProfileData] = useState({
     id: "",
     district: "",
@@ -211,11 +212,24 @@ const CDPOProfile = () => {
       const validation = validatePassword(value);
       setPasswordErrors(validation.errors);
       setIsPasswordValid(validation.isValid);
+
+      if (passwordData.confirmPassword && value !== passwordData.confirmPassword) {
+        setConfirmPasswordError("पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते");
+      } else if (passwordData.confirmPassword && value === passwordData.confirmPassword) {
+        setConfirmPasswordError("");
+      }
     } else if (name === "confirmPassword") {
-      // Re-validate password when confirm password changes
       const validation = validatePassword(passwordData.password);
       setPasswordErrors(validation.errors);
       setIsPasswordValid(validation.isValid);
+
+      if (value.length > 0 && value !== passwordData.password) {
+        setConfirmPasswordError("पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते");
+      } else if (value.length > 0 && value === passwordData.password) {
+        setConfirmPasswordError("");
+      } else {
+        setConfirmPasswordError("");
+      }
     }
   };
 
@@ -250,6 +264,8 @@ const CDPOProfile = () => {
         setPasswordData({ password: "", confirmPassword: "" });
         setPasswordStrength(0);
         setStrengthMessage("");
+        setPasswordErrors([]);
+        setConfirmPasswordError("");
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.response?.data?.error || "पासवर्ड बदलने में विफल";
@@ -403,6 +419,12 @@ const CDPOProfile = () => {
                               <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
                             </Button>
                           </div>
+                          {confirmPasswordError && (
+                            <div className="text-danger mt-1" style={{ fontSize: '10px' }}>
+                              <i className="bi bi-exclamation-circle me-1"></i>
+                              {confirmPasswordError}
+                            </div>
+                          )}
                         </Form.Group>
                       </Col>
                     </Row>
