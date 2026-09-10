@@ -1,17 +1,30 @@
-import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
+import axios from "axios";
 
 const AuthContext = createContext(null);
 
-const API_URL = '/wecdschemes/wecdschemes_backend/api';
+const API_URL = "/wecdschemes/wecdschemes_backend/api";
+
+// ==========================================================
+// IDLE TIMEOUT SETTINGS (5 Minutes)
+// ==========================================================
 const IDLE_TIMEOUT_MINUTES = 5;
-const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
+const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000; // 300,000 ms
+// ==========================================================
 
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error) => {
-  failedQueue.forEach(prom => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -23,13 +36,13 @@ const processQueue = (error) => {
 
 // Extract CSRF token from document.cookie
 const getCSRFToken = () => {
-  const name = 'csrftoken';
+  const name = "csrftoken";
   let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+      if (cookie.substring(0, name.length + 1) === name + "=") {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -41,13 +54,12 @@ const getCSRFToken = () => {
 const getCSRFHeaders = () => {
   const csrfToken = getCSRFToken();
   return {
-    'Content-Type': 'application/json',
-    ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+    "Content-Type": "application/json",
+    ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
   };
 };
 
 // Single flag to prevent multiple auth failure alerts
-// Once any auth failure is handled, no other alert will show
 let authFailureHandled = false;
 
 // Show session timeout - ONLY for refresh-token API failures
@@ -56,7 +68,9 @@ const handleSessionTimeout = () => {
     return false;
   }
   authFailureHandled = true;
-  alert('Your account has been logged in on another device. Please login again.');
+  alert(
+    "Your account has been logged in on another device. Please login again.",
+  );
   return true;
 };
 
@@ -66,7 +80,7 @@ const handleLoggedInElsewhere = () => {
     return false;
   }
   authFailureHandled = true;
-  alert('Session timeout. Please login again.');
+  alert("Session timeout. Please login again.");
   return true;
 };
 
@@ -76,10 +90,10 @@ const resetAuthFailureFlag = () => {
 };
 
 const clearClientCookies = () => {
-  document.cookie.split(';').forEach((cookie) => {
-    const cookieName = cookie.split('=')[0].trim();
+  document.cookie.split(";").forEach((cookie) => {
+    const cookieName = cookie.split("=")[0].trim();
     if (cookieName) {
-      ['/','/wecdschemes'].forEach((path) => {
+      ["/", "/wecdschemes"].forEach((path) => {
         document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
       });
     }
@@ -88,13 +102,13 @@ const clearClientCookies = () => {
 
 // Simple URL-based checks - no message parsing
 const isRefreshTokenRequest = (error) => {
-  const requestUrl = error?.config?.url || '';
-  return requestUrl.includes('/refresh-token/');
+  const requestUrl = error?.config?.url || "";
+  return requestUrl.includes("/refresh-token/");
 };
 
 const isSessionStatusRequest = (error) => {
-  const requestUrl = error?.config?.url || '';
-  return requestUrl.includes('/session-status/');
+  const requestUrl = error?.config?.url || "";
+  return requestUrl.includes("/session-status/");
 };
 
 export function AuthProvider({ children }) {
@@ -114,7 +128,7 @@ export function AuthProvider({ children }) {
       return;
     }
     isLoggingOutRef.current = true;
-    sessionStorage.setItem('post_logout', '1');
+    sessionStorage.setItem("post_logout", "1");
 
     // Reset state
     isRefreshing = false;
@@ -127,7 +141,9 @@ export function AuthProvider({ children }) {
     clearClientCookies();
 
     if (timedOut) {
-      alert(`You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. Your session has expired. Please login again.`);
+      alert(
+        `You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. Your session has expired. Please login again.`,
+      );
     }
 
     if (logoutTimerRef.current) {
@@ -138,36 +154,43 @@ export function AuthProvider({ children }) {
     // Call logout endpoint with CSRF protection
     try {
       const csrfToken = getCSRFToken();
-      await axios.post(`${API_URL}/logout/`, {}, {
-        headers: csrfToken ? { 'X-CSRFToken': csrfToken } : {},
-        withCredentials: true,
-      });
+      await axios.post(
+        `${API_URL}/logout/`,
+        {},
+        {
+          headers: csrfToken ? { "X-CSRFToken": csrfToken } : {},
+          withCredentials: true,
+        },
+      );
     } catch (error) {
       // Continue client-side logout when the server request is unavailable.
     }
 
     // Manipulate browser history to prevent back navigation
-    window.history.replaceState(null, '', '/wecdschemes/Login');
-    window.history.pushState(null, '', '/wecdschemes/Login');
+    window.history.replaceState(null, "", "/wecdschemes/Login");
+    window.history.pushState(null, "", "/wecdschemes/Login");
 
     // Perform redirection
-    window.location.replace('/wecdschemes/Login');
+    window.location.replace("/wecdschemes/Login");
   }, []);
 
-  const login = useCallback((data) => {
-    // Reset auth failure flag on successful login
-    resetAuthFailureFlag();
+  const login = useCallback(
+    (data) => {
+      // Reset auth failure flag on successful login
+      resetAuthFailureFlag();
 
-    if (data.role && data.unique_id) {
-      setUser(data.username || null);
-      setRole(data.role);
-      setUniqueId(data.unique_id);
-      isAuthenticatedRef.current = true;
-      lastActivityRef.current = Date.now();
-    } else {
-      logout();
-    }
-  }, [logout]);
+      if (data.role && data.unique_id) {
+        setUser(data.username || null);
+        setRole(data.role);
+        setUniqueId(data.unique_id);
+        isAuthenticatedRef.current = true;
+        lastActivityRef.current = Date.now();
+      } else {
+        logout();
+      }
+    },
+    [logout],
+  );
 
   const refreshAccessToken = useCallback(async () => {
     // If auth failure already handled, don't even try refreshing
@@ -181,10 +204,14 @@ export function AuthProvider({ children }) {
     }
 
     isRefreshing = true;
-    refreshPromiseRef.current = axios.post(`${API_URL}/refresh-token/`, {}, {
-      withCredentials: true,
-      headers: getCSRFHeaders(),
-    });
+    refreshPromiseRef.current = axios.post(
+      `${API_URL}/refresh-token/`,
+      {},
+      {
+        withCredentials: true,
+        headers: getCSRFHeaders(),
+      },
+    );
 
     try {
       await refreshPromiseRef.current;
@@ -213,7 +240,7 @@ export function AuthProvider({ children }) {
     isAuthenticatedRef.current = !!user;
   }, [user]);
 
-  // Log out authenticated users after one minute without browser activity.
+  // Log out authenticated users after 5 minutes without browser activity.
   useEffect(() => {
     if (!user || !role || !isAuthenticatedRef.current) {
       if (logoutTimerRef.current) {
@@ -228,12 +255,19 @@ export function AuthProvider({ children }) {
       if (logoutTimerRef.current) {
         clearTimeout(logoutTimerRef.current);
       }
+      // Sets a timer to automatically log out when the user reaches 5 minutes of inactivity
       logoutTimerRef.current = setTimeout(() => {
         logout({ timedOut: true });
       }, IDLE_TIMEOUT_MS);
     };
 
-    const activityEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    const activityEvents = [
+      "click",
+      "keydown",
+      "mousemove",
+      "scroll",
+      "touchstart",
+    ];
     activityEvents.forEach((eventName) => {
       window.addEventListener(eventName, resetIdleTimer);
     });
@@ -254,10 +288,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handlePopState = () => {
       if (!isAuthenticatedRef.current) {
-        window.location.replace('/wecdschemes/Login');
+        window.location.replace("/wecdschemes/Login");
       } else {
         const path = window.location.pathname;
-        const isLoginPage = path.includes('/Login') || path.includes('/login');
+        const isLoginPage = path.includes("/Login") || path.includes("/login");
         if (isLoginPage) {
           window.history.forward();
           const confirmed = window.confirm("Are you sure you want to logout?");
@@ -268,8 +302,8 @@ export function AuthProvider({ children }) {
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [logout]);
 
   const sessionCheckTimerRef = useRef(null);
@@ -279,22 +313,22 @@ export function AuthProvider({ children }) {
     const instance = axios.create({
       baseURL: API_URL,
       withCredentials: true,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
 
     instance.interceptors.request.use(
       (config) => {
         // For POST, PUT, PATCH, DELETE requests, add CSRF token
         const method = config.method.toUpperCase();
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
           const csrfToken = getCSRFToken();
           if (csrfToken) {
-            config.headers['X-CSRFToken'] = csrfToken;
+            config.headers["X-CSRFToken"] = csrfToken;
           }
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     instance.interceptors.response.use(
@@ -308,7 +342,6 @@ export function AuthProvider({ children }) {
         }
 
         // CASE 1: Session-status request failed with 401
-        // ONLY show "logged in elsewhere" message for this specific endpoint
         if (error.response?.status === 401 && isSessionStatusRequest(error)) {
           if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
             logout({ timedOut: true });
@@ -320,15 +353,16 @@ export function AuthProvider({ children }) {
         }
 
         // CASE 2: Any other 401 error - try to refresh token
-        // If refresh fails, "session timeout" message will be shown by refreshAccessToken()
         if (error.response?.status === 401 && !originalRequest._retry) {
           // If already refreshing, queue this request
           if (isRefreshing) {
             return new Promise((resolve, reject) => {
               failedQueue.push({ resolve, reject });
-            }).then(() => {
-              return instance(originalRequest);
-            }).catch(err => Promise.reject(err));
+            })
+              .then(() => {
+                return instance(originalRequest);
+              })
+              .catch((err) => Promise.reject(err));
           }
 
           originalRequest._retry = true;
@@ -339,10 +373,10 @@ export function AuthProvider({ children }) {
           if (refreshed) {
             // Retry the original request with updated cookies
             const method = originalRequest.method.toUpperCase();
-            if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
               const csrfToken = getCSRFToken();
               if (csrfToken) {
-                originalRequest.headers['X-CSRFToken'] = csrfToken;
+                originalRequest.headers["X-CSRFToken"] = csrfToken;
               }
             }
             return instance(originalRequest);
@@ -352,7 +386,7 @@ export function AuthProvider({ children }) {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
 
     return instance;
@@ -378,19 +412,22 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        await api.get('/session-status/');
+        await api.get("/session-status/");
         // Success - session is valid
       } catch (error) {
         // Error is handled by the interceptor above
-        // The interceptor will show "logged in elsewhere" and logout
-        // No need to do anything here
       }
     };
 
     // Delay initial check by 2 seconds to allow cookies to settle
     const initialCheckTimer = setTimeout(() => {
       checkSessionStatus();
-      // Check every 30 seconds
+
+      // =================================================================================
+      // NOTE: This 30000 (30 seconds) is the background polling interval to check if
+      // the user logged in elsewhere. It is NOT the idle timeout.
+      // The idle timeout is strictly controlled by IDLE_TIMEOUT_MS (5 minutes) above.
+      // =================================================================================
       sessionCheckTimerRef.current = setInterval(checkSessionStatus, 30000);
     }, 2000);
 
@@ -403,29 +440,28 @@ export function AuthProvider({ children }) {
     };
   }, [user, role, api, logout]);
 
-  const value = useMemo(() => ({
-    user,
-    role,
-    uniqueId,
-    login,
-    logout,
-    api,
-    refreshAccessToken,
-    isAuthenticated: isAuthenticatedRef.current,
-    isReady,
-  }), [user, role, uniqueId, api, refreshAccessToken, isReady]);
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      role,
+      uniqueId,
+      login,
+      logout,
+      api,
+      refreshAccessToken,
+      isAuthenticated: isAuthenticatedRef.current,
+      isReady,
+    }),
+    [user, role, uniqueId, api, refreshAccessToken, isReady],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
