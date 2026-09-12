@@ -123,16 +123,40 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
       {!shouldHideNavbar && <NavBar />}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/SectorDashBoard" element={<SectorDashBoard />} />
-        <Route path="/CDPOProfile" element={<CDPOProfile />} />
-        <Route path="/DemandBalPoshanProject" element={<DemandBalPoshanProject />} />
-        <Route path="/StockBal" element={<StockBal />} />
-     
-        <Route path="/DemandMahilaPoshanProject" element={<DemandMahilaPoshanProject />} />
-        <Route path="/Stockmahila" element={<Stockmahila />} />
          <Route path="/MahalakshmiBen" element={
           <ProtectedRoute>
             <MahalakshmiBen />
+          </ProtectedRoute>
+        } />
+        <Route path="/CDPOProfile" element={
+          <ProtectedRoute>
+            <CDPOProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/SectorDashBoard" element={
+          <ProtectedRoute>
+            <SectorDashBoard />
+          </ProtectedRoute>
+        } />
+         <Route path="/StockBal" element={
+          <ProtectedRoute>
+            <StockBal />
+          </ProtectedRoute>
+        } />
+        <Route path="/Stockmahila" element={
+          <ProtectedRoute>
+            <Stockmahila />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/DemandBalPoshanProject" element={
+          <ProtectedRoute>
+            <DemandBalPoshanProject />
+          </ProtectedRoute>
+        } />
+        <Route path="/DemandMahilaPoshanProject" element={
+          <ProtectedRoute>
+            <DemandMahilaPoshanProject />
           </ProtectedRoute>
         } />
          <Route path="/DirectorOurSector" element={
@@ -350,14 +374,32 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
              <DirDemandkitProject />
            </ProtectedRoute>
          } />
-         
-        <Route path="/DPODashboard" element={<DPODashboard />} />
-        <Route path="/DemandMahalakshmi" element={<DemandMahalakshmi />} />
-        <Route path="/DemandMahilaPoshanDistirct" element={<DemandMahilaPoshanDistirct />} />
-        <Route path="/DemandBalPoshanDistrict" element={<DemandBalPoshanDistrict />} />
-        <Route path="/CDPODashboard" element={<CDPODashboard />} />
-        <Route path="/DirectorDashboard" element={<DirectorDashboard />} />
-        <Route path="/Login" element={<Login />} />
+         <Route path="/DPODashboard" element={
+           <ProtectedRoute>
+             <DPODashboard />
+           </ProtectedRoute>
+         } />
+         <Route path="/DemandMahalakshmi" element={
+           <ProtectedRoute>
+             <DemandMahalakshmi />
+           </ProtectedRoute>
+         } />
+         <Route path="/DemandMahilaPoshanDistirct" element={
+           <ProtectedRoute>
+             <DemandMahilaPoshanDistirct />
+           </ProtectedRoute>
+         } />
+         <Route path="/CDPODashboard" element={
+           <ProtectedRoute>
+             <CDPODashboard />
+           </ProtectedRoute>
+         } />
+<Route path="/DirectorDashboard" element={
+           <ProtectedRoute>
+             <DirectorDashboard />
+           </ProtectedRoute>
+         } />
+                 <Route path="/Login" element={<Login />} />
         </Routes>
        {!shouldHideFooter && <Footer />}
     </>
