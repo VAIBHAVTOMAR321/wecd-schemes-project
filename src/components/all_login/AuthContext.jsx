@@ -169,15 +169,12 @@ export function AuthProvider({ children }) {
     const csrfToken = getCSRFToken();
 
     try {
-      // The backend must delete the HttpOnly access_token and refresh_token
-      // cookies in its HTTP response.
-      await axios.post(
-        `${API_URL}/logout/`,
-        {},
+      await fetch(
+        "https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/logout/",
         {
-          withCredentials: true,
+          method: "POST",
+          credentials: "include",
           headers: {
-            "Content-Type": "application/json",
             ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
           },
         },
