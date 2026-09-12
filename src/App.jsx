@@ -138,6 +138,11 @@ const hideFooterRoutes = ["/SectorDashBoard", "/DemandAmritAnchalDistrict", "/De
             <SectorDashBoard />
           </ProtectedRoute>
         } />
+        <Route path="/DemandBalPoshanDistrict" element={
+          <ProtectedRoute>
+            <DemandBalPoshanDistrict />
+          </ProtectedRoute>
+        } />
          <Route path="/StockBal" element={
           <ProtectedRoute>
             <StockBal />
