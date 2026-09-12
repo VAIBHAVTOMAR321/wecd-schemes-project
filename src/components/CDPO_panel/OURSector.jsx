@@ -274,8 +274,7 @@ const OURSector = () => {
     const sanitized = sanitizeValue(value);
     return sanitized
       .replace(/[^a-zA-Z\s.\u0900-\u097F'-]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+      .replace(/\s+/g, " ");
   };
 
   const cleanInchargeMob = (value) => {
