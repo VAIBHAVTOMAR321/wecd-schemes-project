@@ -89,15 +89,36 @@ const resetAuthFailureFlag = () => {
   authFailureHandled = false;
 };
 
+// Clears only cookies that JavaScript can access.
+// access_token and refresh_token are HttpOnly, so they CANNOT be removed
+// with document.cookie. The backend /logout/ response must remove them.
 const clearClientCookies = () => {
-  document.cookie.split(";").forEach((cookie) => {
+  const cookies = document.cookie ? document.cookie.split(";") : [];
+
+  cookies.forEach((cookie) => {
     const cookieName = cookie.split("=")[0].trim();
-    if (cookieName) {
-      ["/", "/wecdschemes"].forEach((path) => {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
-      });
-    }
+    if (!cookieName) return;
+
+    [
+      "/",
+      "/wecdschemes",
+      "/wecdschemes/Login",
+      "/wecdschemes/DirectorDashboard",
+      "/wecdschemes/DPODashboard",
+      "/wecdschemes/CDPODashboard",
+      "/wecdschemes/SectorDashBoard",
+      "/wecdschemes/wecdschemes_backend",
+      "/wecdschemes/wecdschemes_backend/api",
+    ].forEach((path) => {
+      document.cookie =
+        `${cookieName}=; Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
+    });
   });
+};
+
+const clearAllStorage = () => {
+  localStorage.clear();
+  sessionStorage.clear();
 };
 
 // Simple URL-based checks - no message parsing
@@ -127,51 +148,65 @@ export function AuthProvider({ children }) {
     if (isLoggingOutRef.current) {
       return;
     }
-    isLoggingOutRef.current = true;
-    sessionStorage.setItem("post_logout", "1");
 
-    // Reset state
+    isLoggingOutRef.current = true;
+
+    // Stop refresh/retry processing.
     isRefreshing = false;
+    failedQueue.forEach(({ reject }) => {
+      if (reject) reject(new Error("Logout in progress"));
+    });
     failedQueue = [];
     refreshPromiseRef.current = null;
-    setUser(null);
-    setRole(null);
-    setUniqueId(null);
-    isAuthenticatedRef.current = false;
-    clearClientCookies();
-
-    if (timedOut) {
-      alert(
-        `You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. Your session has expired. Please login again.`,
-      );
-    }
 
     if (logoutTimerRef.current) {
       clearTimeout(logoutTimerRef.current);
       logoutTimerRef.current = null;
     }
 
-    // Call logout endpoint with CSRF protection
+    // IMPORTANT: read CSRF BEFORE clearing browser-visible cookies.
+    // The logout API may require this token.
+    const csrfToken = getCSRFToken();
+
     try {
-      const csrfToken = getCSRFToken();
+      // The backend must delete the HttpOnly access_token and refresh_token
+      // cookies in its HTTP response.
       await axios.post(
         `${API_URL}/logout/`,
         {},
         {
-          headers: csrfToken ? { "X-CSRFToken": csrfToken } : {},
           withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+          },
         },
       );
     } catch (error) {
-      // Continue client-side logout when the server request is unavailable.
+      console.error("Logout API failed:", error);
+    } finally {
+      // Clear frontend authentication state.
+      setUser(null);
+      setRole(null);
+      setUniqueId(null);
+      isAuthenticatedRef.current = false;
+
+      clearAllStorage();
+
+      // Clear csrftoken and other JavaScript-readable cookies.
+      // HttpOnly JWT cookies are deleted by the backend.
+      clearClientCookies();
+
+      if (timedOut) {
+        alert(
+          `You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. Your session has expired. Please login again.`,
+        );
+      }
+
+      window.history.replaceState(null, "", "/wecdschemes/Login");
+      window.history.pushState(null, "", "/wecdschemes/Login");
+      window.location.replace("/wecdschemes/Login");
     }
-
-    // Manipulate browser history to prevent back navigation
-    window.history.replaceState(null, "", "/wecdschemes/Login");
-    window.history.pushState(null, "", "/wecdschemes/Login");
-
-    // Perform redirection
-    window.location.replace("/wecdschemes/Login");
   }, []);
 
   const login = useCallback(
