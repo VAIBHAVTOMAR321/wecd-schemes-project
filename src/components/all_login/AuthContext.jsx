@@ -14,7 +14,7 @@ const AuthContext = createContext(null);
 const API_URL = "/wecdschemes/wecdschemes_backend/api";
 
 // ==========================================================
-// IDLE TIMEOUT SETTINGS (5 Minutes)
+// IDLE TIMEOUT SETTINGS (1 Minute)
 // ==========================================================
 const IDLE_TIMEOUT_MINUTES = 5;
 const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
@@ -75,24 +75,15 @@ const getCSRFHeaders = () => {
 let authFailureHandled = false;
 
 // ==========================================================
-// REFRESH TOKEN FAILURE
-// This means authentication/refresh has failed.
+// FULL LOGOUT FUNCTION REF (module-level bridge)
 // ==========================================================
-const handleSessionTimeout = () => {
-  if (authFailureHandled) {
-    return false;
-  }
-
-  authFailureHandled = true;
-
-  alert("Your session has expired. Please login again.");
-
-  return true;
+const fullLogoutRef = {
+  current: null,
 };
 
 // ==========================================================
-// SESSION STATUS FAILURE
-// Usually means login_version changed / another login.
+// MULTI-DEVICE LOGIN / FORCED LOGOUT HANDLER
+// Used when the user is ACTIVE but the backend kicks them out.
 // ==========================================================
 const handleLoggedInElsewhere = () => {
   if (authFailureHandled) {
@@ -104,6 +95,10 @@ const handleLoggedInElsewhere = () => {
   alert(
     "Your account has been logged in on another device. Please login again.",
   );
+
+  if (fullLogoutRef.current) {
+    fullLogoutRef.current();
+  }
 
   return true;
 };
@@ -117,8 +112,8 @@ const resetAuthFailureFlag = () => {
 
 // ==========================================================
 // CLEAR JAVASCRIPT-ACCESSIBLE COOKIES
-// HttpOnly JWT cookies cannot be removed by JS.
-// Backend /logout/ removes those.
+// HttpOnly JWT cookies (access_token, refresh_token) MUST
+// be deleted by the backend /logout/ endpoint.
 // ==========================================================
 const clearClientCookies = () => {
   const cookies = document.cookie ? document.cookie.split(";") : [];
@@ -130,7 +125,7 @@ const clearClientCookies = () => {
       return;
     }
 
-    [
+    const paths = [
       "/",
       "/wecdschemes",
       "/wecdschemes/Login",
@@ -140,12 +135,19 @@ const clearClientCookies = () => {
       "/wecdschemes/SectorDashBoard",
       "/wecdschemes/wecdschemes_backend",
       "/wecdschemes/wecdschemes_backend/api",
-    ].forEach((path) => {
-      document.cookie =
-        `${cookieName}=; ` +
-        `Max-Age=0; ` +
-        `expires=Thu, 01 Jan 1970 00:00:00 GMT; ` +
-        `path=${path}`;
+    ];
+
+    const domains = ["", window.location.hostname, "localhost", "127.0.0.1"];
+
+    paths.forEach((path) => {
+      domains.forEach((domain) => {
+        document.cookie =
+          `${cookieName}=; ` +
+          `Max-Age=0; ` +
+          `expires=Thu, 01 Jan 1970 00:00:00 GMT; ` +
+          (domain ? `domain=${domain}; ` : "") +
+          `path=${path};`;
+      });
     });
   });
 };
@@ -163,13 +165,11 @@ const clearAllStorage = () => {
 // ==========================================================
 const isRefreshTokenRequest = (error) => {
   const requestUrl = error?.config?.url || "";
-
   return requestUrl.includes("/refresh-token/");
 };
 
 const isSessionStatusRequest = (error) => {
   const requestUrl = error?.config?.url || "";
-
   return requestUrl.includes("/session-status/");
 };
 
@@ -192,56 +192,8 @@ export function AuthProvider({ children }) {
   const lastActivityRef = useRef(Date.now());
 
   // ========================================================
-  // LOCAL SESSION CLEANUP
-  //
-  // IMPORTANT:
-  // This DOES NOT call /logout/.
-  //
-  // Used when session-status returns 401 because the
-  // server has already invalidated this session.
-  // ========================================================
-  const clearSessionAndRedirect = useCallback((message = null) => {
-    if (logoutTimerRef.current) {
-      clearTimeout(logoutTimerRef.current);
-      logoutTimerRef.current = null;
-    }
-
-    if (sessionCheckTimerRef.current) {
-      clearInterval(sessionCheckTimerRef.current);
-      sessionCheckTimerRef.current = null;
-    }
-
-    setUser(null);
-    setRole(null);
-    setUniqueId(null);
-
-    isAuthenticatedRef.current = false;
-
-    clearAllStorage();
-    clearClientCookies();
-
-    if (message) {
-      alert(message);
-    }
-
-    window.history.replaceState(null, "", "/wecdschemes/Login");
-
-    window.location.replace("/wecdschemes/Login");
-  }, []);
-
-  // ========================================================
-  // REAL LOGOUT
-  //
-  // This DOES call /logout/.
-  //
-  // Backend:
-  //     login_version += 1
-  //     delete auth cookies
-  //
-  // Used for:
-  //     1. User clicking Logout
-  //     2. 5-minute idle timeout
-  //     3. Refresh-token failure
+  // REAL LOGOUT (FULL PROCEDURE)
+  // This is ALWAYS called, even if the session is dead.
   // ========================================================
   const logout = useCallback(async ({ timedOut = false } = {}) => {
     if (isLoggingOutRef.current) {
@@ -249,6 +201,9 @@ export function AuthProvider({ children }) {
     }
 
     isLoggingOutRef.current = true;
+
+    // Prevent interceptors from firing 401s or logging errors during logout
+    authFailureHandled = true;
 
     // ----------------------------------------------------
     // Stop refresh/retry processing
@@ -277,31 +232,33 @@ export function AuthProvider({ children }) {
     // ----------------------------------------------------
     if (sessionCheckTimerRef.current) {
       clearInterval(sessionCheckTimerRef.current);
-
       sessionCheckTimerRef.current = null;
     }
 
     // ----------------------------------------------------
-    // IMPORTANT:
-    // Read CSRF BEFORE clearing cookies.
+    // Read CSRF BEFORE clearing cookies
     // ----------------------------------------------------
     const csrfToken = getCSRFToken();
 
     try {
-      await fetch(`${API_URL}/logout/`, {
+      // ALWAYS CALL BACKEND LOGOUT TO DELETE HTTPONLY COOKIES
+      const response = await fetch(`${API_URL}/logout/`, {
         method: "POST",
         credentials: "include",
-
         headers: {
-          ...(csrfToken
-            ? {
-                "X-CSRFToken": csrfToken,
-              }
-            : {}),
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
         },
       });
+
+      if (!response.ok) {
+        console.warn(
+          `Logout API responded with status: ${response.status}. ` +
+            `If this is 401/403, your backend /logout/ endpoint MUST be set to AllowAny so it can delete HttpOnly cookies even when the JWT is invalid.`,
+        );
+      }
     } catch (error) {
-      console.error("Logout API failed:", error);
+      console.error("Logout API network error:", error);
     } finally {
       // --------------------------------------------------
       // Clear frontend authentication state
@@ -311,20 +268,16 @@ export function AuthProvider({ children }) {
       setUniqueId(null);
 
       isAuthenticatedRef.current = false;
+      isLoggingOutRef.current = false;
 
       // --------------------------------------------------
-      // Clear storage
+      // Clear storage & JS-accessible cookies
       // --------------------------------------------------
       clearAllStorage();
-
-      // --------------------------------------------------
-      // Clear JS-accessible cookies
-      // HttpOnly JWT cookies are deleted by backend.
-      // --------------------------------------------------
       clearClientCookies();
 
       // --------------------------------------------------
-      // Idle timeout message
+      // Idle timeout message (ONLY if timedOut is true)
       // --------------------------------------------------
       if (timedOut) {
         alert(
@@ -337,10 +290,16 @@ export function AuthProvider({ children }) {
       // Redirect to login
       // --------------------------------------------------
       window.history.replaceState(null, "", "/wecdschemes/Login");
-
       window.location.replace("/wecdschemes/Login");
     }
   }, []);
+
+  // ========================================================
+  // REGISTER LOGOUT WITH MODULE-LEVEL BRIDGE
+  // ========================================================
+  useEffect(() => {
+    fullLogoutRef.current = () => logout();
+  }, [logout]);
 
   // ========================================================
   // LOGIN
@@ -348,6 +307,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     (data) => {
       resetAuthFailureFlag();
+      isLoggingOutRef.current = false;
 
       if (data.role && data.unique_id) {
         setUser(data.username || null);
@@ -357,8 +317,6 @@ export function AuthProvider({ children }) {
         isAuthenticatedRef.current = true;
 
         lastActivityRef.current = Date.now();
-
-        isLoggingOutRef.current = false;
       } else {
         logout();
       }
@@ -370,16 +328,10 @@ export function AuthProvider({ children }) {
   // REFRESH ACCESS TOKEN
   // ========================================================
   const refreshAccessToken = useCallback(async () => {
-    // ----------------------------------------------------
-    // Don't refresh after auth failure
-    // ----------------------------------------------------
     if (authFailureHandled) {
       return false;
     }
 
-    // ----------------------------------------------------
-    // Existing refresh request
-    // ----------------------------------------------------
     if (isRefreshing && refreshPromiseRef.current) {
       return refreshPromiseRef.current;
     }
@@ -404,20 +356,14 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error("Refresh token failed:", error);
 
-      // --------------------------------------------------
-      // If idle timeout reached
-      // --------------------------------------------------
-      if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
-        await logout({
-          timedOut: true,
-        });
-      } else {
-        // ------------------------------------------------
-        // Active user but refresh failed
-        // ------------------------------------------------
-        handleSessionTimeout();
-
-        await logout();
+      if (isAuthenticatedRef.current) {
+        // If the refresh token fails, we check if it was due to being idle for 5 minutes
+        if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+          await logout({ timedOut: true });
+        } else {
+          // If they are actively moving the mouse, it means another device logged in
+          handleLoggedInElsewhere();
+        }
       }
 
       processQueue(error);
@@ -434,23 +380,18 @@ export function AuthProvider({ children }) {
   // ========================================================
   useEffect(() => {
     setIsReady(true);
-
     isAuthenticatedRef.current = !!user;
   }, [user]);
 
   // ========================================================
-  // IDLE TIMEOUT
-  //
-  // This DOES call /logout/.
+  // IDLE TIMEOUT (5 Minutes)
   // ========================================================
   useEffect(() => {
     if (!user || !role || !isAuthenticatedRef.current) {
       if (logoutTimerRef.current) {
         clearTimeout(logoutTimerRef.current);
-
         logoutTimerRef.current = null;
       }
-
       return undefined;
     }
 
@@ -462,9 +403,7 @@ export function AuthProvider({ children }) {
       }
 
       logoutTimerRef.current = setTimeout(() => {
-        logout({
-          timedOut: true,
-        });
+        logout({ timedOut: true });
       }, IDLE_TIMEOUT_MS);
     };
 
@@ -489,7 +428,6 @@ export function AuthProvider({ children }) {
 
       if (logoutTimerRef.current) {
         clearTimeout(logoutTimerRef.current);
-
         logoutTimerRef.current = null;
       }
     };
@@ -504,14 +442,11 @@ export function AuthProvider({ children }) {
         window.location.replace("/wecdschemes/Login");
       } else {
         const path = window.location.pathname;
-
         const isLoginPage = path.includes("/Login") || path.includes("/login");
 
         if (isLoginPage) {
           window.history.forward();
-
           const confirmed = window.confirm("Are you sure you want to logout?");
-
           if (confirmed) {
             logout();
           }
@@ -533,7 +468,6 @@ export function AuthProvider({ children }) {
     const instance = axios.create({
       baseURL: API_URL,
       withCredentials: true,
-
       headers: {
         "Content-Type": "application/json",
       },
@@ -548,7 +482,6 @@ export function AuthProvider({ children }) {
 
         if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
           const csrfToken = getCSRFToken();
-
           if (csrfToken) {
             config.headers["X-CSRFToken"] = csrfToken;
           }
@@ -568,85 +501,51 @@ export function AuthProvider({ children }) {
       async (error) => {
         const originalRequest = error.config;
 
-        // --------------------------------------------------
-        // If another request already handled auth failure
-        // --------------------------------------------------
         if (authFailureHandled) {
-          return Promise.reject(error);
+          return new Promise(() => {});
         }
 
-        // ==================================================
-        // CASE 1:
-        // SESSION STATUS FAILED
-        //
-        // IMPORTANT:
-        // DO NOT CALL /logout/
-        //
-        // Server already rejected this session.
-        // ==================================================
-        if (error.response?.status === 401 && isSessionStatusRequest(error)) {
-          if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
-            clearSessionAndRedirect(
-              `You were idle for ${IDLE_TIMEOUT_MINUTES} minutes. ` +
-                "Your session has expired. Please login again.",
-            );
-          } else {
-            handleLoggedInElsewhere();
-
-            clearSessionAndRedirect();
+        if (error.response?.status === 401) {
+          if (!isAuthenticatedRef.current) {
+            return Promise.reject(error);
           }
 
-          return Promise.reject(error);
-        }
+          // CASE 1: ALREADY RETRIED -> STILL 401
+          // The session is completely dead.
+          if (originalRequest?._retry) {
+            if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+              logout({ timedOut: true });
+            } else {
+              handleLoggedInElsewhere();
+            }
+            return new Promise(() => {});
+          }
 
-        // ==================================================
-        // CASE 2:
-        // ANY OTHER 401
-        //
-        // Try refresh token.
-        // ==================================================
-        if (error.response?.status === 401 && !originalRequest?._retry) {
-          // ------------------------------------------------
-          // If refresh already running, queue request
-          // ------------------------------------------------
+          // CASE 2: FIRST 401 -> TRY REFRESH
           if (isRefreshing) {
             return new Promise((resolve, reject) => {
-              failedQueue.push({
-                resolve,
-                reject,
-              });
+              failedQueue.push({ resolve, reject });
             })
-              .then(() => {
-                return instance(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
+              .then(() => instance(originalRequest))
+              .catch(() => new Promise(() => {}));
           }
 
           originalRequest._retry = true;
 
-          // ------------------------------------------------
-          // Try refresh
-          // ------------------------------------------------
           const refreshed = await refreshAccessToken();
 
           if (refreshed) {
-            // ----------------------------------------------
-            // Add latest CSRF token
-            // ----------------------------------------------
             const method = originalRequest.method?.toUpperCase();
-
             if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
               const csrfToken = getCSRFToken();
-
               if (csrfToken) {
                 originalRequest.headers["X-CSRFToken"] = csrfToken;
               }
             }
-
             return instance(originalRequest);
           }
 
-          return Promise.reject(error);
+          return new Promise(() => {});
         }
 
         return Promise.reject(error);
@@ -654,34 +553,21 @@ export function AuthProvider({ children }) {
     );
 
     return instance;
-  }, [logout, refreshAccessToken, clearSessionAndRedirect]);
+  }, [logout, refreshAccessToken]);
 
   // ========================================================
   // SESSION STATUS POLLING
-  //
-  // Calls:
-  //     GET /session-status/
-  //
-  // If 401:
-  //     interceptor handles it
-  //
-  // It does NOT call /logout/.
   // ========================================================
   useEffect(() => {
     if (!isAuthenticatedRef.current || !user || !role || !api) {
       if (sessionCheckTimerRef.current) {
         clearInterval(sessionCheckTimerRef.current);
-
         sessionCheckTimerRef.current = null;
       }
-
       return undefined;
     }
 
     const checkSessionStatus = async () => {
-      // --------------------------------------------------
-      // Don't check after auth failure
-      // --------------------------------------------------
       if (authFailureHandled || isRefreshing || isLoggingOutRef.current) {
         return;
       }
@@ -689,22 +575,12 @@ export function AuthProvider({ children }) {
       try {
         await api.get("/session-status/");
       } catch (error) {
-        // ------------------------------------------------
         // 401 is handled by axios interceptor.
-        // Do nothing here.
-        // ------------------------------------------------
       }
     };
 
-    // ------------------------------------------------------
-    // Initial check after 2 seconds
-    // ------------------------------------------------------
     const initialCheckTimer = setTimeout(() => {
       checkSessionStatus();
-
-      // --------------------------------------------------
-      // Check every 30 seconds
-      // --------------------------------------------------
       sessionCheckTimerRef.current = setInterval(checkSessionStatus, 30000);
     }, 2000);
 
@@ -713,7 +589,6 @@ export function AuthProvider({ children }) {
 
       if (sessionCheckTimerRef.current) {
         clearInterval(sessionCheckTimerRef.current);
-
         sessionCheckTimerRef.current = null;
       }
     };
@@ -727,15 +602,11 @@ export function AuthProvider({ children }) {
       user,
       role,
       uniqueId,
-
       login,
       logout,
-
       api,
       refreshAccessToken,
-
       isAuthenticated: isAuthenticatedRef.current,
-
       isReady,
     }),
     [user, role, uniqueId, login, logout, api, refreshAccessToken, isReady],
