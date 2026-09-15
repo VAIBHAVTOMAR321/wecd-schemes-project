@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -16,11 +16,10 @@ const [formData, setFormData] = useState({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
-  const [captchaQuestion, setCaptchaQuestion] = useState('');
+  const [captchaKey, setCaptchaKey] = useState('');
+  const [captchaImage, setCaptchaImage] = useState('');
   const [captchaError, setCaptchaError] = useState('');
-  const captchaTimerRef = useRef(null);
 
   // New state for password reset modal
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -109,36 +108,33 @@ const [formData, setFormData] = useState({
     }
   }, [roleOptions]);
 
-  const generateCaptcha = (showError = false) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setCaptchaQuestion(code);
-    setCaptchaAnswer(code);
+  const fetchCaptcha = async (errorMessage = '') => {
     setCaptchaInput('');
-    if (showError) {
-      setCaptchaError('Invalid CAPTCHA. Please try again.');
-      if (captchaTimerRef.current) clearTimeout(captchaTimerRef.current);
-      captchaTimerRef.current = setTimeout(() => {
-        setCaptchaError('');
-      }, 3000);
-    } else {
-      setCaptchaError('');
-      if (captchaTimerRef.current) {
-        clearTimeout(captchaTimerRef.current);
-        captchaTimerRef.current = null;
-      }
+    setCaptchaKey('');
+    setCaptchaError(errorMessage);
+
+    try {
+      const response = await axios.get(
+        'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/generate-captcha/',
+        { withCredentials: true }
+      );
+
+      const { captcha_key: key, captcha_image: imagePath } = response.data;
+      const imageUrl = imagePath
+        ? `https://mahadevaaya.com${imagePath}`
+        : '';
+
+      setCaptchaKey(key || '');
+      setCaptchaImage(imageUrl);
+    } catch {
+      setCaptchaKey('');
+      setCaptchaImage('');
+      setCaptchaError('Unable to load CAPTCHA. Please try again.');
     }
-    return code;
   };
 
   useEffect(() => {
-    generateCaptcha();
-    return () => {
-      if (captchaTimerRef.current) clearTimeout(captchaTimerRef.current);
-    };
+    fetchCaptcha();
   }, []);
 
  const handleChange = (e) => {
@@ -298,23 +294,25 @@ const handleLoginSuccess = (data) => {
       setError(content.errors.passwordRequired);
       return;
     }
-    if (captchaInput !== captchaAnswer) {
-      generateCaptcha(true);
+    if (!captchaInput) {
+      setCaptchaError('CAPTCHA is required.');
+      return;
+    }
+    if (!captchaKey) {
+      setCaptchaError('CAPTCHA is unavailable. Please refresh and try again.');
       return;
     }
 
     setLoading(true);
     setError('');
-    if (captchaTimerRef.current) {
-      clearTimeout(captchaTimerRef.current);
-      captchaTimerRef.current = null;
-    }
 
     try {
       const payload = {
         username: formData.email_or_phone,
         password: formData.password,
         role: formData.role,
+        captcha_key: captchaKey,
+        captcha_answer: captchaInput,
       };
 
       const response = await axios.post(
@@ -329,7 +327,16 @@ const handleLoginSuccess = (data) => {
       }
     } catch (err) {
       const responseData = err.response?.data;
-      if (responseData?.action === 'FORGOT_PASSWORD_REQUIRED') {
+      const backendCaptchaError = typeof responseData === 'string'
+        ? responseData
+        : responseData?.error || responseData?.message || '';
+
+      if (
+        typeof backendCaptchaError === 'string' &&
+        backendCaptchaError.toLowerCase().includes('captcha')
+      ) {
+        await fetchCaptcha(backendCaptchaError);
+      } else if (responseData?.action === 'FORGOT_PASSWORD_REQUIRED') {
         setError(responseData.error || content.errors.defaultPasswordNotAllowed);
       } else if (responseData?.error === 'Invalid credentials') {
         setError(content.errors.invalidCredentials);
@@ -350,7 +357,13 @@ const handleLoginSuccess = (data) => {
     // After successful password reset, attempt to log in with the new password
     setLoading(true);
     try {
-      const payload = { username: resetPasswordUsername, password: newPassword, role: resetPasswordRole };
+      const payload = {
+        username: resetPasswordUsername,
+        password: newPassword,
+        role: resetPasswordRole,
+        captcha_key: captchaKey,
+        captcha_answer: captchaInput,
+      };
       const response = await axios.post('/wecdschemes/wecdschemes_backend/api/login/', payload, { withCredentials: true });
       // With cookie-based auth, response contains: { message, role, unique_id, username }
       if (response.data.message && response.data.role) {
@@ -509,8 +522,10 @@ const handleLoginSuccess = (data) => {
                 <label>CAPTCHA</label>
                 <div className="captcha-wrapper">
                   <div className="captcha-display">
-                    <span id="captcha-question">{captchaQuestion}</span>
-                    <button type="button" className="captcha-refresh" onClick={generateCaptcha}>
+                    {captchaImage && (
+                      <img src={captchaImage} alt="CAPTCHA" className="captcha-image" />
+                    )}
+                    <button type="button" className="captcha-refresh" onClick={() => fetchCaptcha()}>
                       <i className="bi bi-arrow-clockwise"></i>
                     </button>
                   </div>
@@ -522,14 +537,10 @@ const handleLoginSuccess = (data) => {
                       setCaptchaInput(e.target.value);
                       if (captchaError) {
                         setCaptchaError('');
-                        if (captchaTimerRef.current) {
-                          clearTimeout(captchaTimerRef.current);
-                          captchaTimerRef.current = null;
-                        }
                       }
                     }}
                     placeholder="Enter CAPTCHA"
-                    maxLength="6"
+                    maxLength="8"
                   />
                 </div>
                 {captchaError && (
