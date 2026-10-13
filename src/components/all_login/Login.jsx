@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react'; // Added useRef
 import axios from 'axios';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -8,11 +8,11 @@ import ResetPasswordModal from './ResetPasswordModal';
 import Womenlogo from '../../assets/images/women_logo.jpeg';
 
 const Login = () => {
-const [formData, setFormData] = useState({
-     role: 'director',
-     email_or_phone: 'Directorate',
-     password: '',
-   });
+  const [formData, setFormData] = useState({
+    role: 'director',
+    email_or_phone: 'Directorate',
+    // Removed 'password' from state to satisfy audit
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,29 +21,29 @@ const [formData, setFormData] = useState({
   const [captchaImage, setCaptchaImage] = useState('');
   const [captchaError, setCaptchaError] = useState('');
 
-  // New state for password reset modal
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPasswordUsername, setResetPasswordUsername] = useState('');
   const [resetPasswordRole, setResetPasswordRole] = useState('');
 
-// New state for dropdowns
-   const [districts, setDistricts] = useState([]);
-   const [projects, setProjects] = useState([]);
-   const [sectors, setSectors] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [sectors, setSectors] = useState([]);
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedSector, setSelectedSector] = useState('');
   const [SectorProjectsData, setSectorProjectsData] = useState([]);
 
-   const navigate = useNavigate();
-   const { login } = useAuth();
-   const location = useLocation();
-   const logoutMessage = location.state?.message;
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const location = useLocation();
+  const logoutMessage = location.state?.message;
 
- // Content for Government Portal Style (consistent with Home.jsx)
-   const content = {
-     brandSubtitle: "Women Empowerment & Child Development Department",
-     roleLabel: "Select Your Role",
+  // Create a ref for the password input
+  const passwordRef = useRef(null);
+
+  const content = {
+    brandSubtitle: "Women Empowerment & Child Development Department",
+    roleLabel: "Select Your Role",
     userIdLabel: "Login Type",
     userIdPlaceholder: "Enter Login Type",
     passwordLabel: "Password",
@@ -55,16 +55,6 @@ const [formData, setFormData] = useState({
     rememberMe: "Remember Me",
     signIn: "Sign In",
     signingIn: "Signing In...",
-    
-    learnTitle: "Learn",
-    learnDesc: "Access quality education and new curricula",
-    growTitle: "Grow",
-    growDesc: "Track your educational progress",
-    succeedTitle: "Succeed",
-    succeedDesc: "Build your career from class 9 to 12",
-    welcomeTitle: "Welcome",
-    welcomeSubtitle: "Sign in to continue to your dashboard",
-    
     needAccess: " ",
     contactAdmin: "",
     errors: {
@@ -88,14 +78,12 @@ const [formData, setFormData] = useState({
     }
   };
 
-  const roleOptions = useMemo(() => {
-    return [
-      { value: 'director', label: 'Directorate', icon: 'bi-person-workspace' },
-      { value: 'dpo', label: 'DPO', icon: 'bi-briefcase' },
-      { value: 'cdpo', label: 'CDPO', icon: 'bi-person-badge' },
-      { value: 'supervisor', label: 'Sector', icon: 'bi-person-check' },
-    ];
-  }, []);
+  const roleOptions = useMemo(() => [
+    { value: 'director', label: 'Directorate', icon: 'bi-person-workspace' },
+    { value: 'dpo', label: 'DPO', icon: 'bi-briefcase' },
+    { value: 'cdpo', label: 'CDPO', icon: 'bi-person-badge' },
+    { value: 'supervisor', label: 'Sector', icon: 'bi-person-check' },
+  ], []);
 
   const loginTitle = useMemo(() => {
     const selectedRole = roleOptions.find(r => r.value === formData.role);
@@ -112,18 +100,10 @@ const [formData, setFormData] = useState({
     setCaptchaInput('');
     setCaptchaKey('');
     setCaptchaError(errorMessage);
-
     try {
-      const response = await axios.get(
-        'https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/generate-captcha/',
-        { withCredentials: true }
-      );
-
+      const response = await axios.get('https://mahadevaaya.com/wecdschemes/wecdschemes_backend/api/generate-captcha/', { withCredentials: true });
       const { captcha_key: key, captcha_image: imagePath } = response.data;
-      const imageUrl = imagePath
-        ? `https://mahadevaaya.com${imagePath}`
-        : '';
-
+      const imageUrl = imagePath ? `https://mahadevaaya.com${imagePath}` : '';
       setCaptchaKey(key || '');
       setCaptchaImage(imageUrl);
     } catch {
@@ -137,171 +117,134 @@ const [formData, setFormData] = useState({
     fetchCaptcha();
   }, []);
 
- const handleChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({ ...prev, [name]: value }));
-      setError('');
-
-// Reset dropdown selections and dependent data when role changes
-       if (name === 'role') {
-         setSelectedDistrict('');
-         setSelectedProject('');
-         setSelectedSector('');
-         setFormData(prev => ({ ...prev, email_or_phone: '' }));
-         const emailValue = value === 'director' ? 'Directorate' : '';
-         setFormData(prev => ({ ...prev, email_or_phone: emailValue }));
-         setDistricts([]);
-         setProjects([]);
-         setSectors([]);
-         setSectorProjectsData([]);
-       }
-    };
-
-// Fetching logic for dropdowns
-    useEffect(() => {
-      if (['supervisor', 'cdpo', 'dpo'].includes(formData.role)) {
-        fetchDistricts();
-      }
-    }, [formData.role]);
-
-    const fetchDistricts = async () => {
-      let url = '';
-      if (formData.role === 'supervisor') {
-        url = '/wecdschemes/wecdschemes_backend/api/sector-dropdown/';
-      } else if (formData.role === 'cdpo') {
-        url = '/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/';
-      } else if (formData.role === 'dpo') {
-        url = '/wecdschemes/wecdschemes_backend/api/district-list/';
-      }
-      try {
-        const res = await axios.get(url || '', { withCredentials: true });
-        if (res.data.success) setDistricts(res.data.data);
-      } catch (err) { console.error("Error fetching districts", err); }
-    };
-
-const handleDistrictChange = async (e) => {
-      const district = e.target.value;
-      setSelectedDistrict(district);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+    if (name === 'role') {
+      setSelectedDistrict('');
       setSelectedProject('');
       setSelectedSector('');
-      setFormData(prev => ({ ...prev, email_or_phone: '' }));
-      setProjects([]); setSectors([]);
-      setSectorProjectsData([]);
-
-      if (district) {
-        if (formData.role === 'dpo') {
-          const selectedObj = districts.find(d => d.district === district);
-          if (selectedObj) {
-            setFormData(prev => ({ ...prev, email_or_phone: selectedObj.sdname }));
-          }
-          return;
-        }
-
-        let url = '';
-        if (formData.role === 'supervisor') {
-          url = `/wecdschemes/wecdschemes_backend/api/sector-dropdown/?district=${district}`;
-        } else if (formData.role === 'cdpo') {
-          url = `/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/?district=${district}`;
-        }
-
-        try {
-          const res = await axios.get(url, { withCredentials: true });
-          if (res.data.success) {
-            if (formData.role === 'supervisor') {
-              setSectorProjectsData(res.data.data);
-              setProjects(res.data.data.map(item => ({ project: item.project_code })));
-            } else if (formData.role === 'cdpo') {
-              setProjects(res.data.data.map(item => ({ project: item.project_name })));
-            } else {
-              setProjects(res.data.data);
-            }
-          }
-        } catch (err) { console.error("Error fetching projects", err); }
-      }
-    };
-
-const handleProjectChange = async (e) => {
-      const project = e.target.value;
-      setSelectedProject(project);
-      setSelectedSector('');
+      const emailValue = value === 'director' ? 'Directorate' : '';
+      setFormData(prev => ({ ...prev, email_or_phone: emailValue }));
+      setDistricts([]);
+      setProjects([]);
       setSectors([]);
+      setSectorProjectsData([]);
+    }
+  };
 
-      if (project) {
-        if (formData.role === 'supervisor') {
-          setFormData(prev => ({ ...prev, email_or_phone: '' }));
-          const projData = SectorProjectsData.find(p => p.project_code === project);
-          if (projData) setSectors(projData.sectors);
-        } else if (formData.role === 'cdpo') {
-          setFormData(prev => ({ ...prev, email_or_phone: project }));
-        } else {
-          setFormData(prev => ({ ...prev, email_or_phone: '' }));
+  useEffect(() => {
+    if (['supervisor', 'cdpo', 'dpo'].includes(formData.role)) {
+      fetchDistricts();
+    }
+  }, [formData.role]);
+
+  const fetchDistricts = async () => {
+    let url = '';
+    if (formData.role === 'supervisor') url = '/wecdschemes/wecdschemes_backend/api/sector-dropdown/';
+    else if (formData.role === 'cdpo') url = '/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/';
+    else if (formData.role === 'dpo') url = '/wecdschemes/wecdschemes_backend/api/district-list/';
+    try {
+      const res = await axios.get(url || '', { withCredentials: true });
+      if (res.data.success) setDistricts(res.data.data);
+    } catch (err) {
+      console.error("Error fetching districts", err);
+    }
+  };
+
+  const handleDistrictChange = async (e) => {
+    const district = e.target.value;
+    setSelectedDistrict(district);
+    setSelectedProject('');
+    setSelectedSector('');
+    setFormData(prev => ({ ...prev, email_or_phone: '' }));
+    setProjects([]);
+    setSectors([]);
+    setSectorProjectsData([]);
+
+    if (district) {
+      if (formData.role === 'dpo') {
+        const selectedObj = districts.find(d => d.district === district);
+        if (selectedObj) setFormData(prev => ({ ...prev, email_or_phone: selectedObj.sdname }));
+        return;
+      }
+
+      let url = '';
+      if (formData.role === 'supervisor') url = `/wecdschemes/wecdschemes_backend/api/sector-dropdown/?district=${district}`;
+      else if (formData.role === 'cdpo') url = `/wecdschemes/wecdschemes_backend/api/cdpo-dropdown/?district=${district}`;
+
+      try {
+        const res = await axios.get(url, { withCredentials: true });
+        if (res.data.success) {
+          if (formData.role === 'supervisor') {
+            setSectorProjectsData(res.data.data);
+            setProjects(res.data.data.map(item => ({ project: item.project_code })));
+          } else if (formData.role === 'cdpo') {
+            setProjects(res.data.data.map(item => ({ project: item.project_name })));
+          } else {
+            setProjects(res.data.data);
+          }
         }
-      } else {
-        setFormData(prev => ({ ...prev, email_or_phone: '' }));
+      } catch (err) {
+        console.error("Error fetching projects", err);
       }
-    };
+    }
+  };
 
-const handleSectorChange = async (e) => {
-      const sector = e.target.value;
-      setSelectedSector(sector);
+  const handleProjectChange = async (e) => {
+    const project = e.target.value;
+    setSelectedProject(project);
+    setSelectedSector('');
+    setSectors([]);
 
+    if (project) {
       if (formData.role === 'supervisor') {
-        // For supervisor, the selected sector name is the username
-        setFormData(prev => ({ ...prev, email_or_phone: sector }));
+        setFormData(prev => ({ ...prev, email_or_phone: '' }));
+        const projData = SectorProjectsData.find(p => p.project_code === project);
+        if (projData) setSectors(projData.sectors);
+      } else if (formData.role === 'cdpo') {
+        setFormData(prev => ({ ...prev, email_or_phone: project }));
       } else {
         setFormData(prev => ({ ...prev, email_or_phone: '' }));
       }
-    };
+    } else {
+      setFormData(prev => ({ ...prev, email_or_phone: '' }));
+    }
+  };
 
-const handleLoginSuccess = (data) => {
-     // With cookie-based auth, response is: { message, role, unique_id, username }
-     // Backend manages cookies, frontend just stores user info in context
-     login({
-       role: data.role,
-       unique_id: data.unique_id,
-       username: data.username,
-     });
-     alert(content.errors.loginSuccess);
+  const handleSectorChange = async (e) => {
+    const sector = e.target.value;
+    setSelectedSector(sector);
+    if (formData.role === 'supervisor') {
+      setFormData(prev => ({ ...prev, email_or_phone: sector }));
+    } else {
+      setFormData(prev => ({ ...prev, email_or_phone: '' }));
+    }
+  };
 
-     // Role-based redirection to specific dashboards
-     const userRole = data.role;
-     switch (userRole) {
-       case 'director':
-         navigate('/DirectorDashboard');
-         break;
-       case 'dpo':
-         navigate('/DPODashboard');
-         break;
-       case 'cdpo':
-         navigate('/CDPODashboard');
-         break;
-       case 'supervisor':
-         navigate('/SectorDashBoard');
-         break;
-       default:
-         navigate('/UserDashboard');
-     }
-   };
+  const handleLoginSuccess = (data) => {
+    login({ role: data.role, unique_id: data.unique_id, username: data.username });
+    alert(content.errors.loginSuccess);
+    switch (data.role) {
+      case 'director': navigate('/DirectorDashboard'); break;
+      case 'dpo': navigate('/DPODashboard'); break;
+      case 'cdpo': navigate('/CDPODashboard'); break;
+      case 'supervisor': navigate('/SectorDashBoard'); break;
+      default: navigate('/UserDashboard');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Get password directly from the input ref (NOT from state)
+    const passwordValue = passwordRef.current ? passwordRef.current.value : '';
 
-    if (!formData.email_or_phone) {
-      setError(content.errors.userIdRequired);
-      return;
-    }
-    if (!formData.password) {
-      setError(content.errors.passwordRequired);
-      return;
-    }
-    if (!captchaInput) {
-      setCaptchaError('CAPTCHA is required.');
-      return;
-    }
-    if (!captchaKey) {
-      setCaptchaError('CAPTCHA is unavailable. Please refresh and try again.');
-      return;
-    }
+    if (!formData.email_or_phone) return setError(content.errors.userIdRequired);
+    if (!passwordValue) return setError(content.errors.passwordRequired);
+    if (!captchaInput) return setCaptchaError('CAPTCHA is required.');
+    if (!captchaKey) return setCaptchaError('CAPTCHA is unavailable. Please refresh and try again.');
 
     setLoading(true);
     setError('');
@@ -309,32 +252,21 @@ const handleLoginSuccess = (data) => {
     try {
       const payload = {
         username: formData.email_or_phone,
-        password: formData.password,
+        password: passwordValue, // Send the ref value
         role: formData.role,
         captcha_key: captchaKey,
         captcha_answer: captchaInput,
       };
 
-      const response = await axios.post(
-        '/wecdschemes/wecdschemes_backend/api/login/',
-        payload,
-        { withCredentials: true }
-      );
-
-      // With cookie-based auth, response contains: { message, role, unique_id, username }
+      const response = await axios.post('/wecdschemes/wecdschemes_backend/api/login/', payload, { withCredentials: true });
       if (response.data.message && response.data.role) {
         handleLoginSuccess(response.data);
       }
     } catch (err) {
       const responseData = err.response?.data;
-      const backendCaptchaError = typeof responseData === 'string'
-        ? responseData
-        : responseData?.error || responseData?.message || '';
+      const backendCaptchaError = typeof responseData === 'string' ? responseData : responseData?.error || responseData?.message || '';
 
-      if (
-        typeof backendCaptchaError === 'string' &&
-        backendCaptchaError.toLowerCase().includes('captcha')
-      ) {
+      if (typeof backendCaptchaError === 'string' && backendCaptchaError.toLowerCase().includes('captcha')) {
         await fetchCaptcha(backendCaptchaError);
       } else if (responseData?.action === 'FORGOT_PASSWORD_REQUIRED') {
         setError(responseData.error || content.errors.defaultPasswordNotAllowed);
@@ -354,7 +286,6 @@ const handleLoginSuccess = (data) => {
 
   const handlePasswordResetSuccess = async (newPassword) => {
     setShowResetPasswordModal(false);
-    // After successful password reset, attempt to log in with the new password
     setLoading(true);
     try {
       const payload = {
@@ -365,7 +296,6 @@ const handleLoginSuccess = (data) => {
         captcha_answer: captchaInput,
       };
       const response = await axios.post('/wecdschemes/wecdschemes_backend/api/login/', payload, { withCredentials: true });
-      // With cookie-based auth, response contains: { message, role, unique_id, username }
       if (response.data.message && response.data.role) {
         handleLoginSuccess(response.data);
       }
@@ -380,14 +310,14 @@ const handleLoginSuccess = (data) => {
     <div className="login-page">
       <div className="login-bg-pattern"></div>
       <div className="login-container">
-          <div className="login-right">
+        <div className="login-right">
           <div className="uttarakhand-section">
             <img src={UkLogo} alt="Uttarakhand Logo" className="uttarakhand-logo" />
-            <h2 className="uttarakhand-title">Women Empowerment & Child Development Department<br/><span className="state-portal">WECD Uttarakhand | State Portal</span></h2>
-            
+            <h2 className="uttarakhand-title">
+              Women Empowerment & Child Development Department<br />
+              <span className="state-portal">WECD Uttarakhand | State Portal</span>
+            </h2>
           </div>
-
-         
         </div>
         <div className="login-left">
           <div className="login-content">
@@ -399,9 +329,6 @@ const handleLoginSuccess = (data) => {
               <p>{content.brandSubtitle}</p>
             </div>
 
-           
-
-            {/* Radio Button Selection */}
             <div className="role-selector">
               <label className="role-selector-title">{content.roleLabel}</label>
               <div className="radio-selection">
@@ -434,7 +361,7 @@ const handleLoginSuccess = (data) => {
                 </div>
               )}
 
-{['supervisor', 'cdpo', 'dpo'].includes(formData.role) ? (
+              {['supervisor', 'cdpo', 'dpo'].includes(formData.role) ? (
                 <>
                   <div className="form-group">
                     <label>{content.districtLabel}</label>
@@ -449,10 +376,10 @@ const handleLoginSuccess = (data) => {
                   {formData.role !== 'dpo' && (
                     <div className="form-group">
                       <label>{content.projectLabel}</label>
-                      <select 
-                        className="form-select custom-login-select" 
-                        value={selectedProject} 
-                        onChange={handleProjectChange} 
+                      <select
+                        className="form-select custom-login-select"
+                        value={selectedProject}
+                        onChange={handleProjectChange}
                         disabled={!selectedDistrict}
                       >
                         <option value="">{content.projectLabel}</option>
@@ -466,10 +393,10 @@ const handleLoginSuccess = (data) => {
                   {!['cdpo', 'dpo'].includes(formData.role) && (
                     <div className="form-group">
                       <label>{content.sectorLabel}</label>
-                      <select 
-                        className="form-select custom-login-select" 
-                        value={selectedSector} 
-                        onChange={handleSectorChange} 
+                      <select
+                        className="form-select custom-login-select"
+                        value={selectedSector}
+                        onChange={handleSectorChange}
                         disabled={!selectedProject}
                       >
                         <option value="">{content.sectorLabel}</option>
@@ -480,23 +407,24 @@ const handleLoginSuccess = (data) => {
                     </div>
                   )}
                 </>
-               ) : (
-                 <div className="form-group">
-                   <label>{content.userIdLabel}</label>
-                   <div className="input-wrapper">
-                     <i className="bi bi-person"></i>
-                     <input
-                       type="text"
-                       name="email_or_phone"
-                       value={formData.email_or_phone}
-                       onChange={handleChange}
-                       placeholder={content.userIdPlaceholder}
-                       readOnly={['director'].includes(formData.role)}
-                     />
-                   </div>
-                 </div>
-               )}
+              ) : (
+                <div className="form-group">
+                  <label>{content.userIdLabel}</label>
+                  <div className="input-wrapper">
+                    <i className="bi bi-person"></i>
+                    <input
+                      type="text"
+                      name="email_or_phone"
+                      value={formData.email_or_phone}
+                      onChange={handleChange}
+                      placeholder={content.userIdPlaceholder}
+                      readOnly={['director'].includes(formData.role)}
+                    />
+                  </div>
+                </div>
+              )}
 
+              {/* UNCONTROLLED PASSWORD INPUT */}
               <div className="form-group">
                 <label>{content.passwordLabel}</label>
                 <div className="input-wrapper">
@@ -504,14 +432,15 @@ const handleLoginSuccess = (data) => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
-                    value={formData.password}
-                    onChange={handleChange}
+                    ref={passwordRef} // Binds the input to the ref, NOT state
                     placeholder={content.passwordPlaceholder}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     className="password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <i className={showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}></i>
                   </button>
@@ -535,9 +464,7 @@ const handleLoginSuccess = (data) => {
                     value={captchaInput}
                     onChange={(e) => {
                       setCaptchaInput(e.target.value);
-                      if (captchaError) {
-                        setCaptchaError('');
-                      }
+                      if (captchaError) setCaptchaError('');
                     }}
                     placeholder="Enter CAPTCHA"
                     maxLength="8"
@@ -575,8 +502,6 @@ const handleLoginSuccess = (data) => {
             </div>
           </div>
         </div>
-
-      
       </div>
 
       {showResetPasswordModal && (
