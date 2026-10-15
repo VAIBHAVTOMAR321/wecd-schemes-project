@@ -15,7 +15,9 @@ const CDPOProfile = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
     password: "",
     confirmPassword: ""
   });
@@ -237,8 +239,8 @@ const CDPOProfile = () => {
     e.preventDefault();
     setMessage({ text: "", type: "" });
 
-    if (!passwordData.password || !passwordData.confirmPassword) {
-      setMessage({ text: "कृपया सभी फ़ील्ड भरें", type: "error" });
+    if (!passwordData.currentPassword || !passwordData.password || !passwordData.confirmPassword) {
+       setMessage({ text: "कृपया सभी फ़ील्ड भरें", type: "error" });
       return;
     }
 
@@ -256,6 +258,7 @@ const CDPOProfile = () => {
     setLoading(true);
     try {
       const payload = {
+        current_password: passwordData.currentPassword,
         password: passwordData.password
       };
       const response = await api.put('/cdpo/profile/', payload);
@@ -343,7 +346,32 @@ const CDPOProfile = () => {
                 <Card.Body className="p-3">
                   <Form onSubmit={handleChangePassword}>
                     <Row className="g-3">
-                      <Col md={6}>
+                      <Col md={4}>
+                        <Form.Group>
+                          <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Current Password</Form.Label>
+                          <div className="input-wrapper">
+                            <Form.Control
+                              size="sm"
+                              type={showCurrentPassword ? 'text' : 'password'}
+                              name="currentPassword"
+                              value={passwordData.currentPassword}
+                              onChange={handlePasswordChange}
+                              placeholder="वर्तमान पासवर्ड दर्ज करें"
+                              className="border-2"
+                              minLength={8}
+                            />
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="password-toggle p-0"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            >
+                              <i className={`bi ${showCurrentPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                            </Button>
+                          </div>
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
                         <Form.Group>
                           <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Password</Form.Label>
                           <div className="input-wrapper">
@@ -397,7 +425,7 @@ const CDPOProfile = () => {
                           )}
                         </Form.Group>
                       </Col>
-                      <Col md={6}>
+                      <Col md={4}>
                         <Form.Group>
                           <Form.Label className="small fw-bold text-uppercase" style={{ fontSize: '11px', display: 'block', textAlign: 'left', color: "#60a5fa" }}>Confirm Password</Form.Label>
                           <div className="input-wrapper">
